@@ -32,7 +32,7 @@ export default function DashboardPage() {
   
   const [orders, setOrders] = useState<OrderLog[]>([]);
   const [copied, setCopied] = useState(false);
-  const referralCode = 'invite-node-9441281ff';
+  const referralCode = 'FR-LOYAL-9599';
 
   useEffect(() => {
     // Read orders from localStorage
@@ -72,7 +72,7 @@ export default function DashboardPage() {
   }, []);
 
   const handleCopyReferral = () => {
-    navigator.clipboard.writeText(`https://freert.net/invite/${referralCode}`);
+    navigator.clipboard.writeText(`https://freertclothing.vercel.app/signup?ref=${referralCode}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -82,7 +82,7 @@ export default function DashboardPage() {
       <Navbar />
 
       <main className="flex-1 container-editorial py-12 md:py-20">
-        <h1 className="text-3xl font-light uppercase tracking-widest text-left mb-12 text-fg-luxury">Dashboard</h1>
+        <h1 className="text-3xl font-light uppercase tracking-widest text-left mb-12 text-fg-luxury">My Account</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-start">
           
@@ -90,45 +90,45 @@ export default function DashboardPage() {
           <div className="lg:col-span-4 bg-neutral-soft/15 p-8 border border-neutral-soft/50 text-left flex flex-col gap-6">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-fg-luxury text-bg-luxury rounded-full flex items-center justify-center font-editorial font-semibold text-lg">
-                {user ? user.fullName?.charAt(0) || 'U' : 'O'}
+                {user ? user.fullName?.charAt(0).toUpperCase() || 'U' : 'C'}
               </div>
               <div>
                 <h3 className="text-sm uppercase tracking-wider font-semibold text-fg-luxury">
-                  {user ? user.fullName || 'Identity Configured' : 'Operator #9441'}
+                  {user ? user.fullName || 'Registered Customer' : 'Customer Account'}
                 </h3>
-                <p className="text-[10px] text-text-muted font-light lowercase mt-0.5">{user?.email || 'operator@freert.net'}</p>
+                <p className="text-[10px] text-text-muted font-light lowercase mt-0.5">{user?.email || 'guest@domain.com'}</p>
               </div>
             </div>
 
             <div className="border-t border-neutral-soft/30 pt-6 flex flex-col gap-4">
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-text-muted mb-1 font-medium">Rank Tier</p>
+                <p className="text-[9px] uppercase tracking-widest text-text-muted mb-1 font-medium">Membership Level</p>
                 <p className="text-xs uppercase tracking-widest text-fg-luxury font-semibold flex items-center gap-1.5">
-                  <Star size={12} className="text-accent-gold fill-accent-gold" /> Cyber-Elite
+                  <Star size={12} className="text-accent-gold fill-accent-gold" /> Gold Member
                 </p>
               </div>
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-text-muted mb-1 font-medium">Loyalty Credits</p>
-                <p className="text-xs uppercase tracking-wider text-fg-luxury font-semibold">1,240 RT</p>
+                <p className="text-[9px] uppercase tracking-widest text-text-muted mb-1 font-medium">Loyalty Points</p>
+                <p className="text-xs uppercase tracking-wider text-fg-luxury font-semibold">1,240 Points</p>
               </div>
             </div>
 
             {/* Invite program */}
             <div className="border-t border-neutral-soft/30 pt-6 flex flex-col gap-3">
-              <h4 className="text-[10px] uppercase tracking-[0.2em] font-medium text-fg-luxury">Invite Connection</h4>
+              <h4 className="text-[10px] uppercase tracking-[0.2em] font-medium text-fg-luxury">Referral Program</h4>
               <p className="text-[11px] text-text-muted font-light leading-relaxed">
-                Connect additional nodes. Earn 200 Loyalty credits (RT) per contact.
+                Invite friends to join FREERT. Earn 200 Loyalty points for each referral.
               </p>
               <div className="flex border border-neutral-soft/80 bg-bg-luxury p-2">
                 <input 
                   type="text" 
                   readOnly 
-                  value={referralCode}
-                  className="bg-transparent text-[10px] font-light w-full text-fg-luxury focus:outline-none"
+                  value={`https://freertclothing.vercel.app/signup?ref=${referralCode}`}
+                  className="bg-transparent text-[9px] font-light w-full text-fg-luxury focus:outline-none truncate"
                 />
                 <button 
                   onClick={handleCopyReferral}
-                  className="text-text-muted hover:text-fg-luxury transition-colors cursor-pointer"
+                  className="text-text-muted hover:text-fg-luxury transition-colors cursor-pointer ml-1"
                   aria-label="Copy Referral URL"
                 >
                   {copied ? <Check size={14} className="text-green-700" /> : <Copy size={14} />}
@@ -140,12 +140,12 @@ export default function DashboardPage() {
           {/* Right panel: orders log list */}
           <div className="lg:col-span-8 text-left">
             <h2 className="text-xs uppercase tracking-[0.25em] font-semibold text-fg-luxury mb-6 border-b border-neutral-soft/40 pb-2">
-              Order Database History ({orders.length})
+              Order History ({orders.length})
             </h2>
 
             {orders.length === 0 ? (
               <div className="py-12 border border-dashed border-neutral-soft text-center text-xs text-text-muted uppercase tracking-widest font-light">
-                No orders registered on this workspace node.
+                You have not placed any orders yet.
               </div>
             ) : (
               <div className="flex flex-col gap-6">
@@ -154,7 +154,7 @@ export default function DashboardPage() {
                     <div className="flex justify-between items-start gap-4">
                       <div>
                         <span className="text-xs uppercase tracking-wider font-semibold text-fg-luxury">{order.id}</span>
-                        <span className="text-[10px] text-text-muted font-light ml-3">Logged: {order.date}</span>
+                        <span className="text-[10px] text-text-muted font-light ml-3">Date: {order.date}</span>
                       </div>
                       <span className={`text-[9px] uppercase tracking-widest py-1 px-3.5 font-light ${order.status === 'delivered' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
                         {order.status}
@@ -171,7 +171,7 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="flex justify-between items-baseline pt-4 border-t border-neutral-soft/20 text-xs font-semibold uppercase tracking-[0.1em] text-fg-luxury">
-                      <span>Paid Total</span>
+                      <span>Total Paid</span>
                       <span>₹{order.totalAmount.toLocaleString('en-IN')}</span>
                     </div>
                   </div>

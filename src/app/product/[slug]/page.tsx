@@ -11,7 +11,8 @@ import { useToast } from '@/contexts/ToastContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { StructuredData } from '@/components/StructuredData';
 import { getProductReviews, createProductReview } from '@/services/database';
-import { ArrowLeft, Check, Truck, RotateCcw, ShieldCheck, Heart, Star, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Check, Truck, RotateCcw, ShieldCheck, Heart, Star, AlertTriangle, X } from 'lucide-react';
+import { ProductCard } from '@/components/ProductCard';
 
 interface UserReview {
   id: string;
@@ -34,6 +35,23 @@ export default function ProductDetailPage() {
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
   const [added, setAdded] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [zoomStyle, setZoomStyle] = useState<React.CSSProperties>({});
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setZoomStyle({
+      transformOrigin: `${x}% ${y}%`,
+      transform: 'scale(1.6)'
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setZoomStyle({});
+  };
 
   // Reviews states
   const [reviews, setReviews] = useState<UserReview[]>([]);
@@ -176,13 +194,34 @@ export default function ProductDetailPage() {
         {/* Asymmetric Editorial Detail Layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20 items-start">
           
-          {/* Image Display */}
-          <div className="w-full aspect-[3/4] bg-neutral-soft/30 overflow-hidden relative">
-            <img 
-              src={product.images[0]} 
-              alt={product.name} 
-              className="w-full h-full object-cover"
-            />
+          {/* Image Display & Thumbnails */}
+          <div className="flex gap-4 items-start col-span-1">
+            {/* Thumbnails */}
+            <div className="flex flex-col gap-3 w-16 flex-shrink-0">
+              {product.images.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveImageIndex(idx)}
+                  className={`aspect-[3/4] border overflow-hidden transition-all duration-300 ${activeImageIndex === idx ? 'border-fg-luxury' : 'border-neutral-soft/50 hover:border-neutral-400'}`}
+                >
+                  <img src={img} className="w-full h-full object-cover animate-[fadeIn_0.3s_ease-out]" alt="" />
+                </button>
+              ))}
+            </div>
+
+            {/* Main Image Frame (Zoom on hover) */}
+            <div 
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+              className="flex-1 aspect-[3/4] bg-neutral-soft/30 overflow-hidden relative cursor-zoom-in border border-neutral-soft/30"
+            >
+              <img 
+                src={product.images[activeImageIndex] || product.images[0]} 
+                alt={product.name} 
+                style={zoomStyle}
+                className="w-full h-full object-cover transition-transform duration-200 ease-out animate-[fadeIn_0.3s_ease-out]"
+              />
+            </div>
           </div>
 
           {/* Details Content info */}
@@ -255,7 +294,16 @@ export default function ProductDetailPage() {
               {/* Sizing options */}
               {sizes.length > 0 && (
                 <div>
-                  <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-3">Size Module</h4>
+                  <div className="flex justify-between items-baseline mb-3">
+                    <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury">Size Module</h4>
+                    <button 
+                      type="button" 
+                      onClick={() => setIsSizeGuideOpen(true)}
+                      className="text-[8px] uppercase tracking-wider text-accent-gold hover:text-fg-luxury underline cursor-pointer"
+                    >
+                      Size Guide
+                    </button>
+                  </div>
                   <div className="flex gap-3">
                     {sizes.map((s) => {
                       const sizeVariant = product.variants?.find(v => v.size === s && v.color === (selectedColor || colors[0]));
@@ -326,7 +374,7 @@ export default function ProductDetailPage() {
             <div className="flex flex-col gap-4 border-t border-neutral-soft/40 pt-8 text-[10px] uppercase tracking-[0.15em] text-text-muted font-light">
               <div className="flex items-center gap-3">
                 <Truck size={14} className="text-accent-gold" />
-                <span>Free global drone delivery on orders ₹15,000+</span>
+                <span>Delivery expected by {new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', { weekday: 'long', month: 'short', day: 'numeric' })} (Complimentary above ₹15,000)</span>
               </div>
               <div className="flex items-center gap-3">
                 <RotateCcw size={14} className="text-accent-gold" />
@@ -340,6 +388,68 @@ export default function ProductDetailPage() {
           </div>
 
         </div>
+
+        {/* Size Guide Modal Overlay */}
+        {isSizeGuideOpen && (
+          <div className="fixed inset-0 z-[1500] bg-fg-luxury/45 backdrop-blur-[4px] flex items-center justify-center p-4">
+            <div className="bg-bg-luxury border border-neutral-soft/80 max-w-lg w-full p-8 text-left relative shadow-2xl animate-[fadeIn_0.2s_ease-out]">
+              <button 
+                type="button"
+                onClick={() => setIsSizeGuideOpen(false)}
+                className="absolute top-6 right-6 text-text-muted hover:text-fg-luxury transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+              <h3 className="text-sm uppercase tracking-widest font-semibold text-fg-luxury mb-4 border-b border-neutral-soft/30 pb-2">Size Reference Guide</h3>
+              <p className="text-xs text-text-muted font-light leading-relaxed mb-6">
+                FREERT silhouettes are designed with a relaxed, architectural fit. If you prefer a structured look, we recommend sizing down.
+              </p>
+              <table className="w-full text-[10px] uppercase tracking-wider text-text-muted">
+                <thead>
+                  <tr className="border-b border-neutral-soft">
+                    <th className="py-2 text-left font-medium">Size</th>
+                    <th className="py-2 text-left font-medium">Chest (in)</th>
+                    <th className="py-2 text-left font-medium">Waist (in)</th>
+                    <th className="py-2 text-left font-medium">Length (in)</th>
+                  </tr>
+                </thead>
+                <tbody className="font-light">
+                  <tr className="border-b border-neutral-soft/30">
+                    <td className="py-2 font-medium text-fg-luxury">S</td>
+                    <td className="py-2">36 - 38</td>
+                    <td className="py-2">30 - 32</td>
+                    <td className="py-2">27.5</td>
+                  </tr>
+                  <tr className="border-b border-neutral-soft/30">
+                    <td className="py-2 font-medium text-fg-luxury">M</td>
+                    <td className="py-2">38 - 40</td>
+                    <td className="py-2">32 - 34</td>
+                    <td className="py-2">28.5</td>
+                  </tr>
+                  <tr className="border-b border-neutral-soft/30">
+                    <td className="py-2 font-medium text-fg-luxury">L</td>
+                    <td className="py-2">40 - 42</td>
+                    <td className="py-2">34 - 36</td>
+                    <td className="py-2">29.5</td>
+                  </tr>
+                  <tr className="border-b border-neutral-soft/30">
+                    <td className="py-2 font-medium text-fg-luxury">XL</td>
+                    <td className="py-2">42 - 44</td>
+                    <td className="py-2">36 - 38</td>
+                    <td className="py-2">30.5</td>
+                  </tr>
+                </tbody>
+              </table>
+              <button 
+                type="button"
+                onClick={() => setIsSizeGuideOpen(false)}
+                className="btn-editorial-solid w-full text-[9px] tracking-widest font-semibold py-3 mt-8"
+              >
+                Close Guide
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Reviews Section */}
         <section className="mt-24 pt-16 border-t border-neutral-soft/40 text-left">
@@ -436,6 +546,16 @@ export default function ProductDetailPage() {
               </form>
             </div>
 
+          </div>
+        </section>
+
+        {/* Related Products Section */}
+        <section className="mt-24 pt-16 border-t border-neutral-soft/40 text-left">
+          <h2 className="text-xl uppercase tracking-widest font-light text-fg-luxury mb-10">Related Articles</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10">
+            {MOCK_PRODUCTS.filter(p => p.parentCategory === product.parentCategory && p.id !== product.id).slice(0, 4).map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
           </div>
         </section>
       </main>
