@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { MOCK_PRODUCTS } from '@/services/mockData';
-import { X, Search } from 'lucide-react';
+import { X, Search, Clock, ArrowRight } from 'lucide-react';
 import type { Product } from '@/types';
 
 interface SearchOverlayProps {
@@ -14,12 +14,18 @@ interface SearchOverlayProps {
 export const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Product[]>([]);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       inputRef.current?.focus();
       document.body.style.overflow = 'hidden';
+      // Load recent searches
+      const saved = localStorage.getItem('freert_recent_searches');
+      if (saved) {
+        try { setRecentSearches(JSON.parse(saved)); } catch (e) {}
+      }
     } else {
       document.body.style.overflow = '';
       setQuery('');
@@ -37,15 +43,32 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose })
     }
     const matches = MOCK_PRODUCTS.filter(p => 
       p.name.toLowerCase().includes(query.toLowerCase()) || 
-      p.description?.toLowerCase().includes(query.toLowerCase())
+      p.description?.toLowerCase().includes(query.toLowerCase()) ||
+      p.tags?.some(t => t.toLowerCase().includes(query.toLowerCase()))
     );
     setResults(matches);
   }, [query]);
 
+  const handleResultClick = (searchVal: string) => {
+    // Add to recent searches
+    const clean = searchVal.trim();
+    if (!clean) return;
+    const filtered = recentSearches.filter(s => s !== clean);
+    const updated = [clean, ...filtered].slice(0, 5);
+    setRecentSearches(updated);
+    localStorage.setItem('freert_recent_searches', JSON.stringify(updated));
+    onClose();
+  };
+
+  const handleClearRecents = () => {
+    setRecentSearches([]);
+    localStorage.removeItem('freert_recent_searches');
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[1200] bg-bg-luxury flex flex-col px-6 md:px-24 py-16 animate-[fadeIn_0.25s_ease-out]">
+    <div className="fixed inset-0 z-[1200] bg-bg-luxury flex flex-col px-6 md:px-24 py-16 animate-[fadeIn_0.25s_ease-out] overflow-y-auto">
       {/* Close button */}
       <button 
         onClick={onClose}
@@ -69,21 +92,77 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose })
           />
         </div>
 
-        {/* Suggestion tags if empty */}
+        {/* Suggestion block if empty query */}
         {query.trim() === '' ? (
-          <div className="text-left">
-            <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-text-muted mb-4">Suggested lookups</h4>
-            <div className="flex flex-wrap gap-3">
-              {['linen', 'trench coat', 'raw silk', 'utility', 'hoodie', 'dress'].map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => setQuery(tag)}
-                  className="text-[10px] uppercase tracking-wider py-2 px-5 border border-neutral-soft/80 text-text-muted hover:border-fg-luxury hover:text-fg-luxury transition-colors cursor-pointer"
-                >
-                  {tag}
-                </button>
-              ))}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-12 text-left">
+            
+            {/* Left: Suggested tags & recents (Col span 5) */}
+            <div className="md:col-span-5 flex flex-col gap-8">
+              {recentSearches.length > 0 && (
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-text-muted">Recent searches</h4>
+                    <button onClick={handleClearRecents} className="text-[8px] uppercase tracking-wider text-red-700 font-semibold cursor-pointer">Clear</button>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {recentSearches.map((s, idx) => (
+                      <button 
+                        key={idx}
+                        onClick={() => setQuery(s)}
+                        className="flex items-center gap-2 text-[10px] text-text-muted hover:text-fg-luxury text-left font-light"
+                      >
+                        <Clock size={11} /> {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-text-muted mb-3">Suggested categories</h4>
+                <div className="flex flex-col gap-2">
+                  {['men', 'women', 'accessories', 'perfumes'].map((cat) => (
+                    <Link 
+                      key={cat} 
+                      href={`/shop/${cat}`} 
+                      onClick={onClose}
+                      className="text-[10px] uppercase tracking-widest text-text-muted hover:text-fg-luxury flex justify-between items-center py-0.5 border-b border-neutral-soft/10"
+                    >
+                      <span>{cat} Collection</span>
+                      <ArrowRight size={10} />
+                    </Link>
+                  ))}
+                </div>
+              </div>
             </div>
+
+            {/* Right: Popular / Spotlight products suggestions (Col span 7) */}
+            <div className="md:col-span-7">
+              <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-text-muted mb-4">Spotlight Suggestions</h4>
+              <div className="grid grid-cols-2 gap-4">
+                {MOCK_PRODUCTS.slice(0, 2).map((product) => (
+                  <Link 
+                    key={product.id} 
+                    href={`/product/${product.slug}`}
+                    onClick={() => handleResultClick(product.name)}
+                    className="group flex flex-col gap-2 cursor-pointer"
+                  >
+                    <div className="aspect-[3/4] bg-neutral-soft/20 overflow-hidden">
+                      <img 
+                        src={product.images[0]} 
+                        alt={product.name} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                      />
+                    </div>
+                    <div>
+                      <h5 className="text-[9.5px] uppercase tracking-wider font-semibold text-fg-luxury truncate">{product.name}</h5>
+                      <p className="text-[9px] text-text-muted mt-0.5">₹{product.basePrice.toLocaleString('en-IN')}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
           </div>
         ) : (
           /* Results grid */
@@ -102,7 +181,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose })
                   <Link 
                     key={product.id} 
                     href={`/product/${product.slug}`}
-                    onClick={onClose}
+                    onClick={() => handleResultClick(product.name)}
                     className="group flex flex-col gap-2 cursor-pointer"
                   >
                     <div className="aspect-[3/4] bg-neutral-soft/20 overflow-hidden">

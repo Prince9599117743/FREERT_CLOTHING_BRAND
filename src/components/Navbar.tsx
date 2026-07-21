@@ -1,25 +1,49 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { ShoppingBag, User, Search, Menu } from 'lucide-react';
+import { useToast } from '@/contexts/ToastContext';
+import { ShoppingBag, User, Search, Menu, Heart, ClipboardList, Settings, LogOut, ChevronRight } from 'lucide-react';
 import { MegaMenu } from './MegaMenu';
 import { SearchOverlay } from './SearchOverlay';
 import { MobileMenu } from './MobileMenu';
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const { cart, setIsCartOpen } = useCart();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const { showToast } = useToast();
   
   const [isMegaOpen, setIsMegaOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsAccountDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+
+  const handleLogoutClick = async () => {
+    await logout();
+    showToast('Successfully logged out.', 'info');
+    router.push('/');
+  };
 
   const linkStyle = (path: string) => {
     const base = 'hover:text-accent-gold transition-colors duration-300 relative py-1';
@@ -52,9 +76,9 @@ export const Navbar: React.FC = () => {
             onMouseEnter={() => setIsMegaOpen(true)}
             className="relative"
           >
-            <Link href="/" className={linkStyle('/')}>
+            <span className="hover:text-accent-gold transition-colors duration-300 relative py-1 cursor-pointer text-fg-luxury">
               Shop Edit
-            </Link>
+            </span>
           </div>
           <Link href="/support" className={linkStyle('/support')}>
             Comms Node
@@ -74,14 +98,74 @@ export const Navbar: React.FC = () => {
             <Search size={16} strokeWidth={1.5} />
           </button>
 
-          <Link href="/dashboard" className="hover:text-accent-gold transition-colors duration-300 flex items-center" aria-label="User Dashboard">
-            <User size={16} strokeWidth={1.5} />
-            {user && (
-              <span className="hidden lg:inline text-[9px] uppercase tracking-[0.15em] ml-2 font-light">
-                {user.fullName?.split(' ')[0] || 'Operator'}
-              </span>
+          {/* Redesigned Account / User Menu Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button 
+              onClick={() => setIsAccountDropdownOpen(!isAccountDropdownOpen)}
+              className="hover:text-accent-gold transition-colors duration-300 flex items-center gap-1.5 cursor-pointer"
+              aria-label="Account dropdown"
+            >
+              <User size={16} strokeWidth={1.5} />
+              {user && (
+                <span className="hidden lg:inline text-[9px] uppercase tracking-[0.15em] font-light">
+                  {user.fullName?.split(' ')[0] || 'Operator'}
+                </span>
+              )}
+            </button>
+
+            {isAccountDropdownOpen && (
+              <div className="absolute right-0 mt-3 w-56 bg-bg-luxury border border-neutral-soft/80 p-4 shadow-xl z-50 animate-[fadeIn_0.15s_ease-out] flex flex-col text-left">
+                {user ? (
+                  <div className="flex flex-col gap-3.5 text-xs text-text-muted">
+                    <div className="pb-3 border-b border-neutral-soft/30 flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-neutral-soft/20 text-fg-luxury flex items-center justify-center font-semibold text-[10px]">
+                        {user.fullName?.substring(0, 2).toUpperCase() || 'OP'}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-fg-luxury truncate max-w-[120px] uppercase text-[10px]">{user.fullName || 'Active User'}</p>
+                        <p className="text-[8px] text-text-muted truncate max-w-[120px]">{user.email}</p>
+                      </div>
+                    </div>
+                    <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2 hover:text-fg-luxury transition-colors">
+                      <User size={12} /> My Profile
+                    </Link>
+                    <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2 hover:text-fg-luxury transition-colors">
+                      <ClipboardList size={12} /> My Orders
+                    </Link>
+                    <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2 hover:text-fg-luxury transition-colors">
+                      <Heart size={12} /> Wishlist
+                    </Link>
+                    <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2 hover:text-fg-luxury transition-colors">
+                      <Settings size={12} /> Saved Addresses
+                    </Link>
+                    <button 
+                      onClick={() => { handleLogoutClick(); setIsAccountDropdownOpen(false); }}
+                      className="flex items-center gap-2 hover:text-red-700 transition-colors text-left w-full mt-1.5 pt-2.5 border-t border-neutral-soft/30 cursor-pointer"
+                    >
+                      <LogOut size={12} /> Logout
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3.5 text-xs text-text-muted">
+                    <Link href="/login" onClick={() => setIsAccountDropdownOpen(false)} className="btn-editorial-solid text-center py-2 text-[9px] font-semibold tracking-widest">
+                      Sign In
+                    </Link>
+                    <Link href="/signup" onClick={() => setIsAccountDropdownOpen(false)} className="btn-editorial text-center py-2 text-[9px] font-semibold tracking-widest">
+                      Create Account
+                    </Link>
+                    <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center justify-between hover:text-fg-luxury transition-colors pt-2.5 border-t border-neutral-soft/30">
+                      <span className="flex items-center gap-2"><Heart size={12} /> Wishlist</span>
+                      <ChevronRight size={10} />
+                    </Link>
+                    <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center justify-between hover:text-fg-luxury transition-colors">
+                      <span className="flex items-center gap-2"><ClipboardList size={12} /> Track Order</span>
+                      <ChevronRight size={10} />
+                    </Link>
+                  </div>
+                )}
+              </div>
             )}
-          </Link>
+          </div>
 
           <button 
             onClick={() => setIsCartOpen(true)}

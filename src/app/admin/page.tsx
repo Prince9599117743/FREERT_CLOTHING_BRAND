@@ -98,6 +98,23 @@ function AdminCoreWorkspace() {
   const [activeFormTab, setActiveFormTab] = useState<'basic' | 'images' | 'pricing' | 'seo'>('basic');
   const [colorInputName, setColorInputName] = useState('');
   const [colorInputHex, setColorInputHex] = useState('#111111');
+  const [navMenus, setNavMenus] = useState<Record<string, { name: string; href: string }[]>>({
+    header: [
+      { name: 'Men', href: '/shop/men' },
+      { name: 'Women', href: '/shop/women' },
+      { name: 'Accessories', href: '/shop/accessories' },
+      { name: 'Perfumes', href: '/shop/perfumes' }
+    ],
+    footer: [
+      { name: 'About FREERT', href: '/info/about' },
+      { name: 'FAQ', href: '/info/faq' },
+      { name: 'Privacy Policy', href: '/info/privacy-policy' },
+      { name: 'Shipping Guidelines', href: '/info/shipping-policy' }
+    ]
+  });
+  const [selectedMenuKey, setSelectedMenuKey] = useState<string>('header');
+  const [newLinkName, setNewLinkName] = useState('');
+  const [newLinkHref, setNewLinkHref] = useState('');
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>(DEFAULT_SLIDES);
   const [homeSections, setHomeSections] = useState<HomepageSection[]>(DEFAULT_SECTIONS);
   const [orders, setOrders] = useState<OrderAdmin[]>([
@@ -1150,25 +1167,121 @@ function AdminCoreWorkspace() {
     </div>
   );
 
-  const renderNavigation = () => (
-    <div className="flex flex-col gap-6 text-left">
-      <h2 className="text-sm uppercase tracking-widest font-semibold text-fg-luxury border-b border-neutral-soft pb-2">Drag & Drop Navigation Menu Builder</h2>
-      <div className="border border-dashed border-neutral-soft/80 p-6 bg-neutral-soft/5 text-xs text-text-muted">
-        <span className="text-[9px] uppercase tracking-widest text-text-muted font-semibold pb-1 border-b border-neutral-soft block mb-4">Desktop Navigation Header</span>
-        <div className="flex flex-col gap-2 max-w-sm">
-          {['Men -> oversized-t-shirts, regular-t-shirts, graphic-t-shirts', 'Women -> oversized-t-shirts, crop-tops, basic-tops', 'Accessories -> caps, bags, wallets', 'Perfumes -> men, women, unisex'].map((link, idx) => (
-            <div key={idx} className="border border-neutral-soft bg-bg-luxury p-3 flex justify-between items-center">
-              <span>{link}</span>
-              <div className="flex gap-2">
-                <button onClick={() => showToast('Reordered link up.', 'info')} className="text-text-muted hover:text-fg-luxury"><ChevronUp size={13} /></button>
-                <button onClick={() => showToast('Reordered link down.', 'info')} className="text-text-muted hover:text-fg-luxury"><ChevronDown size={13} /></button>
-              </div>
+  const renderNavigation = () => {
+    const activeList = navMenus[selectedMenuKey] || [];
+
+    const handleAddLink = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newLinkName || !newLinkHref) return;
+      const updatedList = [...activeList, { name: newLinkName, href: newLinkHref }];
+      const updatedMenus = { ...navMenus, [selectedMenuKey]: updatedList };
+      setNavMenus(updatedMenus);
+      localStorage.setItem('freert_navigation_menus', JSON.stringify(updatedMenus));
+      setNewLinkName('');
+      setNewLinkHref('');
+      showToast('Navigation menu link published.', 'success');
+    };
+
+    const handleDeleteLink = (idx: number) => {
+      const updatedList = activeList.filter((_, i) => i !== idx);
+      const updatedMenus = { ...navMenus, [selectedMenuKey]: updatedList };
+      setNavMenus(updatedMenus);
+      localStorage.setItem('freert_navigation_menus', JSON.stringify(updatedMenus));
+      showToast('Link removed from navigation nodes.', 'info');
+    };
+
+    const handleReorder = (idx: number, direction: 'up' | 'down') => {
+      if (direction === 'up' && idx === 0) return;
+      if (direction === 'down' && idx === activeList.length - 1) return;
+      const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+      const copy = [...activeList];
+      const temp = copy[idx];
+      copy[idx] = copy[targetIdx];
+      copy[targetIdx] = temp;
+      const updatedMenus = { ...navMenus, [selectedMenuKey]: copy };
+      setNavMenus(updatedMenus);
+      localStorage.setItem('freert_navigation_menus', JSON.stringify(updatedMenus));
+    };
+
+    return (
+      <div className="flex flex-col gap-6 text-left">
+        <div>
+          <h2 className="text-sm uppercase tracking-widest font-semibold text-fg-luxury">Navigation Menu CMS</h2>
+          <p className="text-[10px] text-text-muted mt-1 uppercase">Configure desktop, mobile and footer navigation menus links dynamically</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Menu Selector & Add link form */}
+          <div className="lg:col-span-5 bg-bg-luxury border border-neutral-soft/80 p-6 flex flex-col gap-6 text-xs text-text-muted">
+            <div>
+              <label className="text-[9px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Select Menu Node</label>
+              <select
+                value={selectedMenuKey}
+                onChange={(e) => setSelectedMenuKey(e.target.value)}
+                className="w-full bg-bg-luxury border border-neutral-soft/80 py-2 px-3 text-[11px] uppercase tracking-wider focus:outline-none"
+              >
+                <option value="header">Main Header Menu</option>
+                <option value="footer">Footer Navigation Menu</option>
+              </select>
             </div>
-          ))}
+
+            <form onSubmit={handleAddLink} className="flex flex-col gap-4 border-t border-neutral-soft/30 pt-4">
+              <span className="text-[9px] uppercase tracking-widest font-semibold block text-fg-luxury">Add New Navigation link</span>
+              <div>
+                <label className="text-[8px] uppercase tracking-wider text-text-muted mb-1 block">Link Label</label>
+                <input 
+                  type="text" 
+                  value={newLinkName}
+                  onChange={(e) => setNewLinkName(e.target.value)}
+                  className="input-editorial text-xs" 
+                  placeholder="e.g. New Arrivals" 
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-[8px] uppercase tracking-wider text-text-muted mb-1 block">Link Pathway URL</label>
+                <input 
+                  type="text" 
+                  value={newLinkHref}
+                  onChange={(e) => setNewLinkHref(e.target.value)}
+                  className="input-editorial text-xs" 
+                  placeholder="e.g. /shop/new-arrivals" 
+                  required
+                />
+              </div>
+              <button type="submit" className="btn-editorial-solid py-2 text-[9px] flex items-center justify-center gap-1.5"><Plus size={12} /> Add Link Node</button>
+            </form>
+          </div>
+
+          {/* Right Column: Links list & reorder */}
+          <div className="lg:col-span-7 bg-bg-luxury border border-neutral-soft/80 p-6 flex flex-col gap-4 text-xs text-text-muted">
+            <span className="text-[9px] uppercase tracking-widest font-semibold text-fg-luxury pb-2 border-b border-neutral-soft/30">
+              Navigation Tree Link Nodes
+            </span>
+            <div className="flex flex-col gap-3">
+              {activeList.length === 0 ? (
+                <div className="py-6 text-center text-xs text-text-muted uppercase tracking-widest font-light border border-dashed border-neutral-soft">Menu empty</div>
+              ) : (
+                activeList.map((link, idx) => (
+                  <div key={idx} className="border border-neutral-soft p-3 bg-neutral-soft/5 flex justify-between items-center text-xs">
+                    <div>
+                      <span className="font-semibold text-fg-luxury uppercase tracking-wider block">{link.name}</span>
+                      <span className="text-[9px] text-text-muted block mt-0.5">{link.href}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button type="button" onClick={() => handleReorder(idx, 'up')} className="text-text-muted hover:text-fg-luxury cursor-pointer" title="Move Up"><ChevronUp size={14} /></button>
+                      <button type="button" onClick={() => handleReorder(idx, 'down')} className="text-text-muted hover:text-fg-luxury cursor-pointer" title="Move Down"><ChevronDown size={14} /></button>
+                      <button type="button" onClick={() => handleDeleteLink(idx)} className="text-red-700 font-semibold cursor-pointer"><Trash2 size={13} /></button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderAnnouncements = () => (
     <form onSubmit={(e) => { e.preventDefault(); showToast('Announcements ribbons configurations saved.', 'success'); }} className="flex flex-col gap-6 text-left max-w-2xl bg-bg-luxury border border-neutral-soft/80 p-6 text-xs text-text-muted">

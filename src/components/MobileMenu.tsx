@@ -30,31 +30,22 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
       sub: [
         { name: 'Oversized T-Shirts', href: '/shop/men/oversized-t-shirts' },
         { name: 'Regular T-Shirts', href: '/shop/men/regular-t-shirts' },
-        { name: 'Graphic T-Shirts', href: '/shop/men/graphic-t-shirts' },
         { name: 'Shirts', href: '/shop/men/shirts' },
         { name: 'Hoodies', href: '/shop/men/hoodies' },
-        { name: 'Sweatshirts', href: '/shop/men/sweatshirts' },
-        { name: 'Jackets', href: '/shop/men/jackets' },
         { name: 'Jeans', href: '/shop/men/jeans' },
-        { name: 'Cargo Pants', href: '/shop/men/cargo-pants' },
-        { name: 'Joggers', href: '/shop/men/joggers' },
-        { name: 'Shorts', href: '/shop/men/shorts' }
+        { name: 'Cargo Pants', href: '/shop/men/cargo-pants' }
       ]
     },
     {
       name: 'Women',
       href: '/shop/women',
       sub: [
-        { name: 'Oversized T-Shirts', href: '/shop/women/oversized-t-shirts' },
-        { name: 'Crop Tops', href: '/shop/women/crop-tops' },
-        { name: 'Basic Tops', href: '/shop/women/basic-tops' },
-        { name: 'Shirts', href: '/shop/women/shirts' },
+        { name: 'T-Shirts', href: '/shop/women/t-shirts' },
+        { name: 'Oversized', href: '/shop/women/oversized' },
+        { name: 'Tops', href: '/shop/women/tops' },
         { name: 'Hoodies', href: '/shop/women/hoodies' },
-        { name: 'Dresses', href: '/shop/women/dresses' },
-        { name: 'Skirts', href: '/shop/women/skirts' },
         { name: 'Jeans', href: '/shop/women/jeans' },
-        { name: 'Cargo Pants', href: '/shop/women/cargo-pants' },
-        { name: 'Co-ords', href: '/shop/women/co-ords' }
+        { name: 'Dresses', href: '/shop/women/dresses' }
       ]
     },
     {
@@ -62,13 +53,11 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
       href: '/shop/accessories',
       sub: [
         { name: 'Caps', href: '/shop/accessories/caps' },
-        { name: 'Bags', href: '/shop/accessories/bags' },
-        { name: 'Wallets', href: '/shop/accessories/wallets' },
         { name: 'Belts', href: '/shop/accessories/belts' },
+        { name: 'Wallets', href: '/shop/accessories/wallets' },
+        { name: 'Bags', href: '/shop/accessories/bags' },
         { name: 'Chains', href: '/shop/accessories/chains' },
-        { name: 'Bracelets', href: '/shop/accessories/bracelets' },
-        { name: 'Rings', href: '/shop/accessories/rings' },
-        { name: 'Sunglasses', href: '/shop/accessories/sunglasses' }
+        { name: 'Rings', href: '/shop/accessories/rings' }
       ]
     },
     {
@@ -78,7 +67,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
         { name: 'Men', href: '/shop/perfumes/men' },
         { name: 'Women', href: '/shop/perfumes/women' },
         { name: 'Unisex', href: '/shop/perfumes/unisex' },
-        { name: 'Gift Sets', href: '/shop/perfumes/gift-sets' }
+        { name: 'Travel Packs', href: '/shop/perfumes/travel-packs' }
       ]
     }
   ];
@@ -111,11 +100,6 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
         {/* Content Navigation Scrollable Panel */}
         <div className="flex-1 overflow-y-auto px-6 py-8 flex flex-col gap-4">
           
-          {/* Home Link */}
-          <Link href="/" onClick={onClose} className="text-xs uppercase tracking-[0.2em] font-semibold text-fg-luxury hover:text-accent-gold transition-colors pb-3 border-b border-neutral-soft/10">
-            Home
-          </Link>
-
           {/* Shop general link */}
           <Link href="/shop" onClick={onClose} className="text-xs uppercase tracking-[0.2em] font-semibold text-fg-luxury hover:text-accent-gold transition-colors pb-3 border-b border-neutral-soft/10">
             Shop All
