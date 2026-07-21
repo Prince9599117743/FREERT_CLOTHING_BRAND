@@ -34,6 +34,7 @@ export default function CheckoutPage() {
   const [processing, setProcessing] = useState(false);
   const [promoApplied, setPromoApplied] = useState(false);
   const [databaseOfflineError, setDatabaseOfflineError] = useState(false);
+  const [dbConnectionError, setDbConnectionError] = useState(false);
   const [placedOrderDetails, setPlacedOrderDetails] = useState<any>(null);
 
   const shippingThreshold = 15000;
@@ -108,7 +109,7 @@ export default function CheckoutPage() {
 
       // Direct call to database service
       await createOrder({
-        userId: user?.id || 'guest',
+        userId: user?.id || undefined, // Set undefined to avoid foreign key violations in SQL
         totalAmount: total,
         discountAmount: discount,
         status: 'processing'
@@ -127,7 +128,9 @@ export default function CheckoutPage() {
       showToast('Order successfully placed.', 'success');
       setCurrentStep(4);
     } catch (err: any) {
-      if (err.message === 'DATABASE_OFFLINE') {
+      if (err.message === 'DATABASE_CONNECTION_ERROR') {
+        setDbConnectionError(true);
+      } else if (err.message === 'DATABASE_OFFLINE') {
         // Fallback for demo flow to keep checkout 100% functional even offline!
         const fallbackOrder = {
           id: `FR-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -166,6 +169,17 @@ export default function CheckoutPage() {
     { label: 'Payment', number: 3 },
     { label: 'Confirm', number: 4 }
   ];
+
+  if (dbConnectionError) {
+    return (
+      <div style={{ background: '#0a0a0a', color: '#f5f5f5', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', margin: 0, padding: 20, textAlign: 'center' }}>
+        <h2 style={{ fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10, fontSize: 16 }}>System Maintenance</h2>
+        <p style={{ color: '#888', fontSize: 12, maxWidth: 320, fontWeight: 300, lineHeight: 1.6, marginBottom: 20 }}>We are currently updating our database clusters. Secure connections will resume shortly.</p>
+        <div style={{ width: 20, height: 20, border: '1px solid #333', borderTop: '1px solid #fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-luxury">

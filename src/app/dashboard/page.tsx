@@ -7,6 +7,7 @@ import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/CartDrawer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
+import { getOrders } from '@/services/database';
 import { Package, User, Star, Copy, Check } from 'lucide-react';
 
 interface OrderItemLog {
@@ -72,48 +73,59 @@ export default function DashboardPage() {
     }
   };
 
+  const [dbError, setDbError] = useState(false);
+
   useEffect(() => {
-    // Read orders from localStorage
-    const saved = localStorage.getItem('freert_orders_log');
-    if (saved) {
+    const fetchUserOrders = async () => {
+      if (!user) return;
       try {
-        setOrders(JSON.parse(saved));
-      } catch (e) {
-        setOrders([]);
-      }
-    } else {
-      // Setup some initial mock orders to make the UI look rich and professional!
-      const initialLogs: OrderLog[] = [
-        {
-          id: 'FR-847291',
-          date: '2026-07-15',
-          totalAmount: 18300.00,
-          status: 'delivered',
-          items: [
-            { name: 'Linen Trench Coat', qty: 1, price: 14500.00, size: 'L', color: 'Natural Flax' },
-            { name: 'Structured Kimono Shirt', qty: 1, price: 5800.00, size: 'M', color: 'Ivory Cream' }
-          ]
-        },
-        {
-          id: 'FR-712891',
-          date: '2026-06-20',
-          totalAmount: 8900.00,
-          status: 'delivered',
-          items: [
-            { name: 'Raw Silk Utility Trouser', qty: 1, price: 8900.00, size: 'M', color: 'Sand Beige' }
-          ]
+        const data = await getOrders(user.id);
+        // Map Order records to local OrderLog format
+        const mapped: OrderLog[] = data.map((o: any) => ({
+          id: o.id,
+          date: o.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0],
+          totalAmount: o.totalAmount,
+          status: o.status,
+          items: o.items ? o.items.map((i: any) => ({
+            name: i.variant?.product?.name || 'Garment Article',
+            qty: i.qty,
+            price: i.unitPrice,
+            size: i.variant?.size || 'M',
+            color: i.variant?.color || 'Black'
+          })) : []
+        }));
+        setOrders(mapped);
+      } catch (e: any) {
+        if (e.message === 'DATABASE_CONNECTION_ERROR') {
+          setDbError(true);
+        } else {
+          // Fallback to local storage (Development only)
+          const saved = localStorage.getItem('freert_orders_log');
+          if (saved) {
+            try { setOrders(JSON.parse(saved)); } catch (e) {}
+          }
         }
-      ];
-      localStorage.setItem('freert_orders_log', JSON.stringify(initialLogs));
-      setOrders(initialLogs);
-    }
-  }, []);
+      }
+    };
+    fetchUserOrders();
+  }, [user]);
 
   const handleCopyReferral = () => {
     navigator.clipboard.writeText(`https://freertclothing.vercel.app/signup?ref=${referralCode}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  if (dbError) {
+    return (
+      <div style={{ background: '#0a0a0a', color: '#f5f5f5', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', margin: 0, padding: 20, textAlign: 'center' }}>
+        <h2 style={{ fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10, fontSize: 16 }}>System Maintenance</h2>
+        <p style={{ color: '#888', fontSize: 12, maxWidth: 320, fontWeight: 300, lineHeight: 1.6, marginBottom: 20 }}>We are currently updating our database clusters. Secure connections will resume shortly.</p>
+        <div style={{ width: 20, height: 20, border: '1px solid #333', borderTop: '1px solid #fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-luxury">

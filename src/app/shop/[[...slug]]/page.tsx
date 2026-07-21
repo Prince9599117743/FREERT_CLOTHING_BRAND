@@ -21,6 +21,7 @@ export default function ShopPage() {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [sortBy, setSortBy] = useState<'default' | 'price-low' | 'price-high' | 'rating'>('default');
   const [priceRange, setPriceRange] = useState<number>(20000);
+  const [dbError, setDbError] = useState(false);
   
   // Category variables derived from slug parameters
   const parentParam = slug?.[0] || '';
@@ -32,7 +33,11 @@ export default function ShopPage() {
         const list = await getProducts();
         setAllProducts(list);
         setFilteredProducts(list);
-      } catch (e) {}
+      } catch (e: any) {
+        if (e.message === 'DATABASE_CONNECTION_ERROR') {
+          setDbError(true);
+        }
+      }
     };
     loadData();
   }, []);
@@ -98,6 +103,17 @@ export default function ShopPage() {
   };
 
   const activeSubcategories = getSubcategories();
+
+  if (dbError) {
+    return (
+      <div style={{ background: '#0a0a0a', color: '#f5f5f5', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', margin: 0, padding: 20, textAlign: 'center' }}>
+        <h2 style={{ fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10, fontSize: 16 }}>System Maintenance</h2>
+        <p style={{ color: '#888', fontSize: 12, maxWidth: 320, fontWeight: 300, lineHeight: 1.6, marginBottom: 20 }}>We are currently updating our database clusters. Secure connections will resume shortly.</p>
+        <div style={{ width: 20, height: 20, border: '1px solid #333', borderTop: '1px solid #fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-luxury">
