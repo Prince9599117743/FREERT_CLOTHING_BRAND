@@ -8,12 +8,11 @@ import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
 import { CartDrawer } from '@/components/CartDrawer';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { Search, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 export default function Home() {
   const router = useRouter();
   const [fetching, setFetching] = useState<boolean>(true);
-  const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -28,18 +27,14 @@ export default function Home() {
   const trending = MOCK_PRODUCTS.filter(p => p.tags?.includes('trending')).slice(0, 4);
   const featured = MOCK_PRODUCTS.filter(p => p.tags?.includes('featured-collection')).slice(0, 4);
   
-  // Search products
-  const searchedProducts = MOCK_PRODUCTS.filter(p => {
-    return p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-           p.description?.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  // Department-specific collections
+  const menCollection = MOCK_PRODUCTS.filter(p => p.parentCategory === 'men').slice(0, 4);
+  const womenCollection = MOCK_PRODUCTS.filter(p => p.parentCategory === 'women').slice(0, 4);
+  const accessories = MOCK_PRODUCTS.filter(p => p.parentCategory === 'accessories').slice(0, 4);
+  const perfumes = MOCK_PRODUCTS.filter(p => p.parentCategory === 'perfumes').slice(0, 4);
 
-  const shopCategories = [
-    { name: 'Men', image: '/assets/trench_coat.jpg', href: '/shop/men' },
-    { name: 'Women', image: '/assets/slip_dress.jpg', href: '/shop/women' },
-    { name: 'Accessories', image: '/assets/cap_1784646670746.png', href: '/shop/accessories' },
-    { name: 'Perfumes', image: '/assets/sneakers_1784646656235.png', href: '/shop/perfumes' }
-  ];
+  // Suggestions row
+  const youMayLike = MOCK_PRODUCTS.slice(3, 7);
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-luxury">
@@ -71,7 +66,7 @@ export default function Home() {
       </section>
 
       {/* Brand Statement Banner */}
-      <section className="py-20 text-center px-6 border-b border-neutral-soft/30 max-w-3xl mx-auto">
+      <section className="py-16 text-center px-6 border-b border-neutral-soft/30 max-w-3xl mx-auto">
         <h2 className="text-[9px] uppercase tracking-[0.25em] font-semibold text-text-muted mb-4">Philosophy</h2>
         <p className="font-editorial text-2xl md:text-3xl text-fg-luxury leading-relaxed font-light italic">
           &ldquo;We design for the structural space between identity and expression. Minimalist silhouettes tailored from organic linen, raw silk, and premium knits. Zero clutter. Pure form.&rdquo;
@@ -79,11 +74,11 @@ export default function Home() {
       </section>
 
       {/* 1. New Arrivals */}
-      <section id="new-arrivals" className="py-16 container-editorial text-left border-b border-neutral-soft/30">
-        <div className="flex justify-between items-end mb-10">
+      <section id="new-arrivals" className="py-12 container-editorial text-left border-b border-neutral-soft/30">
+        <div className="flex justify-between items-end mb-8">
           <div>
             <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">New Drops</p>
-            <h2 className="text-xl md:text-2xl uppercase tracking-widest font-light text-fg-luxury">New Arrivals</h2>
+            <h2 className="text-lg md:text-xl uppercase tracking-widest font-light text-fg-luxury">New Arrivals</h2>
           </div>
           <button onClick={() => router.push('/shop/new-arrivals')} className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-text-muted hover:text-fg-luxury transition-colors cursor-pointer">
             View All <ChevronRight size={12} />
@@ -102,11 +97,11 @@ export default function Home() {
       </section>
 
       {/* 2. Best Sellers */}
-      <section className="py-16 container-editorial text-left border-b border-neutral-soft/30">
-        <div className="flex justify-between items-end mb-10">
+      <section className="py-12 container-editorial text-left border-b border-neutral-soft/30">
+        <div className="flex justify-between items-end mb-8">
           <div>
             <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">Curated Staples</p>
-            <h2 className="text-xl md:text-2xl uppercase tracking-widest font-light text-fg-luxury">Best Sellers</h2>
+            <h2 className="text-lg md:text-xl uppercase tracking-widest font-light text-fg-luxury">Best Sellers</h2>
           </div>
           <button onClick={() => router.push('/shop')} className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-text-muted hover:text-fg-luxury transition-colors cursor-pointer">
             View All <ChevronRight size={12} />
@@ -124,45 +119,12 @@ export default function Home() {
         )}
       </section>
 
-      {/* 3. Shop by Category */}
-      <section className="py-16 container-editorial text-left border-b border-neutral-soft/30">
-        <div className="mb-10">
-          <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">Departments</p>
-          <h2 className="text-xl md:text-2xl uppercase tracking-widest font-light text-fg-luxury">Shop By Category</h2>
-        </div>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {shopCategories.map((cat) => (
-            <div 
-              key={cat.name} 
-              onClick={() => router.push(cat.href)}
-              className="relative aspect-[3/4] overflow-hidden group cursor-pointer bg-neutral-soft/20"
-            >
-              <img 
-                src={cat.image} 
-                alt={cat.name} 
-                className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-fg-luxury/10 group-hover:bg-fg-luxury/30 transition-colors duration-500" />
-              <div className="absolute bottom-6 left-6 text-left z-10">
-                <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-white">
-                  {cat.name}
-                </h3>
-                <span className="text-[9px] uppercase tracking-widest text-neutral-300 font-light group-hover:text-accent-gold transition-colors duration-300 flex items-center gap-1 mt-1">
-                  Browse Edit <ChevronRight size={10} />
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 4. Trending Now */}
-      <section className="py-16 container-editorial text-left border-b border-neutral-soft/30">
-        <div className="flex justify-between items-end mb-10">
+      {/* 3. Trending Now */}
+      <section className="py-12 container-editorial text-left border-b border-neutral-soft/30">
+        <div className="flex justify-between items-end mb-8">
           <div>
-            <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">In High Demand</p>
-            <h2 className="text-xl md:text-2xl uppercase tracking-widest font-light text-fg-luxury">Trending Now</h2>
+            <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">High Demand</p>
+            <h2 className="text-lg md:text-xl uppercase tracking-widest font-light text-fg-luxury">Trending Now</h2>
           </div>
           <button onClick={() => router.push('/shop')} className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-text-muted hover:text-fg-luxury transition-colors cursor-pointer">
             View All <ChevronRight size={12} />
@@ -180,12 +142,104 @@ export default function Home() {
         )}
       </section>
 
-      {/* 5. Featured Collection */}
-      <section className="py-16 container-editorial text-left border-b border-neutral-soft/30">
-        <div className="flex justify-between items-end mb-10">
+      {/* 4. Men's Collection */}
+      <section className="py-12 container-editorial text-left border-b border-neutral-soft/30">
+        <div className="flex justify-between items-end mb-8">
           <div>
-            <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">Seasonal Edit</p>
-            <h2 className="text-xl md:text-2xl uppercase tracking-widest font-light text-fg-luxury">Featured Collection</h2>
+            <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">Tailored for Him</p>
+            <h2 className="text-lg md:text-xl uppercase tracking-widest font-light text-fg-luxury">Men's Collection</h2>
+          </div>
+          <button onClick={() => router.push('/shop/men')} className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-text-muted hover:text-fg-luxury transition-colors cursor-pointer">
+            View All <ChevronRight size={12} />
+          </button>
+        </div>
+
+        {fetching ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map(idx => <Skeleton key={idx} variant="image" />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {menCollection.map(p => <ProductCard key={p.id} product={p} />)}
+          </div>
+        )}
+      </section>
+
+      {/* 5. Women's Collection */}
+      <section className="py-12 container-editorial text-left border-b border-neutral-soft/30">
+        <div className="flex justify-between items-end mb-8">
+          <div>
+            <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">Tailored for Her</p>
+            <h2 className="text-lg md:text-xl uppercase tracking-widest font-light text-fg-luxury">Women's Collection</h2>
+          </div>
+          <button onClick={() => router.push('/shop/women')} className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-text-muted hover:text-fg-luxury transition-colors cursor-pointer">
+            View All <ChevronRight size={12} />
+          </button>
+        </div>
+
+        {fetching ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map(idx => <Skeleton key={idx} variant="image" />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {womenCollection.map(p => <ProductCard key={p.id} product={p} />)}
+          </div>
+        )}
+      </section>
+
+      {/* 6. Accessories */}
+      <section className="py-12 container-editorial text-left border-b border-neutral-soft/30">
+        <div className="flex justify-between items-end mb-8">
+          <div>
+            <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">Finishing Touches</p>
+            <h2 className="text-lg md:text-xl uppercase tracking-widest font-light text-fg-luxury">Accessories</h2>
+          </div>
+          <button onClick={() => router.push('/shop/accessories')} className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-text-muted hover:text-fg-luxury transition-colors cursor-pointer">
+            View All <ChevronRight size={12} />
+          </button>
+        </div>
+
+        {fetching ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map(idx => <Skeleton key={idx} variant="image" />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {accessories.map(p => <ProductCard key={p.id} product={p} />)}
+          </div>
+        )}
+      </section>
+
+      {/* 7. Perfumes */}
+      <section className="py-12 container-editorial text-left border-b border-neutral-soft/30">
+        <div className="flex justify-between items-end mb-8">
+          <div>
+            <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">Aromatic Notes</p>
+            <h2 className="text-lg md:text-xl uppercase tracking-widest font-light text-fg-luxury">Perfumes</h2>
+          </div>
+          <button onClick={() => router.push('/shop/perfumes')} className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-text-muted hover:text-fg-luxury transition-colors cursor-pointer">
+            View All <ChevronRight size={12} />
+          </button>
+        </div>
+
+        {fetching ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map(idx => <Skeleton key={idx} variant="image" />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {perfumes.map(p => <ProductCard key={p.id} product={p} />)}
+          </div>
+        )}
+      </section>
+
+      {/* 8. Featured Products */}
+      <section className="py-12 container-editorial text-left border-b border-neutral-soft/30">
+        <div className="flex justify-between items-end mb-8">
+          <div>
+            <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">Premium Spotlight</p>
+            <h2 className="text-lg md:text-xl uppercase tracking-widest font-light text-fg-luxury">Featured Products</h2>
           </div>
           <button onClick={() => router.push('/shop')} className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-text-muted hover:text-fg-luxury transition-colors cursor-pointer">
             View All <ChevronRight size={12} />
@@ -203,40 +257,20 @@ export default function Home() {
         )}
       </section>
 
-      {/* 6. General Catalog & Search */}
-      <section className="py-16 container-editorial text-left">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-10 border-b border-neutral-soft/40 pb-6">
-          <div>
-            <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">Full Inventory</p>
-            <h2 className="text-xl md:text-2xl uppercase tracking-widest font-light text-fg-luxury">Recently Added</h2>
-          </div>
-
-          {/* Search tool */}
-          <div className="relative border-b border-neutral-soft/80 flex items-center pb-1.5 max-w-[220px]">
-            <Search size={14} className="text-text-muted mr-2" />
-            <input 
-              type="text" 
-              placeholder="Search garments..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent text-[11px] placeholder-neutral-400 focus:outline-none w-full text-fg-luxury font-light tracking-wider uppercase"
-            />
-          </div>
+      {/* 9. You May Also Like */}
+      <section className="py-12 container-editorial text-left">
+        <div className="mb-8">
+          <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">Suggestions</p>
+          <h2 className="text-lg md:text-xl uppercase tracking-widest font-light text-fg-luxury">You May Also Like</h2>
         </div>
 
         {fetching ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map(idx => <Skeleton key={idx} variant="image" />)}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-12">
-            {searchedProducts.length === 0 ? (
-              <div className="col-span-full py-16 text-center text-text-muted font-light text-[10px] tracking-widest uppercase">
-                No items match your search
-              </div>
-            ) : (
-              searchedProducts.map(p => <ProductCard key={p.id} product={p} />)
-            )}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {youMayLike.map(p => <ProductCard key={p.id} product={p} />)}
           </div>
         )}
       </section>
@@ -255,9 +289,9 @@ export default function Home() {
             <p className="text-[10px] uppercase tracking-[0.25em] text-text-muted font-semibold">The Journal</p>
             <h3 className="text-3xl font-light uppercase tracking-wide text-fg-luxury">Organic Weaving</h3>
             <p className="text-xs text-text-muted leading-relaxed font-light">
-              Each piece in our collections is crafted from organic flax fibers, woven in small batches of 50 units, and pre-washed to ensure maximum drape and softness. Designed for expression.
+              Each piece in our collections is crafted from organic flax fibers, woven in small batches of 50 units, and pre-washed to ensure maximum drape and softness.
             </p>
-            <button onClick={() => router.push('/shop')} className="btn-editorial-solid self-start text-[10px] tracking-widest py-3 px-8 mt-2 cursor-pointer">
+            <button onClick={() => router.push('/shop')} className="btn-editorial-solid self-start text-[10px] tracking-widest py-3 px-8 mt-2 cursor-pointer font-medium">
               Shop The Edit
             </button>
           </div>

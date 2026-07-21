@@ -66,6 +66,11 @@ export interface Product {
   tags?: string[];
   parentCategory?: string;
   subCategory?: string;
+  material?: string;
+  fit?: string;
+  careInstructions?: string;
+  gender?: 'men' | 'women' | 'unisex';
+  discountPrice?: number;
 }
 
 export interface ProductVariant {
