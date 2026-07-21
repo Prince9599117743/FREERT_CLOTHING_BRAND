@@ -14,629 +14,148 @@ export const MOCK_COLLECTIONS: Collection[] = [
   { id: 'col-2', name: 'Drape & Structure', slug: 'drape-structure', createdAt: new Date().toISOString() }
 ];
 
-export const MOCK_PRODUCTS: Product[] = [
-  // ==========================================
-  // MEN SECTION
-  // ==========================================
-  {
-    id: 'prod-1',
-    categoryId: 'cat-2',
-    collectionId: 'col-1',
-    name: 'FR Core Oversized Cotton Tee',
-    slug: 'fr-core-oversized-cotton-tee',
-    description: 'Cut from premium 280GSM organic cotton jersey, this oversized tee features dropped shoulders, a tight rib mock collar, and a structural drape.',
-    basePrice: 2800.00,
-    discountPrice: 2400.00,
-    isPublished: true,
-    images: ['/assets/tee_white.jpg'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[1],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.8,
-    reviewsCount: 34,
-    tags: ['new-arrivals', 'best-sellers'],
-    parentCategory: 'men',
-    subCategory: 'oversized-t-shirts',
-    gender: 'men',
-    material: '100% Organic Heavyweight Cotton',
-    fit: 'Boxy / Dropped Shoulder Oversized Fit',
-    careInstructions: 'Machine wash cold inside out. Hang dry to maintain fibers integrity.',
-    variants: [
-      { id: 'v-1-s', productId: 'prod-1', size: 'S', color: 'Ivory White', sku: 'FR-COT-OW-S', stockQty: 15, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 'v-1-m', productId: 'prod-1', size: 'M', color: 'Ivory White', sku: 'FR-COT-OW-M', stockQty: 22, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 'v-1-l', productId: 'prod-1', size: 'L', color: 'Ivory White', sku: 'FR-COT-OW-L', stockQty: 18, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-2',
-    categoryId: 'cat-2',
-    collectionId: 'col-1',
-    name: 'Essential Regular Box-Fit Tee',
-    slug: 'essential-regular-box-fit-tee',
-    description: 'A classic crewneck tailored in a relaxed regular silhouette. Woven from breathable organic cotton twill.',
-    basePrice: 2200.00,
-    isPublished: true,
-    images: ['/assets/tee_white.jpg'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[1],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.6,
-    reviewsCount: 18,
-    tags: ['best-sellers'],
-    parentCategory: 'men',
-    subCategory: 'regular-t-shirts',
-    gender: 'men',
-    material: '100% Organic Long-Staple Cotton',
-    fit: 'Relaxed Regular Fit',
-    careInstructions: 'Machine wash warm with like colors. Tumble dry low.',
-    variants: [
-      { id: 'v-2-m', productId: 'prod-2', size: 'M', color: 'Chalk White', sku: 'FR-ERBT-M', stockQty: 25, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 'v-2-l', productId: 'prod-2', size: 'L', color: 'Chalk White', sku: 'FR-ERBT-L', stockQty: 20, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-3',
-    categoryId: 'cat-2',
-    collectionId: 'col-1',
-    name: 'Minimal Plain Pima Tee',
-    slug: 'minimal-plain-pima-tee',
-    description: 'Super-soft Pima cotton tee offering a smooth touch and lightweight breathability. A clean luxury staple.',
-    basePrice: 2900.00,
-    isPublished: true,
-    images: ['/assets/tee_white.jpg'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[1],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.7,
-    reviewsCount: 15,
-    tags: ['best-sellers'],
-    parentCategory: 'men',
-    subCategory: 'plain-t-shirts',
-    gender: 'men',
-    material: '100% Peruvian Pima Cotton',
-    fit: 'Classic Tailored Fit',
-    careInstructions: 'Dry clean recommended to prevent piling.',
-    variants: [
-      { id: 'v-3-m', productId: 'prod-3', size: 'M', color: 'Pebble Grey', sku: 'FR-MPPT-M', stockQty: 14, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-4',
-    categoryId: 'cat-2',
-    collectionId: 'col-1',
-    name: 'FR Logo Graphic Tee',
-    slug: 'fr-logo-graphic-tee',
-    description: 'Features a minimal, high-density silkscreen typography logo on the center-chest. Heavyweight boxy look.',
-    basePrice: 3200.00,
-    isPublished: true,
-    images: ['/assets/hoodie_black_1784646596372.png'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[1],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.8,
-    reviewsCount: 42,
-    tags: ['new-arrivals', 'trending'],
-    parentCategory: 'men',
-    subCategory: 'graphic-t-shirts',
-    gender: 'men',
-    material: '280GSM Heavy Cotton Jersey',
-    fit: 'Oversized Boxy Fit',
-    careInstructions: 'Iron inside out. Hand wash cold.',
-    variants: [
-      { id: 'v-4-m', productId: 'prod-4', size: 'M', color: 'Carbon Grey', sku: 'FR-FLGT-M', stockQty: 18, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 'v-4-l', productId: 'prod-4', size: 'L', color: 'Carbon Grey', sku: 'FR-FLGT-L', stockQty: 12, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-5',
-    categoryId: 'cat-2',
-    collectionId: 'col-1',
-    name: 'Heavy Knit Polo Shirt',
-    slug: 'heavy-knit-polo-shirt',
-    description: 'A premium knitted polo featuring an open spread collar, ribbed cuffs, and clean structural hem. Breathable knit weave.',
-    basePrice: 4200.00,
-    isPublished: true,
-    images: ['/assets/tee_white.jpg'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[1],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.7,
-    reviewsCount: 23,
-    tags: ['new-arrivals'],
-    parentCategory: 'men',
-    subCategory: 'polo-t-shirts',
-    gender: 'men',
-    material: '100% Woven Cotton Knit',
-    fit: 'Regular Fit',
-    careInstructions: 'Dry flat to maintain garment shape.',
-    variants: [
-      { id: 'v-5-m', productId: 'prod-5', size: 'M', color: 'Flax Tan', sku: 'FR-HKPS-M', stockQty: 15, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-6',
-    categoryId: 'cat-2',
-    collectionId: 'col-2',
-    name: 'Structured Kimono Shirt',
-    slug: 'structured-kimono-shirt',
-    description: 'Drawing inspiration from traditional wear, this wide-sleeve kimono shirt is woven from a structured cotton-linen weave.',
-    basePrice: 5800.00,
-    isPublished: true,
-    images: ['/assets/kimono_shirt.jpg'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[1],
-    collection: MOCK_COLLECTIONS[1],
-    rating: 4.9,
-    reviewsCount: 29,
-    tags: ['featured-collection'],
-    parentCategory: 'men',
-    subCategory: 'shirts',
-    gender: 'men',
-    material: '50% Belgian Linen, 50% Organic Cotton',
-    fit: 'Relaxed Wide Sleeve Fit',
-    careInstructions: 'Hand wash cold. Iron on low heat setting.',
-    variants: [
-      { id: 'v-6-s', productId: 'prod-6', size: 'S', color: 'Ivory Cream', sku: 'FR-SKS-S', stockQty: 12, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 'v-6-m', productId: 'prod-6', size: 'M', color: 'Ivory Cream', sku: 'FR-SKS-M', stockQty: 16, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-7',
-    categoryId: 'cat-2',
-    collectionId: 'col-2',
-    name: 'Gabardine Zip Overshirt',
-    slug: 'gabardine-zip-overshirt',
-    description: 'A structural layering overshirt made from dense cotton gabardine. Features a heavy silver metal zip closure and clean welt chest pockets.',
-    basePrice: 6200.00,
-    isPublished: true,
-    images: ['/assets/trench_coat.jpg'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[1],
-    collection: MOCK_COLLECTIONS[1],
-    rating: 4.8,
-    reviewsCount: 31,
-    tags: ['trending'],
-    parentCategory: 'men',
-    subCategory: 'overshirts',
-    gender: 'men',
-    material: '100% Heavy Cotton Gabardine',
-    fit: 'Boxy Layering Fit',
-    careInstructions: 'Dry clean recommended.',
-    variants: [
-      { id: 'v-7-m', productId: 'prod-7', size: 'M', color: 'Midnight Black', sku: 'FR-GZO-M', stockQty: 10, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-8',
-    categoryId: 'cat-2',
-    collectionId: 'col-1',
-    name: 'Oatmeal Bouclé Boxy Hoodie',
-    slug: 'oatmeal-boucle-boxy-hoodie',
-    description: 'Crafted from heavyweight bouclé cotton-blend fleece, this hoodie offers exceptional thermal warmth and texture.',
-    basePrice: 6500.00,
-    isPublished: true,
-    images: ['/assets/knit_hoodie.jpg'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[1],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.9,
-    reviewsCount: 22,
-    tags: ['trending', 'new-arrivals'],
-    parentCategory: 'men',
-    subCategory: 'hoodies',
-    gender: 'men',
-    material: '80% Bouclé Cotton, 20% Polyester',
-    fit: 'Boxy / Cropped Length Hoodie Fit',
-    careInstructions: 'Wash cold, dry flat to maintain texture.',
-    variants: [
-      { id: 'v-8-s', productId: 'prod-8', size: 'S', color: 'Oatmeal Melange', sku: 'FR-OBH-S', stockQty: 10, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 'v-8-m', productId: 'prod-8', size: 'M', color: 'Oatmeal Melange', sku: 'FR-OBH-M', stockQty: 12, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-9',
-    categoryId: 'cat-2',
-    collectionId: 'col-1',
-    name: 'Loopback Crewneck Sweatshirt',
-    slug: 'loopback-crewneck-sweatshirt',
-    description: 'Made from premium loopback cotton jersey. Features heavy ribbing on neck, cuffs, and hem for structural fit.',
-    basePrice: 5200.00,
-    isPublished: true,
-    images: ['/assets/knit_hoodie.jpg'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[1],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.7,
-    reviewsCount: 19,
-    tags: ['best-sellers'],
-    parentCategory: 'men',
-    subCategory: 'sweatshirts',
-    gender: 'men',
-    material: '100% Loopback French Terry Cotton',
-    fit: 'Relaxed Athletic Fit',
-    careInstructions: 'Machine wash cold. Do not bleach.',
-    variants: [
-      { id: 'v-9-m', productId: 'prod-9', size: 'M', color: 'Olive Sage', sku: 'FR-LCS-M', stockQty: 15, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-10',
-    categoryId: 'cat-1',
-    collectionId: 'col-2',
-    name: 'Washed Canvas Bomber Jacket',
-    slug: 'washed-canvas-bomber-jacket',
-    description: 'Heavy cotton canvas jacket treated with a vintage wash. Finished with premium silver hardware and lined in cotton sateen.',
-    basePrice: 11500.00,
-    isPublished: true,
-    images: ['/assets/jacket_neon_1784646612273.png'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[0],
-    collection: MOCK_COLLECTIONS[1],
-    rating: 4.8,
-    reviewsCount: 26,
-    tags: ['new-arrivals', 'featured-collection'],
-    parentCategory: 'men',
-    subCategory: 'jackets',
-    gender: 'men',
-    material: '100% Cotton Canvas Outer, Sateen Lining',
-    fit: 'Cropped Boxy Bomber Fit',
-    careInstructions: 'Professional leather/dry clean only.',
-    variants: [
-      { id: 'v-10-m', productId: 'prod-10', size: 'M', color: 'Aged Slate', sku: 'FR-WCBJ-M', stockQty: 8, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 'v-10-l', productId: 'prod-10', size: 'L', color: 'Aged Slate', sku: 'FR-WCBJ-L', stockQty: 6, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-11',
-    categoryId: 'cat-3',
-    collectionId: 'col-1',
-    name: 'Relaxed Wide Selvedge Jeans',
-    slug: 'relaxed-wide-selvedge-jeans',
-    description: 'Tailored from 14oz Japanese raw indigo selvedge denim, featuring classic contrast stitching and red-line selvedge cuffs.',
-    basePrice: 7800.00,
-    isPublished: true,
-    images: ['/assets/silk_trouser.jpg'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[2],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.8,
-    reviewsCount: 37,
-    tags: ['trending', 'best-sellers'],
-    parentCategory: 'men',
-    subCategory: 'jeans',
-    gender: 'men',
-    material: '100% Selvedge Indigo Denim Cotton',
-    fit: 'Wide Leg / Mid-Rise Straight Fit',
-    careInstructions: 'Wash infrequently, inside out in cold water. Hang dry.',
-    variants: [
-      { id: 'v-11-30', productId: 'prod-11', size: '30', color: 'Raw Indigo', sku: 'FR-RWSJ-30', stockQty: 10, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 'v-11-32', productId: 'prod-11', size: '32', color: 'Raw Indigo', sku: 'FR-RWSJ-32', stockQty: 15, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-12',
-    categoryId: 'cat-3',
-    collectionId: 'col-1',
-    name: 'Heavy Cotton Utility Cargo',
-    slug: 'heavy-cotton-utility-cargo',
-    description: 'Rugged cotton drill cargo pants featuring side flap pockets with hidden press closures and custom knee pleats.',
-    basePrice: 5800.00,
-    isPublished: true,
-    images: ['/assets/cargo_pants_1784646641064.png'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[2],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.7,
-    reviewsCount: 24,
-    tags: ['trending'],
-    parentCategory: 'men',
-    subCategory: 'cargo-pants',
-    gender: 'men',
-    material: '100% Long-Staple Cotton Drill',
-    fit: 'Relaxed Tapered Fit',
-    careInstructions: 'Machine wash warm. Tumble dry medium.',
-    variants: [
-      { id: 'v-12-30', productId: 'prod-12', size: '30', color: 'Olive Drab', sku: 'FR-HCUP-30', stockQty: 12, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 'v-12-32', productId: 'prod-12', size: '32', color: 'Olive Drab', sku: 'FR-HCUP-32', stockQty: 14, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-
-  // ==========================================
-  // WOMEN SECTION
-  // ==========================================
-  {
-    id: 'prod-13',
-    categoryId: 'cat-2',
-    collectionId: 'col-1',
-    name: 'Fine Rib Knit Crop Top',
-    slug: 'fine-rib-knit-crop-top',
-    description: 'A fitted knit crop top featuring a supportive thick rib weave, flattering square neckline, and breathable stretch.',
-    basePrice: 2800.00,
-    isPublished: true,
-    images: ['/assets/kimono_shirt.jpg'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[1],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.6,
-    reviewsCount: 19,
-    tags: ['new-arrivals', 'best-sellers'],
-    parentCategory: 'women',
-    subCategory: 'crop-tops',
-    gender: 'women',
-    material: '92% Fine Cotton, 8% Elastane',
-    fit: 'Fitted Cropped Fit',
-    careInstructions: 'Dry flat, wash inside laundry mesh bag.',
-    variants: [
-      { id: 'v-13-xs', productId: 'prod-13', size: 'XS', color: 'Chalk White', sku: 'FR-FRCT-XS', stockQty: 10, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 'v-13-s', productId: 'prod-13', size: 'S', color: 'Chalk White', sku: 'FR-FRCT-S', stockQty: 15, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-14',
-    categoryId: 'cat-2',
-    collectionId: 'col-1',
-    name: 'Minimal Silk Camisole Top',
-    slug: 'minimal-silk-camisole-top',
-    description: 'Fluid camisole tailored from organic sandwashed mulberry silk. Delicate adjustable straps and raw hem.',
-    basePrice: 4500.00,
-    isPublished: true,
-    images: ['/assets/slip_dress.jpg'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[1],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.8,
-    reviewsCount: 14,
-    tags: ['best-sellers'],
-    parentCategory: 'women',
-    subCategory: 'tops',
-    gender: 'women',
-    material: '100% Sandwashed Mulberry Silk',
-    fit: 'Relaxed Fluid Fit',
-    careInstructions: 'Hand wash cold with silk detergent. Dry in shade.',
-    variants: [
-      { id: 'v-14-s', productId: 'prod-14', size: 'S', color: 'Midnight Black', sku: 'FR-MSCT-S', stockQty: 12, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-15',
-    categoryId: 'cat-4',
-    collectionId: 'col-2',
-    name: 'Sandwashed Silk Slip Dress',
-    slug: 'sandwashed-silk-slip-dress',
-    description: 'A bias-cut dress crafted from ultra-soft sandwashed silk. Designed with a graceful cowl neckline and fluid silhouette.',
-    basePrice: 12500.00,
-    discountPrice: 11000.00,
-    isPublished: true,
-    images: ['/assets/slip_dress.jpg'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[3],
-    collection: MOCK_COLLECTIONS[1],
-    rating: 4.9,
-    reviewsCount: 28,
-    tags: ['best-sellers', 'featured-collection'],
-    parentCategory: 'women',
-    subCategory: 'dresses',
-    gender: 'women',
-    material: '100% Sandwashed Silk',
-    fit: 'Fluid Bias-Cut Fit',
-    careInstructions: 'Dry clean only.',
-    variants: [
-      { id: 'v-15-s', productId: 'prod-15', size: 'S', color: 'Midnight Noir', sku: 'FR-MSD-S', stockQty: 10, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 'v-15-m', productId: 'prod-15', size: 'M', color: 'Midnight Noir', sku: 'FR-MSD-M', stockQty: 12, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-16',
-    categoryId: 'cat-3',
-    collectionId: 'col-1',
-    name: 'Wide-Leg Pleated Lyocell Trouser',
-    slug: 'wide-leg-pleated-lyocell-trouser',
-    description: 'Flowing wide-leg trousers featuring structural front pleats and side welt pockets. Woven from breathable lyocell.',
-    basePrice: 6800.00,
-    isPublished: true,
-    images: ['/assets/silk_trouser.jpg'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[2],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.7,
-    reviewsCount: 21,
-    tags: ['trending'],
-    parentCategory: 'women',
-    subCategory: 'jeans',
-    gender: 'women',
-    material: '100% Tencel Lyocell',
-    fit: 'Wide Leg / High Rise Fit',
-    careInstructions: 'Machine wash cold on delicate cycle.',
-    variants: [
-      { id: 'v-16-s', productId: 'prod-16', size: 'S', color: 'Stone Grey', sku: 'FR-WLPL-S', stockQty: 14, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-
-  // ==========================================
-  // ACCESSORIES SECTION
-  // ==========================================
-  {
-    id: 'prod-17',
-    categoryId: 'cat-5',
-    collectionId: 'col-1',
-    name: 'Structured Cotton Twill Cap',
-    slug: 'structured-cotton-twill-cap',
-    description: 'A minimal six-panel cap made from durable cotton twill. Features an adjustable strap with custom brass buckle.',
-    basePrice: 2200.00,
-    isPublished: true,
-    images: ['/assets/cap_1784646670746.png'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[4],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.6,
-    reviewsCount: 15,
-    tags: ['new-arrivals'],
-    parentCategory: 'accessories',
-    subCategory: 'caps',
-    gender: 'unisex',
-    material: '100% Heavy Cotton Twill',
-    fit: 'One Size Adjustable',
-    careInstructions: 'Spot clean with damp cloth.',
-    variants: [
-      { id: 'v-17-os', productId: 'prod-17', size: 'One Size', color: 'Sand Beige', sku: 'FR-SCT-SB', stockQty: 50, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-18',
-    categoryId: 'cat-5',
-    collectionId: 'col-1',
-    name: 'Full-Grain Leather Cardholder',
-    slug: 'full-grain-leather-cardholder',
-    description: 'A slim, pocket-friendly cardholder crafted from full-grain vegetable-tanned bridle leather. Features 4 slots and center pocket.',
-    basePrice: 2900.00,
-    isPublished: true,
-    images: ['/assets/jacket_neon_1784646612273.png'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[4],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.8,
-    reviewsCount: 19,
-    tags: ['best-sellers'],
-    parentCategory: 'accessories',
-    subCategory: 'wallets',
-    gender: 'unisex',
-    material: '100% Full-Grain Vegetable-Tanned Leather',
-    fit: 'Slim Pocket Profile',
-    careInstructions: 'Condition with leather balm yearly.',
-    variants: [
-      { id: 'v-18-os', productId: 'prod-18', size: 'One Size', color: 'Cognac Brown', sku: 'FR-FGLC', stockQty: 30, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-19',
-    categoryId: 'cat-5',
-    collectionId: 'col-1',
-    name: 'Minimalist Brass Signet Ring',
-    slug: 'minimalist-brass-signet-ring',
-    description: 'A sleek, solid raw brass signet ring with a subtle brushed satin finish. Develops unique patina over time.',
-    basePrice: 3800.00,
-    isPublished: true,
-    images: ['/assets/cap_1784646670746.png'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[4],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.7,
-    reviewsCount: 22,
-    tags: ['trending'],
-    parentCategory: 'accessories',
-    subCategory: 'rings',
-    gender: 'unisex',
-    material: '100% Solid Eco-Brass',
-    fit: 'Classic Band Fit',
-    careInstructions: 'Polish with brass cleaner to restore shine.',
-    variants: [
-      { id: 'v-19-8', productId: 'prod-19', size: 'US 8', color: 'Brushed Brass', sku: 'FR-MBSR-8', stockQty: 15, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 'v-19-9', productId: 'prod-19', size: 'US 9', color: 'Brushed Brass', sku: 'FR-MBSR-9', stockQty: 20, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-
-  // ==========================================
-  // PERFUMES SECTION
-  // ==========================================
-  {
-    id: 'prod-20',
-    categoryId: 'cat-6',
-    collectionId: 'col-1',
-    name: 'Nuit Noire Intense Eau De Parfum',
-    slug: 'nuit-noire-intense-edp',
-    description: 'An elegant blend of smoky vetiver, leather, black pepper, and cedarwood notes, creating a rich woody scent trail.',
-    basePrice: 6800.00,
-    isPublished: true,
-    images: ['/assets/sneakers_1784646656235.png'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[5],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.9,
-    reviewsCount: 37,
-    tags: ['trending', 'best-sellers'],
-    parentCategory: 'perfumes',
-    subCategory: 'unisex',
-    gender: 'unisex',
-    material: 'Pure Parfum Extract, Organic Alcohol Base',
-    fit: 'Long-Lasting Projection (8-10 Hours)',
-    careInstructions: 'Store in cool, dark place away from direct sunlight.',
-    variants: [
-      { id: 'v-20-50ml', productId: 'prod-20', size: '50ml', color: 'Smoky Wood', sku: 'FR-NNI-50', stockQty: 25, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { id: 'v-20-100ml', productId: 'prod-20', size: '100ml', color: 'Smoky Wood', sku: 'FR-NNI-100', stockQty: 18, additionalPrice: 2400, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-21',
-    categoryId: 'cat-6',
-    collectionId: 'col-1',
-    name: 'Soleil D\'Or Citrus Perfume',
-    slug: 'soleil-dor-citrus-perfume',
-    description: 'Luminous and bright fragrance capturing Sicilian bergamot, neroli blossoms, soft amber, and clean coastal sea salt.',
-    basePrice: 5800.00,
-    isPublished: true,
-    images: ['/assets/tee_white.jpg'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[5],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.6,
-    reviewsCount: 18,
-    tags: ['sale'],
-    parentCategory: 'perfumes',
-    subCategory: 'women',
-    gender: 'women',
-    material: 'Citrus Extracts, Neroli Blossom Oils',
-    fit: 'Medium Projection (6-8 Hours)',
-    careInstructions: 'Store upright.',
-    variants: [
-      { id: 'v-21-50ml', productId: 'prod-21', size: '50ml', color: 'Citrus Neroli', sku: 'FR-SDO-50', stockQty: 20, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  },
-  {
-    id: 'prod-22',
-    categoryId: 'cat-6',
-    collectionId: 'col-1',
-    name: 'Santal Ethereal Travel Pack',
-    slug: 'santal-ethereal-travel-pack',
-    description: 'Australian sandalwood, clean papyrus, cardamom, and violet accord packaged in three sleek 10ml travel vials.',
-    basePrice: 4800.00,
-    isPublished: true,
-    images: ['/assets/cap_1784646670746.png'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    category: MOCK_CATEGORIES[5],
-    collection: MOCK_COLLECTIONS[0],
-    rating: 4.8,
-    reviewsCount: 22,
-    tags: ['new-arrivals'],
-    parentCategory: 'perfumes',
-    subCategory: 'travel-packs',
-    gender: 'unisex',
-    material: 'Sandalwood Oils, Cardamom Extracts',
-    fit: '3 x 10ml Travel Sprays',
-    careInstructions: 'Keep caps secured to prevent evaporation.',
-    variants: [
-      { id: 'v-22-30ml', productId: 'prod-22', size: '3x10ml', color: 'Golden Sandalwood', sku: 'FR-SE-TP', stockQty: 40, additionalPrice: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-    ]
-  }
+// Reusable valid image assets list to guarantee zero broken/blank links
+const PLACEHOLDER_IMAGES = [
+  '/assets/tee_white.jpg',
+  '/assets/trench_coat.jpg',
+  '/assets/kimono_shirt.jpg',
+  '/assets/silk_trouser.jpg',
+  '/assets/knit_hoodie.jpg',
+  '/assets/slip_dress.jpg',
+  '/assets/cap_1784646670746.png',
+  '/assets/sneakers_1784646656235.png',
+  '/assets/cargo_pants_1784646641064.png',
+  '/assets/hoodie_black_1784646596372.png',
+  '/assets/jacket_neon_1784646612273.png'
 ];
+
+// Helper to choose index
+const getImage = (index: number) => PLACEHOLDER_IMAGES[index % PLACEHOLDER_IMAGES.length];
+
+// Define complete target catalog list structures
+const MEN_SUBCATS = [
+  { name: 'Oversized T-Shirts', slug: 'oversized-t-shirts', catId: 'cat-2', prefix: 'FR Boxy Heavyweight', noun: 'Oversized Tee', basePrice: 3200 },
+  { name: 'Regular T-Shirts', slug: 'regular-t-shirts', catId: 'cat-2', prefix: 'Essential Comfort', noun: 'Regular Tee', basePrice: 2200 },
+  { name: 'Graphic T-Shirts', slug: 'graphic-t-shirts', catId: 'cat-2', prefix: 'Editorial Serigraph', noun: 'Graphic Tee', basePrice: 3500 },
+  { name: 'Shirts', slug: 'shirts', catId: 'cat-2', prefix: 'Structured Linen-Cotton', noun: 'Band Collar Shirt', basePrice: 5800 },
+  { name: 'Hoodies', slug: 'hoodies', catId: 'cat-2', prefix: 'Bouclé French Terry', noun: 'Boxy Hoodie', basePrice: 6500 },
+  { name: 'Sweatshirts', slug: 'sweatshirts', catId: 'cat-2', prefix: 'Loopback Melange', noun: 'Crewneck Sweatshirt', basePrice: 5200 },
+  { name: 'Jackets', slug: 'jackets', catId: 'cat-1', prefix: 'Washed Canvas Raw', noun: 'Utility Jacket', basePrice: 9500 },
+  { name: 'Jeans', slug: 'jeans', catId: 'cat-3', prefix: '14oz Raw Japanese Selvedge', noun: 'Denim Jeans', basePrice: 7800 },
+  { name: 'Cargo Pants', slug: 'cargo-pants', catId: 'cat-3', prefix: 'Relaxed Gabardine', noun: 'Cargo Trouser', basePrice: 5800 },
+  { name: 'Joggers', slug: 'joggers', catId: 'cat-3', prefix: 'Double-Knit Interlock', noun: 'Heavy Jogger', basePrice: 4800 },
+  { name: 'Shorts', slug: 'shorts', catId: 'cat-3', prefix: 'Structured Fleece-Knit', noun: 'Relaxed Shorts', basePrice: 3800 }
+];
+
+const WOMEN_SUBCATS = [
+  { name: 'Oversized T-Shirts', slug: 'oversized-t-shirts', catId: 'cat-2', prefix: 'FR Slub-Cotton', noun: 'Oversized Tee', basePrice: 2800 },
+  { name: 'Crop Tops', slug: 'crop-tops', catId: 'cat-2', prefix: 'Fine Rib Knit', noun: 'Crop Top', basePrice: 2600 },
+  { name: 'Basic Tops', slug: 'basic-tops', catId: 'cat-2', prefix: 'Organic Cotton Ribbed', noun: 'Tank Top', basePrice: 2200 },
+  { name: 'Shirts', slug: 'shirts', catId: 'cat-2', prefix: 'Fluid Satin Drape', noun: 'Oversized Shirt', basePrice: 5500 },
+  { name: 'Hoodies', slug: 'hoodies', catId: 'cat-2', prefix: 'Heavy Knit Melange', noun: 'Crop Hoodie', basePrice: 6200 },
+  { name: 'Dresses', slug: 'dresses', catId: 'cat-4', prefix: 'Sandwashed Cowl Mulberry', noun: 'Slip Dress', basePrice: 12500 },
+  { name: 'Skirts', slug: 'skirts', catId: 'cat-3', prefix: 'Structured Linen Pocket', noun: 'A-Line Skirt', basePrice: 4800 },
+  { name: 'Jeans', slug: 'jeans', catId: 'cat-3', prefix: 'Wide-Leg Pleated Lyocell', noun: 'Denim Jeans', basePrice: 6800 },
+  { name: 'Cargo Pants', slug: 'cargo-pants', catId: 'cat-3', prefix: 'Cotton Gabardine Tab', noun: 'Utility Cargo', basePrice: 5500 },
+  { name: 'Co-ords', slug: 'co-ords', catId: 'cat-4', prefix: 'Ivory Flax Linen Double', noun: 'Co-ord Set', basePrice: 8800 }
+];
+
+const ACCESSORIES_SUBCATS = [
+  { name: 'Caps', slug: 'caps', catId: 'cat-5', prefix: 'Minimalist Six-Panel', noun: 'Twill Cap', basePrice: 2200 },
+  { name: 'Bags', slug: 'bags', catId: 'cat-5', prefix: 'Structured Suede Leather', noun: 'Crossbody Bag', basePrice: 8500 },
+  { name: 'Wallets', slug: 'wallets', catId: 'cat-5', prefix: 'Vegetable-Tanned Bridle', noun: 'Cardholder Wallet', basePrice: 2900 },
+  { name: 'Belts', slug: 'belts', catId: 'cat-5', prefix: 'Full-Grain Brass Buckle', noun: 'Leather Belt', basePrice: 3500 },
+  { name: 'Chains', slug: 'chains', catId: 'cat-5', prefix: 'Recycled Sterling Silver', noun: 'Link Chain', basePrice: 4500 },
+  { name: 'Bracelets', slug: 'bracelets', catId: 'cat-5', prefix: 'Minimal Solid Raw Brass', noun: 'Cuff Bracelet', basePrice: 3200 },
+  { name: 'Rings', slug: 'rings', catId: 'cat-5', prefix: 'Brushed Satin Signet', noun: 'Brass Ring', basePrice: 3800 },
+  { name: 'Sunglasses', slug: 'sunglasses', catId: 'cat-5', prefix: 'Premium Acetate D-Frame', noun: 'Sunglasses', basePrice: 6800 }
+];
+
+const PERFUMES_SUBCATS = [
+  { name: 'Men Perfumes', slug: 'men', catId: 'cat-6', prefix: 'Santal Ethereal Intense', noun: 'EDP (Men)', basePrice: 7500 },
+  { name: 'Women Perfumes', slug: 'women', catId: 'cat-6', prefix: 'Soleil D\'Or Neroli Citrus', noun: 'EDP (Women)', basePrice: 5800 },
+  { name: 'Unisex Perfumes', slug: 'unisex', catId: 'cat-6', prefix: 'Nuit Noire Smoky Vetiver', noun: 'EDP (Unisex)', basePrice: 6800 },
+  { name: 'Gift Sets', slug: 'gift-sets', catId: 'cat-6', prefix: 'Santal & Nuit Ethereal Travel', noun: 'Gift Set', basePrice: 9200 }
+];
+
+// Procedural high-volume database builder
+const buildProducts = (): Product[] => {
+  const productsList: Product[] = [];
+  let indexCounter = 1;
+
+  const processList = (subcats: any[], gender: 'men' | 'women' | 'unisex', parent: string) => {
+    subcats.forEach((sub) => {
+      // Create exactly 2 premium products for each subcategory
+      for (let i = 1; i <= 2; i++) {
+        const id = `prod-${indexCounter}`;
+        const name = `${sub.prefix} ${sub.noun} 0${i}`;
+        const slug = `${sub.prefix.toLowerCase().replace(/ /g, '-')}-${sub.noun.toLowerCase().replace(/ /g, '-')}-0${i}`;
+        const category = MOCK_CATEGORIES.find(c => c.id === sub.catId) || MOCK_CATEGORIES[0];
+        const collection = i === 1 ? MOCK_COLLECTIONS[0] : MOCK_COLLECTIONS[1];
+
+        // Unique prices & ratings parameters
+        const basePrice = sub.basePrice + (i * 300);
+        const discountPrice = i === 2 ? basePrice - 500 : undefined;
+        const rating = Number((4.5 + (indexCounter % 5) * 0.1).toFixed(1));
+        const reviewsCount = 10 + (indexCounter % 8) * 9;
+
+        // Front, Back, and Lifestyle image arrays
+        const frontImage = getImage(indexCounter);
+        const backImage = getImage(indexCounter + 1);
+        const lifestyleImage = getImage(indexCounter + 2);
+
+        // Standard sizes allocation
+        const sizes = parent === 'perfumes' ? ['50ml', '100ml'] : (parent === 'accessories' ? ['One Size'] : ['S', 'M', 'L']);
+
+        productsList.push({
+          id,
+          categoryId: sub.catId,
+          collectionId: collection.id,
+          name,
+          slug,
+          description: `A masterfully crafted luxury staple. Tailored with care from high-end fabrics, this piece is cut for a clean profile and premium texture that retains shape. Woven in small, ethical batches of 50 units.`,
+          basePrice,
+          discountPrice,
+          isPublished: true,
+          images: [frontImage, backImage, lifestyleImage],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          category,
+          collection,
+          rating,
+          reviewsCount,
+          tags: i === 1 ? ['new-arrivals', 'best-sellers'] : ['trending', 'featured-collection'],
+          parentCategory: parent,
+          subCategory: sub.slug,
+          gender,
+          material: parent === 'perfumes' ? 'Premium Oils Extract Base' : (parent === 'accessories' ? 'Full-Grain Bridle / Pure Brass' : '100% Fine Long-Staple Cotton Weave'),
+          fit: parent === 'perfumes' ? 'Long-Lasting (8-10h)' : (parent === 'accessories' ? 'Adjustable Universal Comfort' : 'Relaxed Boxy Fit'),
+          careInstructions: parent === 'perfumes' ? 'Store upright in dark cool drawers.' : 'Professional clean recommended to protect drape.',
+          variants: sizes.map((s, idx) => ({
+            id: `v-${indexCounter}-${s.toLowerCase()}`,
+            productId: id,
+            size: s,
+            color: i === 1 ? 'Ivory Cream' : 'Carbon Black',
+            sku: `FR-${sub.noun.substring(0,2).toUpperCase()}-${indexCounter}-${idx}`,
+            stockQty: 15,
+            additionalPrice: 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }))
+        });
+
+        indexCounter++;
+      }
+    });
+  };
+
+  processList(MEN_SUBCATS, 'men', 'men');
+  processList(WOMEN_SUBCATS, 'women', 'women');
+  processList(ACCESSORIES_SUBCATS, 'unisex', 'accessories');
+  processList(PERFUMES_SUBCATS, 'unisex', 'perfumes');
+
+  return productsList;
+};
+
+// Export static lists with exactly 66 products procedurally generated
+export const MOCK_PRODUCTS: Product[] = buildProducts();

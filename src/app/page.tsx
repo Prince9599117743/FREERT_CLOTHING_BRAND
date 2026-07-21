@@ -17,7 +17,7 @@ export default function Home() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setFetching(false);
-    }, 700);
+    }, 750);
     return () => clearTimeout(timer);
   }, []);
 
@@ -32,9 +32,6 @@ export default function Home() {
   const womenCollection = MOCK_PRODUCTS.filter(p => p.parentCategory === 'women').slice(0, 4);
   const accessories = MOCK_PRODUCTS.filter(p => p.parentCategory === 'accessories').slice(0, 4);
   const perfumes = MOCK_PRODUCTS.filter(p => p.parentCategory === 'perfumes').slice(0, 4);
-
-  // Suggestions row
-  const youMayLike = MOCK_PRODUCTS.slice(3, 7);
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-luxury">
@@ -119,30 +116,7 @@ export default function Home() {
         )}
       </section>
 
-      {/* 3. Trending Now */}
-      <section className="py-12 container-editorial text-left border-b border-neutral-soft/30">
-        <div className="flex justify-between items-end mb-8">
-          <div>
-            <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">High Demand</p>
-            <h2 className="text-lg md:text-xl uppercase tracking-widest font-light text-fg-luxury">Trending Now</h2>
-          </div>
-          <button onClick={() => router.push('/shop')} className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-text-muted hover:text-fg-luxury transition-colors cursor-pointer">
-            View All <ChevronRight size={12} />
-          </button>
-        </div>
-
-        {fetching ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map(idx => <Skeleton key={idx} variant="image" />)}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {trending.map(p => <ProductCard key={p.id} product={p} />)}
-          </div>
-        )}
-      </section>
-
-      {/* 4. Men's Collection */}
+      {/* 3. Men's Collection */}
       <section className="py-12 container-editorial text-left border-b border-neutral-soft/30">
         <div className="flex justify-between items-end mb-8">
           <div>
@@ -165,7 +139,7 @@ export default function Home() {
         )}
       </section>
 
-      {/* 5. Women's Collection */}
+      {/* 4. Women's Collection */}
       <section className="py-12 container-editorial text-left border-b border-neutral-soft/30">
         <div className="flex justify-between items-end mb-8">
           <div>
@@ -188,11 +162,11 @@ export default function Home() {
         )}
       </section>
 
-      {/* 6. Accessories */}
+      {/* 5. Accessories */}
       <section className="py-12 container-editorial text-left border-b border-neutral-soft/30">
         <div className="flex justify-between items-end mb-8">
           <div>
-            <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">Finishing Touches</p>
+            <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">Finishing Details</p>
             <h2 className="text-lg md:text-xl uppercase tracking-widest font-light text-fg-luxury">Accessories</h2>
           </div>
           <button onClick={() => router.push('/shop/accessories')} className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-text-muted hover:text-fg-luxury transition-colors cursor-pointer">
@@ -211,7 +185,7 @@ export default function Home() {
         )}
       </section>
 
-      {/* 7. Perfumes */}
+      {/* 6. Perfumes */}
       <section className="py-12 container-editorial text-left border-b border-neutral-soft/30">
         <div className="flex justify-between items-end mb-8">
           <div>
@@ -234,11 +208,34 @@ export default function Home() {
         )}
       </section>
 
-      {/* 8. Featured Products */}
+      {/* 7. Trending Products */}
       <section className="py-12 container-editorial text-left border-b border-neutral-soft/30">
         <div className="flex justify-between items-end mb-8">
           <div>
-            <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">Premium Spotlight</p>
+            <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">High Demand</p>
+            <h2 className="text-lg md:text-xl uppercase tracking-widest font-light text-fg-luxury">Trending Products</h2>
+          </div>
+          <button onClick={() => router.push('/shop')} className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-text-muted hover:text-fg-luxury transition-colors cursor-pointer">
+            View All <ChevronRight size={12} />
+          </button>
+        </div>
+
+        {fetching ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map(idx => <Skeleton key={idx} variant="image" />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {trending.map(p => <ProductCard key={p.id} product={p} />)}
+          </div>
+        )}
+      </section>
+
+      {/* 8. Featured Products */}
+      <section className="py-12 container-editorial text-left">
+        <div className="flex justify-between items-end mb-8">
+          <div>
+            <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">Spotlight</p>
             <h2 className="text-lg md:text-xl uppercase tracking-widest font-light text-fg-luxury">Featured Products</h2>
           </div>
           <button onClick={() => router.push('/shop')} className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-text-muted hover:text-fg-luxury transition-colors cursor-pointer">
@@ -253,24 +250,6 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {featured.map(p => <ProductCard key={p.id} product={p} />)}
-          </div>
-        )}
-      </section>
-
-      {/* 9. You May Also Like */}
-      <section className="py-12 container-editorial text-left">
-        <div className="mb-8">
-          <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">Suggestions</p>
-          <h2 className="text-lg md:text-xl uppercase tracking-widest font-light text-fg-luxury">You May Also Like</h2>
-        </div>
-
-        {fetching ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map(idx => <Skeleton key={idx} variant="image" />)}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {youMayLike.map(p => <ProductCard key={p.id} product={p} />)}
           </div>
         )}
       </section>

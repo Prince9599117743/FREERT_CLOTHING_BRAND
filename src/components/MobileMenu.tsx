@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { X, ChevronDown, ChevronRight, User, ShoppingBag, Heart, HelpCircle, Truck, Package } from 'lucide-react';
+import { X, ChevronDown, ChevronRight, User, ShoppingBag, Heart, HelpCircle, Package } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -15,15 +15,10 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
   const { cart } = useCart();
   const { user } = useAuth();
   
-  // Accordion state management
   const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
 
   const toggleAccordion = (name: string) => {
-    if (activeAccordion === name) {
-      setActiveAccordion(null);
-    } else {
-      setActiveAccordion(name);
-    }
+    setActiveAccordion(activeAccordion === name ? null : name);
   };
 
   const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
@@ -43,24 +38,23 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
         { name: 'Jeans', href: '/shop/men/jeans' },
         { name: 'Cargo Pants', href: '/shop/men/cargo-pants' },
         { name: 'Joggers', href: '/shop/men/joggers' },
-        { name: 'Shorts', href: '/shop/men/shorts' },
-        { name: 'Essentials', href: '/shop/men/essentials' }
+        { name: 'Shorts', href: '/shop/men/shorts' }
       ]
     },
     {
       name: 'Women',
       href: '/shop/women',
       sub: [
-        { name: 'Tops', href: '/shop/women/tops' },
+        { name: 'Oversized T-Shirts', href: '/shop/women/oversized-t-shirts' },
         { name: 'Crop Tops', href: '/shop/women/crop-tops' },
+        { name: 'Basic Tops', href: '/shop/women/basic-tops' },
         { name: 'Shirts', href: '/shop/women/shirts' },
         { name: 'Hoodies', href: '/shop/women/hoodies' },
         { name: 'Dresses', href: '/shop/women/dresses' },
         { name: 'Skirts', href: '/shop/women/skirts' },
         { name: 'Jeans', href: '/shop/women/jeans' },
         { name: 'Cargo Pants', href: '/shop/women/cargo-pants' },
-        { name: 'Co-ords', href: '/shop/women/co-ords' },
-        { name: 'Accessories', href: '/shop/women/accessories' }
+        { name: 'Co-ords', href: '/shop/women/co-ords' }
       ]
     },
     {
@@ -71,8 +65,10 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
         { name: 'Bags', href: '/shop/accessories/bags' },
         { name: 'Wallets', href: '/shop/accessories/wallets' },
         { name: 'Belts', href: '/shop/accessories/belts' },
-        { name: 'Sunglasses', href: '/shop/accessories/sunglasses' },
-        { name: 'Jewellery', href: '/shop/accessories/rings' }
+        { name: 'Chains', href: '/shop/accessories/chains' },
+        { name: 'Bracelets', href: '/shop/accessories/bracelets' },
+        { name: 'Rings', href: '/shop/accessories/rings' },
+        { name: 'Sunglasses', href: '/shop/accessories/sunglasses' }
       ]
     },
     {
@@ -89,10 +85,10 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
 
   return (
     <>
-      {/* Background Blur Overlay */}
+      {/* Backdrop blur overlay */}
       <div 
         onClick={onClose}
-        className={`fixed inset-0 bg-fg-luxury/40 backdrop-blur-[3px] z-50 transition-opacity duration-500 ease-in-out ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-fg-luxury/45 backdrop-blur-[4px] z-50 transition-opacity duration-500 ease-in-out ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
       />
 
       {/* Slide-in Drawer from Left */}
@@ -112,13 +108,24 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Content Navigation Panel */}
-        <div className="flex-1 overflow-y-auto px-6 py-8 flex flex-col gap-5">
-          {/* Main Collapsible Category Accordions */}
+        {/* Content Navigation Scrollable Panel */}
+        <div className="flex-1 overflow-y-auto px-6 py-8 flex flex-col gap-4">
+          
+          {/* Home Link */}
+          <Link href="/" onClick={onClose} className="text-xs uppercase tracking-[0.2em] font-semibold text-fg-luxury hover:text-accent-gold transition-colors pb-3 border-b border-neutral-soft/10">
+            Home
+          </Link>
+
+          {/* Shop general link */}
+          <Link href="/shop" onClick={onClose} className="text-xs uppercase tracking-[0.2em] font-semibold text-fg-luxury hover:text-accent-gold transition-colors pb-3 border-b border-neutral-soft/10">
+            Shop All
+          </Link>
+
+          {/* Collapsible Accordions navigation tree */}
           {navigationTree.map((item) => {
             const isAccordionOpen = activeAccordion === item.name;
             return (
-              <div key={item.name} className="flex flex-col border-b border-neutral-soft/10 pb-4">
+              <div key={item.name} className="flex flex-col border-b border-neutral-soft/10 pb-3">
                 <button
                   onClick={() => toggleAccordion(item.name)}
                   className="w-full flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-fg-luxury hover:text-accent-gold transition-colors py-1 cursor-pointer"
@@ -127,15 +134,15 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
                   {isAccordionOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                 </button>
                 
-                {/* Accordion submenus lists */}
-                <div className={`grid transition-all duration-500 ease-in-out ${isAccordionOpen ? 'grid-rows-[1fr] opacity-100 mt-3' : 'grid-rows-[0fr] opacity-0 pointer-events-none'}`}>
-                  <div className="overflow-hidden flex flex-col gap-2.5 pl-2">
+                {/* Collapsible content with sliding height transition */}
+                <div className={`grid transition-all duration-300 ease-in-out ${isAccordionOpen ? 'grid-rows-[1fr] opacity-100 mt-2.5' : 'grid-rows-[0fr] opacity-0 pointer-events-none'}`}>
+                  <div className="overflow-hidden flex flex-col gap-2.5 pl-3">
                     {item.sub.map((sub) => (
                       <Link
                         key={sub.name}
                         href={sub.href}
                         onClick={onClose}
-                        className="text-[10px] uppercase tracking-wider text-text-muted hover:text-fg-luxury transition-colors font-light py-0.5"
+                        className="text-[9.5px] uppercase tracking-wider text-text-muted hover:text-fg-luxury transition-colors font-light py-0.5"
                       >
                         {sub.name}
                       </Link>
@@ -146,49 +153,38 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
             );
           })}
 
-          {/* Single quick links */}
+          {/* Quick links */}
           <div className="flex flex-col gap-4 mt-2">
-            <Link 
-              href="/shop/sale"
-              onClick={onClose}
-              className="text-xs uppercase tracking-[0.2em] font-semibold text-red-700 hover:text-red-800 transition-colors"
-            >
-              Sale
-            </Link>
-            <Link 
-              href="/shop/new-arrivals"
-              onClick={onClose}
-              className="text-xs uppercase tracking-[0.2em] font-semibold text-fg-luxury hover:text-accent-gold transition-colors"
-            >
+            <Link href="/shop/new-arrivals" onClick={onClose} className="text-xs uppercase tracking-[0.2em] font-semibold text-fg-luxury hover:text-accent-gold transition-colors">
               New Arrivals
             </Link>
-            <Link 
-              href="/shop"
-              onClick={onClose}
-              className="text-xs uppercase tracking-[0.2em] font-semibold text-fg-luxury hover:text-accent-gold transition-colors"
-            >
+            <Link href="/shop" onClick={onClose} className="text-xs uppercase tracking-[0.2em] font-semibold text-fg-luxury hover:text-accent-gold transition-colors">
               Best Sellers
+            </Link>
+            <Link href="/shop/sale" onClick={onClose} className="text-xs uppercase tracking-[0.2em] font-semibold text-red-700 hover:text-red-800 transition-colors">
+              Sale
             </Link>
           </div>
 
-          {/* Aux links */}
-          <div className="flex flex-col gap-3 mt-6 pt-6 border-t border-neutral-soft/20 text-[10px] uppercase tracking-[0.15em] font-light text-text-muted">
+          {/* Custom Auxiliary links */}
+          <div className="flex flex-col gap-3.5 mt-6 pt-6 border-t border-neutral-soft/20 text-[9.5px] uppercase tracking-[0.15em] font-light text-text-muted">
             <Link href="/dashboard" onClick={onClose} className="flex items-center gap-2 hover:text-fg-luxury transition-colors">
-              <Package size={13} />
+              <Package size={12} />
               <span>Track Order</span>
             </Link>
             <Link href="/dashboard" onClick={onClose} className="flex items-center gap-2 hover:text-fg-luxury transition-colors">
-              <Heart size={13} />
+              <Heart size={12} />
               <span>Wishlist</span>
             </Link>
             <Link href="/support" onClick={onClose} className="flex items-center gap-2 hover:text-fg-luxury transition-colors">
-              <HelpCircle size={13} />
+              <HelpCircle size={12} />
               <span>Contact Comms</span>
             </Link>
           </div>
+
         </div>
 
-        {/* Footer Actions */}
+        {/* Footer Actions Account / Cart */}
         <div className="p-6 border-t border-neutral-soft/30 bg-neutral-soft/5 flex flex-col gap-4">
           <Link 
             href={user ? '/dashboard' : '/login'} 
