@@ -20,6 +20,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { showToast } = useToast();
 
   const [activeSize, setActiveSize] = useState<string>('');
+  const [isHovered, setIsHovered] = useState(false);
   
   const favorited = isInWishlist(product.id);
   const sizes = product.variants ? Array.from(new Set(product.variants.map(v => v.size))) : [];
@@ -46,7 +47,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Choose first available size or default
     const targetSize = activeSize || sizes[0] || 'One Size';
     const variant = product.variants?.find(v => v.size === targetSize) || product.variants?.[0];
     
@@ -56,15 +56,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     }
   };
 
+  // Image hover swap logic
+  const displayImage = isHovered && product.images[1] ? product.images[1] : product.images[0];
+
   return (
-    <div className="group flex flex-col gap-3 relative text-left">
+    <div 
+      className="group flex flex-col gap-3 relative text-left"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Product Image Frame */}
       <div className="relative aspect-[3/4] bg-neutral-soft/30 overflow-hidden cursor-pointer block">
         <Link href={`/product/${product.slug}`} className="absolute inset-0">
           <img 
-            src={product.images[0]} 
+            src={displayImage} 
             alt={product.name} 
-            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+            className="w-full h-full object-cover transition-all duration-700 ease-out scale-100 group-hover:scale-[1.03]"
             loading="lazy"
           />
         </Link>
