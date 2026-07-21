@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { ShoppingBag, User, Search } from 'lucide-react';
+import { ShoppingBag, User, Search, Menu } from 'lucide-react';
 import { MegaMenu } from './MegaMenu';
 import { SearchOverlay } from './SearchOverlay';
+import { MobileMenu } from './MobileMenu';
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
@@ -16,6 +17,7 @@ export const Navbar: React.FC = () => {
   
   const [isMegaOpen, setIsMegaOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
 
@@ -28,14 +30,23 @@ export const Navbar: React.FC = () => {
   return (
     <>
       <header className="sticky top-0 z-50 w-full bg-bg-luxury/90 backdrop-blur-md border-b border-neutral-soft/40 py-5 px-6 md:px-12 flex justify-between items-center transition-all duration-300">
-        {/* Brand logo */}
-        <div className="flex-1 flex justify-start">
+        
+        {/* Mobile Hamburger & Logo Container */}
+        <div className="flex-1 flex justify-start items-center gap-4">
+          <button 
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="block md:hidden text-fg-luxury hover:text-accent-gold transition-colors cursor-pointer"
+            aria-label="Open Navigation Menu"
+          >
+            <Menu size={18} strokeWidth={1.5} />
+          </button>
+          
           <Link href="/" className="text-xl font-editorial tracking-[0.25em] font-semibold text-fg-luxury hover:opacity-80 transition-opacity">
             FREERT
           </Link>
         </div>
 
-        {/* Nav Menu */}
+        {/* Nav Menu (Desktop) */}
         <nav className="hidden md:flex gap-10 text-[10px] uppercase tracking-[0.25em] font-light">
           <div 
             onMouseEnter={() => setIsMegaOpen(true)}
@@ -88,6 +99,9 @@ export const Navbar: React.FC = () => {
 
       {/* Search Overlay */}
       <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+
+      {/* Mobile Sliding Navigation Drawer */}
+      <MobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
     </>
   );
 };

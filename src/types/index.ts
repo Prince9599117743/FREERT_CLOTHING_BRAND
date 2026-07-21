@@ -61,6 +61,11 @@ export interface Product {
   category?: Category;
   collection?: Collection;
   variants?: ProductVariant[];
+  rating?: number;
+  reviewsCount?: number;
+  tags?: string[];
+  parentCategory?: string;
+  subCategory?: string;
 }
 
 export interface ProductVariant {
