@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MOCK_PRODUCTS } from '@/services/mockData';
+import { getProducts } from '@/services/database';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
@@ -111,6 +111,7 @@ export default function Home() {
   
   // Dynamic layout sections
   const [sections, setSections] = useState<HomepageSection[]>(DEFAULT_SECTIONS);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     // Load Homepage configuration from localStorage if customized
@@ -123,10 +124,14 @@ export default function Home() {
       }
     }
 
-    const timer = setTimeout(() => {
+    const loadData = async () => {
+      try {
+        const list = await getProducts();
+        setAllProducts(list);
+      } catch (e) {}
       setFetching(false);
-    }, 600);
-    return () => clearTimeout(timer);
+    };
+    loadData();
   }, []);
 
   const handleSubscribe = (e: React.FormEvent) => {
@@ -138,12 +143,12 @@ export default function Home() {
 
   // Helper to query featured products matching list IDs
   const getSectionProducts = (sec: HomepageSection, fallbackCat: string, maxCount: number): Product[] => {
-    const matched = MOCK_PRODUCTS.filter(p => sec.featuredProductIds.includes(p.id));
+    const matched = allProducts.filter(p => sec.featuredProductIds.includes(p.id));
     if (matched.length > 0) {
       return matched.slice(0, maxCount);
     }
     // Fallback if none selected or found
-    return MOCK_PRODUCTS.filter(p => p.parentCategory === fallbackCat || p.tags?.includes(fallbackCat)).slice(0, maxCount);
+    return allProducts.filter(p => p.parentCategory === fallbackCat || p.tags?.includes(fallbackCat)).slice(0, maxCount);
   };
 
   // Sort and filter active sections list

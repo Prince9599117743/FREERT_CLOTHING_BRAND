@@ -47,21 +47,21 @@ export default function ForgotPasswordPage() {
           
           {/* Headers */}
           <div>
-            <h1 className="text-2xl uppercase tracking-widest font-light text-fg-luxury mb-2">Reset Key</h1>
-            <p className="text-[11px] text-text-muted font-light uppercase tracking-wider">Dispatch password key recovery</p>
+            <h1 className="text-2xl uppercase tracking-widest font-light text-fg-luxury mb-2">Reset Password</h1>
+            <p className="text-[11px] text-text-muted font-light uppercase tracking-wider">Enter your email to receive recovery instructions</p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleReset} className="flex flex-col gap-6">
             <div>
-              <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">Comms Address</label>
+              <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">Email Address</label>
               <input 
                 type="email" 
                 required 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input-editorial text-xs"
-                placeholder="operator@freert.net"
+                placeholder="you@example.com"
               />
             </div>
 
@@ -70,7 +70,7 @@ export default function ForgotPasswordPage() {
               disabled={loading}
               className="btn-editorial-solid w-full flex items-center justify-center gap-2 text-xs tracking-[0.2em] font-medium py-3.5 mt-4 cursor-pointer"
             >
-              {loading ? 'Dispatching...' : 'Dispatch Reset Email'} <Send size={14} />
+              {loading ? 'Dispatching...' : 'Send Reset Link'} <Send size={14} />
             </button>
           </form>
 

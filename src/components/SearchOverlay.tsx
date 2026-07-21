@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { getProducts } from '@/services/database';
 import { MOCK_PRODUCTS } from '@/services/mockData';
 import { X, Search, Clock, ArrowRight } from 'lucide-react';
 import type { Product } from '@/types';
@@ -15,6 +16,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose })
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Product[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -26,6 +28,13 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose })
       if (saved) {
         try { setRecentSearches(JSON.parse(saved)); } catch (e) {}
       }
+      const fetchList = async () => {
+        try {
+          const list = await getProducts();
+          setAllProducts(list);
+        } catch (e) {}
+      };
+      fetchList();
     } else {
       document.body.style.overflow = '';
       setQuery('');
@@ -41,13 +50,14 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose })
       setResults([]);
       return;
     }
-    const matches = MOCK_PRODUCTS.filter(p => 
+    const targetProducts = allProducts.length > 0 ? allProducts : MOCK_PRODUCTS;
+    const matches = targetProducts.filter(p => 
       p.name.toLowerCase().includes(query.toLowerCase()) || 
       p.description?.toLowerCase().includes(query.toLowerCase()) ||
       p.tags?.some(t => t.toLowerCase().includes(query.toLowerCase()))
     );
     setResults(matches);
-  }, [query]);
+  }, [query, allProducts]);
 
   const handleResultClick = (searchVal: string) => {
     // Add to recent searches
@@ -140,7 +150,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose })
             <div className="md:col-span-7">
               <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-text-muted mb-4">Spotlight Suggestions</h4>
               <div className="grid grid-cols-2 gap-4">
-                {MOCK_PRODUCTS.slice(0, 2).map((product) => (
+                {(allProducts.length > 0 ? allProducts : MOCK_PRODUCTS).slice(0, 2).map((product) => (
                   <Link 
                     key={product.id} 
                     href={`/product/${product.slug}`}

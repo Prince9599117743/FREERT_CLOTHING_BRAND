@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MOCK_PRODUCTS } from '@/services/mockData';
+import { getProducts, getProductBySlug, getProductReviews, createProductReview } from '@/services/database';
+import type { Product } from '@/types';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/CartDrawer';
@@ -10,7 +11,6 @@ import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { StructuredData } from '@/components/StructuredData';
-import { getProductReviews, createProductReview } from '@/services/database';
 import { ArrowLeft, Check, Truck, RotateCcw, ShieldCheck, Heart, Star, AlertTriangle, X } from 'lucide-react';
 import { ProductCard } from '@/components/ProductCard';
 
@@ -29,8 +29,9 @@ export default function ProductDetailPage() {
   const { showToast } = useToast();
   const { toggleWishlist, isInWishlist } = useWishlist();
 
-  // Find product by slug
-  const product = MOCK_PRODUCTS.find(p => p.slug === slug);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loadingProduct, setLoadingProduct] = useState(true);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
@@ -38,6 +39,23 @@ export default function ProductDetailPage() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [zoomStyle, setZoomStyle] = useState<React.CSSProperties>({});
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+
+  useEffect(() => {
+    const loadItem = async () => {
+      try {
+        const item = await getProductBySlug(slug as string);
+        setProduct(item);
+        if (item) {
+          const list = await getProducts();
+          setRelatedProducts(list.filter(p => p.parentCategory === item.parentCategory && p.id !== item.id).slice(0, 4));
+        }
+      } catch (e) {
+      } finally {
+        setLoadingProduct(false);
+      }
+    };
+    loadItem();
+  }, [slug]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
@@ -81,6 +99,18 @@ export default function ProductDetailPage() {
       loadReviews();
     }
   }, [product]);
+
+  if (loadingProduct) {
+    return (
+      <div className="min-h-screen bg-bg-luxury flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center py-40">
+          <div className="w-8 h-8 border border-neutral-soft border-t-fg-luxury rounded-full animate-spin" />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -575,7 +605,7 @@ export default function ProductDetailPage() {
         <section className="mt-24 pt-16 border-t border-neutral-soft/40 text-left">
           <h2 className="text-xl uppercase tracking-widest font-light text-fg-luxury mb-10">Related Articles</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10">
-            {MOCK_PRODUCTS.filter(p => p.parentCategory === product.parentCategory && p.id !== product.id).slice(0, 4).map((p) => (
+            {relatedProducts.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
           </div>

@@ -59,8 +59,8 @@ export default function SignupPage() {
           
           {/* Headers */}
           <div>
-            <h1 className="text-2xl uppercase tracking-widest font-light text-fg-luxury mb-2">Create Node</h1>
-            <p className="text-[11px] text-text-muted font-light uppercase tracking-wider">Register identity parameters</p>
+            <h1 className="text-2xl uppercase tracking-widest font-light text-fg-luxury mb-2">Create Account</h1>
+            <p className="text-[11px] text-text-muted font-light uppercase tracking-wider">Register your details below</p>
           </div>
 
           {/* Form */}
@@ -73,22 +73,22 @@ export default function SignupPage() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="input-editorial text-xs"
-                placeholder="Receiver Identity"
+                placeholder="Your full name"
               />
             </div>
             <div>
-              <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">Comms Address</label>
+              <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">Email Address</label>
               <input 
                 type="email" 
                 required 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input-editorial text-xs"
-                placeholder="operator@freert.net"
+                placeholder="you@example.com"
               />
             </div>
             <div>
-              <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">Password Key</label>
+              <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">Password</label>
               <input 
                 type="password" 
                 required 
@@ -110,13 +110,13 @@ export default function SignupPage() {
               disabled={loading}
               className="btn-editorial-solid w-full flex items-center justify-center gap-2 text-xs tracking-[0.2em] font-medium py-3.5 mt-4 cursor-pointer"
             >
-              {loading ? 'Creating...' : 'Create Connection Link'} <ArrowRight size={14} />
+              {loading ? 'Creating...' : 'Create Account'} <ArrowRight size={14} />
             </button>
           </form>
           
           <div className="flex justify-center items-center gap-2 text-[9px] uppercase tracking-widest text-text-muted font-light mt-4">
             <ShieldCheck size={12} className="text-accent-gold" />
-            <span>Secure Encryption Activated</span>
+            <span>Secure SSL Encryption</span>
           </div>
 
         </div>

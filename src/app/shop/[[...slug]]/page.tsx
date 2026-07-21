@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MOCK_PRODUCTS } from '@/services/mockData';
+import { getProducts } from '@/services/database';
+import type { Product } from '@/types';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/CartDrawer';
@@ -16,7 +17,8 @@ export default function ShopPage() {
   // Resolve slug parameter array
   const slug = params.slug as string[] | undefined;
 
-  const [filteredProducts, setFilteredProducts] = useState(MOCK_PRODUCTS);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [sortBy, setSortBy] = useState<'default' | 'price-low' | 'price-high' | 'rating'>('default');
   const [priceRange, setPriceRange] = useState<number>(20000);
   
@@ -25,7 +27,18 @@ export default function ShopPage() {
   const subParam = slug?.[1] || '';
 
   useEffect(() => {
-    let list = [...MOCK_PRODUCTS];
+    const loadData = async () => {
+      try {
+        const list = await getProducts();
+        setAllProducts(list);
+        setFilteredProducts(list);
+      } catch (e) {}
+    };
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    let list = [...allProducts];
 
     // Filter by main category or tags
     if (parentParam) {

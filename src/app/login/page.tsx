@@ -116,7 +116,7 @@ export default function LoginPage() {
           {/* Headers */}
           <div>
             <h1 className="text-2xl uppercase tracking-widest font-light text-fg-luxury mb-2">Sign In</h1>
-            <p className="text-[11px] text-text-muted font-light uppercase tracking-wider">Access your connection node logs</p>
+            <p className="text-[11px] text-text-muted font-light uppercase tracking-wider">Sign in to manage your customer account</p>
           </div>
 
           {/* Form */}
@@ -129,7 +129,7 @@ export default function LoginPage() {
                 onClick={() => { setLoginMethod('email'); setOtpSent(false); }}
                 className={`w-1/2 text-[9px] uppercase tracking-widest py-1.5 font-light transition-all flex items-center justify-center gap-1.5 cursor-pointer ${loginMethod === 'email' ? 'bg-bg-luxury text-fg-luxury font-medium shadow-sm' : 'text-text-muted'}`}
               >
-                <Mail size={12} /> Email Access
+                <Mail size={12} /> Email Sign In
               </button>
               <button 
                 type="button"
@@ -143,18 +143,18 @@ export default function LoginPage() {
             {loginMethod === 'email' ? (
               <>
                 <div>
-                  <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">Comms Address</label>
+                  <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">Email Address</label>
                   <input 
                     type="email" 
                     required 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="input-editorial text-xs"
-                    placeholder="operator@freert.net"
+                    placeholder="you@example.com"
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">Password Key</label>
+                  <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">Password</label>
                   <input 
                     type="password" 
                     required 
@@ -169,7 +169,7 @@ export default function LoginPage() {
               <>
                 {!otpSent ? (
                   <div>
-                    <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">Phone Line Connection</label>
+                    <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">Phone Number</label>
                     <input 
                       type="tel" 
                       required 
@@ -198,10 +198,10 @@ export default function LoginPage() {
             {loginMethod === 'email' && (
               <div className="flex justify-between items-center text-[10px] uppercase tracking-wider font-light mt-2">
                 <Link href="/forgot-password" className="text-text-muted hover:text-fg-luxury transition-colors">
-                  Forgot Key?
+                  Forgot Password?
                 </Link>
                 <Link href="/signup" className="text-text-muted hover:text-fg-luxury transition-colors">
-                  Create Node Link
+                  Create Account
                 </Link>
               </div>
             )}
@@ -211,7 +211,7 @@ export default function LoginPage() {
               disabled={loading}
               className="btn-editorial-solid w-full flex items-center justify-center gap-2 text-xs tracking-[0.2em] font-medium py-3.5 mt-4 cursor-pointer"
             >
-              {loading ? 'Verifying...' : (loginMethod === 'otp' && !otpSent ? 'Send OTP Verification' : 'Establish Node Connect')} <ArrowRight size={14} />
+              {loading ? 'Verifying...' : (loginMethod === 'otp' && !otpSent ? 'Send OTP Verification' : 'Sign In')} <ArrowRight size={14} />
             </button>
           </form>
 
@@ -227,12 +227,12 @@ export default function LoginPage() {
             onClick={handleGoogleLogin}
             className="btn-editorial w-full flex items-center justify-center gap-2 text-xs tracking-[0.15em] py-3 cursor-pointer"
           >
-            Google Identity
+            Sign In with Google
           </button>
           
           <div className="flex justify-center items-center gap-2 text-[9px] uppercase tracking-widest text-text-muted font-light mt-4">
             <ShieldAlert size={12} className="text-accent-gold" />
-            <span>Secure SSL Handshake Configured</span>
+            <span>Secure SSL Encryption</span>
           </div>
 
         </div>
