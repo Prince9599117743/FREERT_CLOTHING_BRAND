@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/contexts/ToastContext';
-import { Save, ChevronUp, ChevronDown, Trash2, Plus, Eye } from 'lucide-react';
+import { Save, ChevronUp, ChevronDown, Trash2, Plus, Layout } from 'lucide-react';
+import { MOCK_PRODUCTS } from '@/services/mockData';
 
 interface HeroSlide {
   id: string;
@@ -14,6 +15,18 @@ interface HeroSlide {
   enabled: boolean;
 }
 
+interface HomepageSection {
+  id: string;
+  title: string;
+  subtitle: string;
+  bannerImage?: string;
+  ctaText: string;
+  ctaLink: string;
+  visible: boolean;
+  order: number;
+  featuredProductIds: string[];
+}
+
 const DEFAULT_SLIDES: HeroSlide[] = [
   { id: 'hs-1', image: '/assets/trench_coat.jpg', heading: 'BE YOU.', subtitle: 'BE BOLD. BE FREERT.', ctaText: 'Shop Now', ctaLink: '/shop', enabled: true },
   { id: 'hs-2', image: '/assets/slip_dress.jpg', heading: 'New Season Collection', subtitle: 'Autumn / Winter Edit 2026', ctaText: 'Explore Collection', ctaLink: '/shop/new-arrivals', enabled: true },
@@ -22,6 +35,84 @@ const DEFAULT_SLIDES: HeroSlide[] = [
   { id: 'hs-5', image: '/assets/knit_hoodie.jpg', heading: 'Minimal Luxury', subtitle: 'Organic Weaves and Soft Textures', ctaText: 'Shop Knitwear', ctaLink: '/shop/men/hoodies', enabled: true },
   { id: 'hs-6', image: '/assets/cap_1784646670746.png', heading: 'Modern Identity', subtitle: 'Finishing Details for the Modern Wardrobe', ctaText: 'Shop Accessories', ctaLink: '/shop/accessories', enabled: true },
   { id: 'hs-7', image: '/assets/sneakers_1784646656235.png', heading: 'Premium Essentials', subtitle: 'Sandalwood Santal & Intense Scents', ctaText: 'Shop Perfumes', ctaLink: '/shop/perfumes', enabled: true }
+];
+
+const DEFAULT_SECTIONS: HomepageSection[] = [
+  {
+    id: 'new-drop',
+    title: 'NEW DROP',
+    subtitle: 'Seasonal Highlight',
+    bannerImage: '/assets/trench_coat.jpg',
+    ctaText: 'Explore Collection',
+    ctaLink: '/shop/new-arrivals',
+    visible: true,
+    order: 0,
+    featuredProductIds: []
+  },
+  {
+    id: 'men',
+    title: "Men's Silhouette",
+    subtitle: 'Tailored for Him',
+    bannerImage: '/assets/trench_coat.jpg',
+    ctaText: 'Shop Men',
+    ctaLink: '/shop/men',
+    visible: true,
+    order: 1,
+    featuredProductIds: ['prod-1', 'prod-2']
+  },
+  {
+    id: 'women',
+    title: "Women's Silhouette",
+    subtitle: 'Tailored for Her',
+    bannerImage: '/assets/slip_dress.jpg',
+    ctaText: 'Shop Women',
+    ctaLink: '/shop/women',
+    visible: true,
+    order: 2,
+    featuredProductIds: ['prod-23', 'prod-24']
+  },
+  {
+    id: 'accessories',
+    title: 'Accessories Edit',
+    subtitle: 'Finishing Details',
+    bannerImage: '/assets/cap_1784646670746.png',
+    ctaText: 'Shop Accessories',
+    ctaLink: '/shop/accessories',
+    visible: true,
+    order: 3,
+    featuredProductIds: ['prod-43', 'prod-44']
+  },
+  {
+    id: 'perfumes',
+    title: 'Luxury Scent',
+    subtitle: 'Aromatic Notes',
+    bannerImage: '/assets/sneakers_1784646656235.png',
+    ctaText: 'Shop Perfumes',
+    ctaLink: '/shop/perfumes',
+    visible: true,
+    order: 4,
+    featuredProductIds: ['prod-59', 'prod-60']
+  },
+  {
+    id: 'trending',
+    title: 'Trending Now',
+    subtitle: 'High Demand',
+    ctaText: 'View All',
+    ctaLink: '/shop',
+    visible: true,
+    order: 5,
+    featuredProductIds: ['prod-3', 'prod-4', 'prod-5', 'prod-6']
+  },
+  {
+    id: 'best-sellers',
+    title: 'Best Sellers',
+    subtitle: 'Timeless Designs',
+    ctaText: 'View All',
+    ctaLink: '/shop',
+    visible: true,
+    order: 6,
+    featuredProductIds: ['prod-7', 'prod-8', 'prod-9', 'prod-10']
+  }
 ];
 
 const DEFAULT_PAGES: Record<string, { title: string; content: string }> = {
@@ -62,6 +153,9 @@ const DEFAULT_PAGES: Record<string, { title: string; content: string }> = {
 export default function AdminCMSPage() {
   const { showToast } = useToast();
   
+  // Tab states
+  const [activeTab, setActiveTab] = useState<'hero' | 'sections' | 'pages'>('hero');
+
   // State for Pages CMS
   const [pagesContent, setPagesContent] = useState<Record<string, { title: string; content: string }>>(DEFAULT_PAGES);
   const [selectedPageKey, setSelectedPageKey] = useState<string>('about');
@@ -70,6 +164,9 @@ export default function AdminCMSPage() {
 
   // State for Hero Slideshow Manager
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>(DEFAULT_SLIDES);
+
+  // State for Homepage Sections Layout
+  const [sections, setSections] = useState<HomepageSection[]>(DEFAULT_SECTIONS);
 
   useEffect(() => {
     // Load pages content
@@ -91,6 +188,16 @@ export default function AdminCMSPage() {
         setHeroSlides(JSON.parse(savedSlides));
       } catch (e) {
         setHeroSlides(DEFAULT_SLIDES);
+      }
+    }
+
+    // Load sections layout content
+    const savedSections = localStorage.getItem('freert_homepage_cms_layout');
+    if (savedSections) {
+      try {
+        setSections(JSON.parse(savedSections));
+      } catch (e) {
+        setSections(DEFAULT_SECTIONS);
       }
     }
   }, []);
@@ -130,7 +237,7 @@ export default function AdminCMSPage() {
 
   const handleDeleteSlide = (id: string) => {
     setHeroSlides(prev => prev.filter(s => s.id !== id));
-    showToast('Slide removed from list buffer.', 'info');
+    showToast('Slide removed from buffer.', 'info');
   };
 
   const handleAddSlide = () => {
@@ -150,20 +257,77 @@ export default function AdminCMSPage() {
   const handleSaveHeroCMS = (e: React.FormEvent) => {
     e.preventDefault();
     localStorage.setItem('freert_hero_slides', JSON.stringify(heroSlides));
-    showToast('Hero Slideshow configurations deployed to live site.', 'success');
+    showToast('Hero Slideshow layout updated successfully.', 'success');
+  };
+
+  // Section CMS operations
+  const handleUpdateSection = (id: string, field: keyof HomepageSection, value: any) => {
+    setSections(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s));
+  };
+
+  const handleToggleProductInSection = (sectionId: string, productId: string) => {
+    setSections(prev => prev.map(s => {
+      if (s.id !== sectionId) return s;
+      const isSelected = s.featuredProductIds.includes(productId);
+      const updatedIds = isSelected 
+        ? s.featuredProductIds.filter(id => id !== productId)
+        : [...s.featuredProductIds, productId];
+      return { ...s, featuredProductIds: updatedIds };
+    }));
+  };
+
+  const handleMoveSection = (index: number, direction: 'up' | 'down') => {
+    const updated = [...sections].sort((a, b) => a.order - b.order);
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    if (targetIndex >= 0 && targetIndex < updated.length) {
+      // Swap order parameters
+      const tempOrder = updated[index].order;
+      updated[index].order = updated[targetIndex].order;
+      updated[targetIndex].order = tempOrder;
+      
+      setSections(updated);
+    }
+  };
+
+  const handleSaveSectionsCMS = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem('freert_homepage_cms_layout', JSON.stringify(sections));
+    showToast('Homepage dynamic layout sections successfully deployed to production edge.', 'success');
   };
 
   return (
-    <div className="flex flex-col gap-12 text-left">
+    <div className="flex flex-col gap-10 text-left">
       <div>
         <h1 className="text-2xl uppercase tracking-widest font-light text-fg-luxury">Homepage & Pages CMS</h1>
         <p className="text-[11px] text-text-muted font-light uppercase tracking-wider mt-1">Configure editorial slideshow banners, policy contents and informational guides</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-        
-        {/* Left: Hero Slideshow Manager (Col span 7) */}
-        <form onSubmit={handleSaveHeroCMS} className="lg:col-span-7 flex flex-col gap-8 bg-bg-luxury border border-neutral-soft/80 p-8">
+      {/* Tabs navigation */}
+      <div className="flex gap-4 border-b border-neutral-soft/60 pb-3">
+        <button
+          onClick={() => setActiveTab('hero')}
+          className={`text-[10px] uppercase tracking-widest py-1.5 px-4 cursor-pointer font-medium border-b-2 transition-all ${activeTab === 'hero' ? 'border-accent-gold text-fg-luxury' : 'border-transparent text-text-muted hover:text-fg-luxury'}`}
+        >
+          Hero Slideshow
+        </button>
+        <button
+          onClick={() => setActiveTab('sections')}
+          className={`text-[10px] uppercase tracking-widest py-1.5 px-4 cursor-pointer font-medium border-b-2 transition-all ${activeTab === 'sections' ? 'border-accent-gold text-fg-luxury' : 'border-transparent text-text-muted hover:text-fg-luxury'}`}
+        >
+          Homepage Sections
+        </button>
+        <button
+          onClick={() => setActiveTab('pages')}
+          className={`text-[10px] uppercase tracking-widest py-1.5 px-4 cursor-pointer font-medium border-b-2 transition-all ${activeTab === 'pages' ? 'border-accent-gold text-fg-luxury' : 'border-transparent text-text-muted hover:text-fg-luxury'}`}
+        >
+          Policy Pages
+        </button>
+      </div>
+
+      {/* TAB 1: Hero Slides */}
+      {activeTab === 'hero' && (
+        <form onSubmit={handleSaveHeroCMS} className="flex flex-col gap-8 bg-bg-luxury border border-neutral-soft/80 p-8">
           <div className="flex justify-between items-center border-b border-neutral-soft/30 pb-3">
             <h2 className="text-sm uppercase tracking-[0.2em] font-semibold text-fg-luxury">
               Hero Banner Manager
@@ -177,11 +341,9 @@ export default function AdminCMSPage() {
             </button>
           </div>
 
-          <div className="flex flex-col gap-8 max-h-[600px] overflow-y-auto pr-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {heroSlides.map((slide, idx) => (
               <div key={slide.id} className="p-5 border border-neutral-soft bg-neutral-soft/5 flex flex-col gap-4 relative">
-                
-                {/* Actions row */}
                 <div className="flex justify-between items-center border-b border-neutral-soft/30 pb-2">
                   <span className="text-[9px] uppercase tracking-widest text-text-muted font-semibold">Slide 0{idx + 1}</span>
                   <div className="flex items-center gap-3">
@@ -211,15 +373,14 @@ export default function AdminCMSPage() {
                   </div>
                 </div>
 
-                {/* Inputs Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-3 text-xs">
                   <div>
                     <label className="text-[8px] uppercase tracking-wider text-text-muted mb-1 block">Heading</label>
                     <input 
                       type="text" 
                       value={slide.heading}
                       onChange={(e) => handleUpdateSlide(slide.id, 'heading', e.target.value)}
-                      className="input-editorial text-xs"
+                      className="input-editorial py-1 text-xs"
                     />
                   </div>
                   <div>
@@ -228,7 +389,7 @@ export default function AdminCMSPage() {
                       type="text" 
                       value={slide.subtitle}
                       onChange={(e) => handleUpdateSlide(slide.id, 'subtitle', e.target.value)}
-                      className="input-editorial text-xs"
+                      className="input-editorial py-1 text-xs"
                     />
                   </div>
                   <div>
@@ -237,7 +398,7 @@ export default function AdminCMSPage() {
                       type="text" 
                       value={slide.image}
                       onChange={(e) => handleUpdateSlide(slide.id, 'image', e.target.value)}
-                      className="input-editorial text-xs"
+                      className="input-editorial py-1 text-xs"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -247,7 +408,7 @@ export default function AdminCMSPage() {
                         type="text" 
                         value={slide.ctaText}
                         onChange={(e) => handleUpdateSlide(slide.id, 'ctaText', e.target.value)}
-                        className="input-editorial text-xs"
+                        className="input-editorial py-1 text-xs"
                       />
                     </div>
                     <div>
@@ -256,13 +417,12 @@ export default function AdminCMSPage() {
                         type="text" 
                         value={slide.ctaLink}
                         onChange={(e) => handleUpdateSlide(slide.id, 'ctaLink', e.target.value)}
-                        className="input-editorial text-xs"
+                        className="input-editorial py-1 text-xs"
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Enable toggle */}
                 <label className="flex items-center gap-2 cursor-pointer mt-1">
                   <input 
                     type="checkbox"
@@ -270,7 +430,150 @@ export default function AdminCMSPage() {
                     onChange={(e) => handleUpdateSlide(slide.id, 'enabled', e.target.checked)}
                     className="accent-fg-luxury"
                   />
-                  <span className="text-[9px] uppercase tracking-widest text-fg-luxury">Enable Slide in rotation</span>
+                  <span className="text-[9px] uppercase tracking-widest text-fg-luxury">Enable Slide</span>
+                </label>
+              </div>
+            ))}
+          </div>
+
+          <button 
+            type="submit"
+            className="btn-editorial-solid flex items-center justify-center gap-2 py-3.5 tracking-[0.2em] font-medium text-xs cursor-pointer mt-4"
+          >
+            <Save size={14} /> Deploy Slideshow Configurations
+          </button>
+        </form>
+      )}
+
+      {/* TAB 2: Homepage Layout Sections CMS */}
+      {activeTab === 'sections' && (
+        <form onSubmit={handleSaveSectionsCMS} className="flex flex-col gap-8 bg-bg-luxury border border-neutral-soft/80 p-8">
+          <div className="border-b border-neutral-soft/30 pb-3">
+            <h2 className="text-sm uppercase tracking-[0.2em] font-semibold text-fg-luxury">
+              Homepage Layout Sections Editor
+            </h2>
+          </div>
+
+          <div className="flex flex-col gap-8">
+            {sections.sort((a, b) => a.order - b.order).map((section, idx) => (
+              <div key={section.id} className="p-6 border border-neutral-soft bg-neutral-soft/5 flex flex-col gap-5 relative text-left">
+                
+                {/* Control Actions Row */}
+                <div className="flex justify-between items-center border-b border-neutral-soft/30 pb-2">
+                  <span className="text-[10px] uppercase tracking-widest text-accent-gold font-semibold">
+                    {section.id.toUpperCase()} SECTION
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      disabled={idx === 0}
+                      onClick={() => handleMoveSection(idx, 'up')}
+                      className="p-1 hover:text-accent-gold text-text-muted disabled:opacity-30 cursor-pointer"
+                    >
+                      <ChevronUp size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={idx === sections.length - 1}
+                      onClick={() => handleMoveSection(idx, 'down')}
+                      className="p-1 hover:text-accent-gold text-text-muted disabled:opacity-30 cursor-pointer"
+                    >
+                      <ChevronDown size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Form fields Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label className="text-[8px] uppercase tracking-wider text-text-muted mb-1 block">Title</label>
+                    <input 
+                      type="text" 
+                      value={section.title}
+                      onChange={(e) => handleUpdateSection(section.id, 'title', e.target.value)}
+                      className="input-editorial py-1 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[8px] uppercase tracking-wider text-text-muted mb-1 block">Subtitle</label>
+                    <input 
+                      type="text" 
+                      value={section.subtitle}
+                      onChange={(e) => handleUpdateSection(section.id, 'subtitle', e.target.value)}
+                      className="input-editorial py-1 text-xs"
+                    />
+                  </div>
+                  
+                  {section.bannerImage !== undefined && (
+                    <div>
+                      <label className="text-[8px] uppercase tracking-wider text-text-muted mb-1 block">Banner Image path</label>
+                      <input 
+                        type="text" 
+                        value={section.bannerImage}
+                        onChange={(e) => handleUpdateSection(section.id, 'bannerImage', e.target.value)}
+                        className="input-editorial py-1 text-xs"
+                      />
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[8px] uppercase tracking-wider text-text-muted mb-1 block">CTA Button Text</label>
+                      <input 
+                        type="text" 
+                        value={section.ctaText}
+                        onChange={(e) => handleUpdateSection(section.id, 'ctaText', e.target.value)}
+                        className="input-editorial py-1 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[8px] uppercase tracking-wider text-text-muted mb-1 block">CTA Button Link</label>
+                      <input 
+                        type="text" 
+                        value={section.ctaLink}
+                        onChange={(e) => handleUpdateSection(section.id, 'ctaLink', e.target.value)}
+                        className="input-editorial py-1 text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Featured Products Multi Select container */}
+                {['men', 'women', 'accessories', 'perfumes', 'trending', 'best-sellers'].includes(section.id) && (
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[8px] uppercase tracking-wider text-text-muted font-semibold">
+                      Select Featured Products (Current Selected: {section.featuredProductIds.length})
+                    </label>
+                    <div className="h-32 overflow-y-auto border border-neutral-soft/80 bg-bg-luxury p-3 flex flex-col gap-2 rounded-sm text-xs">
+                      {MOCK_PRODUCTS.map((prod) => {
+                        const isChecked = section.featuredProductIds.includes(prod.id);
+                        return (
+                          <label key={prod.id} className="flex items-center gap-3 cursor-pointer select-none hover:bg-neutral-soft/10 p-0.5">
+                            <input 
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleToggleProductInSection(section.id, prod.id)}
+                              className="accent-fg-luxury"
+                            />
+                            <span className="text-[10px] text-fg-luxury uppercase tracking-wider">
+                              [{(prod.parentCategory || '').toUpperCase()} - {prod.subCategory || ''}] {prod.name} (₹{prod.basePrice})
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Visible status toggle */}
+                <label className="flex items-center gap-2 cursor-pointer mt-1">
+                  <input 
+                    type="checkbox"
+                    checked={section.visible}
+                    onChange={(e) => handleUpdateSection(section.id, 'visible', e.target.checked)}
+                    className="accent-fg-luxury"
+                  />
+                  <span className="text-[9px] uppercase tracking-widest text-fg-luxury">Show Section on Homepage</span>
                 </label>
 
               </div>
@@ -279,14 +582,16 @@ export default function AdminCMSPage() {
 
           <button 
             type="submit"
-            className="btn-editorial-solid flex items-center justify-center gap-2 py-3.5 tracking-[0.2em] font-medium text-xs cursor-pointer mt-2"
+            className="btn-editorial-solid flex items-center justify-center gap-2 py-3.5 tracking-[0.2em] font-medium text-xs cursor-pointer mt-4"
           >
-            <Save size={14} /> Deploy Slideshow Configurations
+            <Save size={14} /> Deploy Layout Configurations
           </button>
         </form>
+      )}
 
-        {/* Right: Policy & Info Pages CMS Editor (Col span 5) */}
-        <form onSubmit={handleSavePageCMS} className="lg:col-span-5 flex flex-col gap-8 bg-bg-luxury border border-neutral-soft/80 p-8">
+      {/* TAB 3: Policy / Info Pages editor */}
+      {activeTab === 'pages' && (
+        <form onSubmit={handleSavePageCMS} className="flex flex-col gap-8 bg-bg-luxury border border-neutral-soft/80 p-8">
           <h2 className="text-sm uppercase tracking-[0.2em] font-semibold text-fg-luxury pb-2 border-b border-neutral-soft/30">
             Legal & Policy Pages Editor
           </h2>
@@ -335,8 +640,7 @@ export default function AdminCMSPage() {
             <Save size={14} /> Save Page Contents
           </button>
         </form>
-
-      </div>
+      )}
     </div>
   );
 }
