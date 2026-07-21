@@ -71,20 +71,24 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* Nav Menu (Desktop) */}
-        <nav className="hidden md:flex gap-10 text-[10px] uppercase tracking-[0.25em] font-light">
-          <div 
-            onMouseEnter={() => setIsMegaOpen(true)}
-            className="relative"
-          >
-            <span className="hover:text-accent-gold transition-colors duration-300 relative py-1 cursor-pointer text-fg-luxury">
-              Shop Edit
-            </span>
+        <nav className="hidden md:flex gap-8 text-[10px] uppercase tracking-[0.25em] font-light">
+          <div onMouseEnter={() => setIsMegaOpen(true)} className="relative py-1 cursor-pointer">
+            <Link href="/shop/men" className="text-fg-luxury hover:text-accent-gold transition-colors">MEN</Link>
           </div>
-          <Link href="/support" className={linkStyle('/support')}>
-            Comms Node
+          <div onMouseEnter={() => setIsMegaOpen(true)} className="relative py-1 cursor-pointer">
+            <Link href="/shop/women" className="text-fg-luxury hover:text-accent-gold transition-colors">WOMEN</Link>
+          </div>
+          <div onMouseEnter={() => setIsMegaOpen(true)} className="relative py-1 cursor-pointer">
+            <Link href="/shop/accessories" className="text-fg-luxury hover:text-accent-gold transition-colors">ACCESSORIES</Link>
+          </div>
+          <div onMouseEnter={() => setIsMegaOpen(true)} className="relative py-1 cursor-pointer">
+            <Link href="/shop/perfumes" className="text-fg-luxury hover:text-accent-gold transition-colors">PERFUMES</Link>
+          </div>
+          <Link href="/shop/new-arrivals" className={linkStyle('/shop/new-arrivals')}>
+            NEW DROP
           </Link>
-          <Link href="/dashboard" className={linkStyle('/dashboard')}>
-            Dashboard
+          <Link href="/info/about" className={linkStyle('/info/about')}>
+            LOOKBOOK
           </Link>
         </nav>
 
@@ -98,7 +102,7 @@ export const Navbar: React.FC = () => {
             <Search size={16} strokeWidth={1.5} />
           </button>
 
-          {/* Redesigned Account / User Menu Dropdown */}
+          {/* Account Dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button 
               onClick={() => setIsAccountDropdownOpen(!isAccountDropdownOpen)}
@@ -108,7 +112,7 @@ export const Navbar: React.FC = () => {
               <User size={16} strokeWidth={1.5} />
               {user && (
                 <span className="hidden lg:inline text-[9px] uppercase tracking-[0.15em] font-light">
-                  {user.fullName?.split(' ')[0] || 'Operator'}
+                  {user.fullName?.split(' ')[0] || 'Active User'}
                 </span>
               )}
             </button>
@@ -179,7 +183,9 @@ export const Navbar: React.FC = () => {
       </header>
 
       {/* MegaMenu Dropdown */}
-      <MegaMenu isOpen={isMegaOpen} onClose={() => setIsMegaOpen(false)} />
+      <div onMouseLeave={() => setIsMegaOpen(false)}>
+        <MegaMenu isOpen={isMegaOpen} onClose={() => setIsMegaOpen(false)} />
+      </div>
 
       {/* Search Overlay */}
       <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />

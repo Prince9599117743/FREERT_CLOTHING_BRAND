@@ -11,7 +11,7 @@ export const Footer: React.FC = () => {
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
     if (email && email.includes('@')) {
-      showToast('Comms node successfully registered to grid broadcast.', 'success');
+      showToast('Thank you for subscribing to our newsletter.', 'success');
       setEmail('');
     }
   };
@@ -32,12 +32,12 @@ export const Footer: React.FC = () => {
 
         {/* Categories Links */}
         <div>
-          <h4 className="text-[10px] uppercase tracking-[0.25em] font-semibold mb-6 text-fg-luxury">Shop Departments</h4>
+          <h4 className="text-[10px] uppercase tracking-[0.25em] font-semibold mb-6 text-fg-luxury">Shop</h4>
           <ul className="text-[11px] space-y-3.5 font-light text-text-muted">
-            <li><Link href="/shop/men" className="hover:text-accent-gold transition-colors duration-300">Men's Silhouette</Link></li>
-            <li><Link href="/shop/women" className="hover:text-accent-gold transition-colors duration-300">Women's Silhouette</Link></li>
-            <li><Link href="/shop/accessories" className="hover:text-accent-gold transition-colors duration-300">Accessories Edit</Link></li>
-            <li><Link href="/shop/perfumes" className="hover:text-accent-gold transition-colors duration-300">Luxury Scent</Link></li>
+            <li><Link href="/shop/men" className="hover:text-accent-gold transition-colors duration-300">Men</Link></li>
+            <li><Link href="/shop/women" className="hover:text-accent-gold transition-colors duration-300">Women</Link></li>
+            <li><Link href="/shop/accessories" className="hover:text-accent-gold transition-colors duration-300">Accessories</Link></li>
+            <li><Link href="/shop/perfumes" className="hover:text-accent-gold transition-colors duration-300">Perfumes</Link></li>
           </ul>
         </div>
 
@@ -46,22 +46,23 @@ export const Footer: React.FC = () => {
           <h4 className="text-[10px] uppercase tracking-[0.25em] font-semibold mb-6 text-fg-luxury">Legal & Care</h4>
           <ul className="text-[11px] space-y-3.5 font-light text-text-muted">
             <li><Link href="/info/about" className="hover:text-accent-gold transition-colors duration-300">About FREERT</Link></li>
-            <li><Link href="/info/faq" className="hover:text-accent-gold transition-colors duration-300">FAQ Help Accordions</Link></li>
+            <li><Link href="/info/faq" className="hover:text-accent-gold transition-colors duration-300">FAQ</Link></li>
             <li><Link href="/info/privacy-policy" className="hover:text-accent-gold transition-colors duration-300">Privacy Policy</Link></li>
-            <li><Link href="/info/shipping-policy" className="hover:text-accent-gold transition-colors duration-300">Shipping Guidelines</Link></li>
+            <li><Link href="/info/shipping-policy" className="hover:text-accent-gold transition-colors duration-300">Shipping Policy</Link></li>
+            <li><Link href="/info/refund-policy" className="hover:text-accent-gold transition-colors duration-300">Refund Policy</Link></li>
           </ul>
         </div>
 
         {/* Newsletter Box */}
         <div className="flex flex-col gap-4">
-          <h4 className="text-[10px] uppercase tracking-[0.25em] font-semibold text-fg-luxury">Grid Broadcasts</h4>
+          <h4 className="text-[10px] uppercase tracking-[0.25em] font-semibold text-fg-luxury">Newsletter</h4>
           <p className="text-[11px] text-text-muted font-light leading-relaxed">
             Subscribe to receive priority invitations to limited collections drops.
           </p>
           <form onSubmit={handleSubscribe} className="flex gap-2 border-b border-neutral-soft/80 pb-2 mt-2">
             <input 
               type="email" 
-              placeholder="operator@freert.net" 
+              placeholder="Enter your email" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="bg-transparent text-[11px] font-light placeholder-neutral-400 focus:outline-none w-full text-fg-luxury uppercase tracking-wider"
@@ -83,9 +84,8 @@ export const Footer: React.FC = () => {
           &copy; {new Date().getFullYear()} FREERT Clothing House. All Rights Reserved.
         </div>
         <div className="flex gap-6">
-          <a href="#" className="hover:text-accent-gold transition-colors duration-300">Instagram</a>
-          <a href="#" className="hover:text-accent-gold transition-colors duration-300">Pinterest</a>
-          <a href="#" className="hover:text-accent-gold transition-colors duration-300">Comms Status</a>
+          <a href="https://instagram.com/freert" target="_blank" rel="noopener noreferrer" className="hover:text-accent-gold transition-colors duration-300">Instagram</a>
+          <a href="https://pinterest.com/freert" target="_blank" rel="noopener noreferrer" className="hover:text-accent-gold transition-colors duration-300">Pinterest</a>
         </div>
       </div>
     </footer>

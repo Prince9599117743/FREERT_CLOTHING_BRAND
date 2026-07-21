@@ -22,14 +22,14 @@ export default function SupportPage() {
 
     try {
       await createSupportTicket({ name, email, message });
-      showToast(`Comms payload logged successfully for ${name}.`, 'success');
+      showToast(`Your message was sent successfully.`, 'success');
       setName('');
       setEmail('');
       setMessage('');
     } catch (err: any) {
       if (err.message === 'DATABASE_OFFLINE') {
         setDatabaseOffline(true);
-        showToast('Database coordinates are offline.', 'error');
+        showToast('Database is currently offline.', 'error');
       } else {
         showToast(err.message || 'Support submission failed.', 'error');
       }
@@ -41,15 +41,15 @@ export default function SupportPage() {
       <Navbar />
 
       <main className="flex-1 container-editorial py-12 md:py-20">
-        <h1 className="text-3xl font-light uppercase tracking-widest text-left mb-12 text-fg-luxury">Support Center</h1>
+        <h1 className="text-3xl font-light uppercase tracking-widest text-left mb-12 text-fg-luxury">Contact Us</h1>
 
         {databaseOffline && (
           <div className="mb-10 p-6 border border-red-700 bg-red-50 text-left flex items-start gap-4 max-w-2xl">
             <AlertTriangle size={20} className="text-red-700 mt-0.5 flex-shrink-0" />
             <div>
-              <h4 className="text-xs uppercase tracking-wider font-semibold text-red-700 mb-1">Operations Node Offline</h4>
+              <h4 className="text-xs uppercase tracking-wider font-semibold text-red-700 mb-1">System Offline</h4>
               <p className="text-xs font-light text-red-700/80 leading-relaxed">
-                The database credentials are unconfigured. To submit support ticket payloads, please check your `.env.local` Supabase parameters setup.
+                The database credentials are unconfigured. To submit support queries, please check your system configuration setup.
               </p>
             </div>
           </div>
@@ -65,18 +65,18 @@ export default function SupportPage() {
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
               <div>
-                <label className="text-[10px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Name Identifier</label>
+                <label className="text-[10px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Full Name</label>
                 <input 
                   type="text" 
                   required 
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="input-editorial"
-                  placeholder="Operator 01"
+                  placeholder="Enter your name"
                 />
               </div>
               <div>
-                <label className="text-[10px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Comms Address (Email)</label>
+                <label className="text-[10px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Email Address</label>
                 <input 
                   type="email" 
                   required 
@@ -87,21 +87,21 @@ export default function SupportPage() {
                 />
               </div>
               <div>
-                <label className="text-[10px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Enquiry Message Payload</label>
+                <label className="text-[10px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Message</label>
                 <textarea 
                   required 
                   rows={4}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   className="input-editorial h-28 resize-none"
-                  placeholder="Detail delivery node updates or catalog questions..."
+                  placeholder="Detail your request or query..."
                 />
               </div>
               <button 
                 type="submit" 
                 className="btn-editorial-solid w-full text-xs tracking-[0.25em] font-medium py-3.5 mt-2 cursor-pointer"
               >
-                Dispatch Comms Payload
+                Submit Message
               </button>
             </form>
           </div>
@@ -111,7 +111,7 @@ export default function SupportPage() {
             <div className="p-6 border border-neutral-soft/50 flex items-start gap-4">
               <Compass size={18} className="text-accent-gold mt-0.5 flex-shrink-0" />
               <div>
-                <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-2">Comms HQ Station</h4>
+                <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-2">Headquarters</h4>
                 <p className="text-xs font-light text-text-muted leading-relaxed">
                   Sector-7, Shibuya District,<br />Tokyo, Japan 150-0002
                 </p>
@@ -121,9 +121,9 @@ export default function SupportPage() {
             <div className="p-6 border border-neutral-soft/50 flex items-start gap-4">
               <Mail size={18} className="text-accent-gold mt-0.5 flex-shrink-0" />
               <div>
-                <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-2">Satellite Frequencies</h4>
+                <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-2">Contact Information</h4>
                 <p className="text-xs font-light text-text-muted leading-relaxed">
-                  comms@freert.net<br />+91 94412 81177
+                  concierge@freert.net<br />+91 95991 17743
                 </p>
               </div>
             </div>
@@ -131,9 +131,9 @@ export default function SupportPage() {
             <div className="p-6 border border-neutral-soft/50 flex items-start gap-4">
               <HelpCircle size={18} className="text-accent-gold mt-0.5 flex-shrink-0" />
               <div>
-                <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-2">Logistics Guidelines</h4>
+                <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-2">Delivery Policy</h4>
                 <p className="text-xs font-light text-text-muted leading-relaxed">
-                  Shipping drone dispatches complete within 48 standard hours. Delivery loops are completed inside 5 business cycles.
+                  Shipping dispatches complete within 48 standard hours. Delivery is completed inside 3 to 5 business cycles.
                 </p>
               </div>
             </div>
