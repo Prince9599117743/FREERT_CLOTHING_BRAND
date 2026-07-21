@@ -29,6 +29,8 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('cod');
   
   const [isRazorpayAvailable, setIsRazorpayAvailable] = useState(false);
+  const [isExpressEnabled, setIsExpressEnabled] = useState(true);
+  const [isOnlinePaymentEnabled, setIsOnlinePaymentEnabled] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [promoApplied, setPromoApplied] = useState(false);
   const [databaseOfflineError, setDatabaseOfflineError] = useState(false);
@@ -53,11 +55,12 @@ export default function CheckoutPage() {
       setPhone(user.phone || '');
     }
 
-    const saved = localStorage.getItem('freert_razorpay_enabled');
-    const razorpayActive = saved === 'true';
-    setIsRazorpayAvailable(razorpayActive);
+    const expressSaved = localStorage.getItem('freert_express_delivery_enabled') !== 'false';
+    setIsExpressEnabled(expressSaved);
+    const onlineSaved = localStorage.getItem('freert_online_payment_enabled') === 'true';
+    setIsOnlinePaymentEnabled(onlineSaved);
     
-    if (razorpayActive) {
+    if (onlineSaved) {
       setPaymentMethod('razorpay');
     } else {
       setPaymentMethod('cod');
@@ -399,29 +402,31 @@ export default function CheckoutPage() {
                             className="accent-fg-luxury"
                           />
                           <div>
-                            <span className="text-xs uppercase tracking-wider font-semibold text-fg-luxury block">Standard Air Dispatch</span>
+                            <span className="text-xs uppercase tracking-wider font-semibold text-fg-luxury block">Standard Delivery (3–5 Business Days)</span>
                             <span className="text-[10px] text-text-muted font-light mt-0.5 block">Delivery in 3 to 5 business cycles.</span>
                           </div>
                         </div>
                         <span className="text-xs font-semibold text-fg-luxury">{standardShippingCost === 0 ? 'FREE' : `₹${standardShippingCost}`}</span>
                       </label>
 
-                      <label className={`border p-5 flex items-center justify-between cursor-pointer transition-colors ${shippingMethod === 'express' ? 'border-fg-luxury bg-fg-luxury/5' : 'border-neutral-soft/80'}`}>
-                        <div className="flex items-center gap-3">
-                          <input 
-                            type="radio" 
-                            name="shipping" 
-                            checked={shippingMethod === 'express'}
-                            onChange={() => setShippingMethod('express')}
-                            className="accent-fg-luxury"
-                          />
-                          <div>
-                            <span className="text-xs uppercase tracking-wider font-semibold text-fg-luxury block">Premium Drone Courier</span>
-                            <span className="text-[10px] text-text-muted font-light mt-0.5 block">Guaranteed delivery inside 24 to 48 hours.</span>
+                      {isExpressEnabled && (
+                        <label className={`border p-5 flex items-center justify-between cursor-pointer transition-colors ${shippingMethod === 'express' ? 'border-fg-luxury bg-fg-luxury/5' : 'border-neutral-soft/80'}`}>
+                          <div className="flex items-center gap-3">
+                            <input 
+                              type="radio" 
+                              name="shipping" 
+                              checked={shippingMethod === 'express'}
+                              onChange={() => setShippingMethod('express')}
+                              className="accent-fg-luxury"
+                            />
+                            <div>
+                              <span className="text-xs uppercase tracking-wider font-semibold text-fg-luxury block">Express Delivery (1–2 Business Days)</span>
+                              <span className="text-[10px] text-text-muted font-light mt-0.5 block">Guaranteed delivery inside 24 to 48 hours.</span>
+                            </div>
                           </div>
-                        </div>
-                        <span className="text-xs font-semibold text-fg-luxury">₹{expressShippingCost}</span>
-                      </label>
+                          <span className="text-xs font-semibold text-fg-luxury">₹{expressShippingCost}</span>
+                        </label>
+                      )}
                     </div>
                   </div>
 
@@ -451,7 +456,7 @@ export default function CheckoutPage() {
                       04. Payment Modes
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {isRazorpayAvailable && (
+                      {isOnlinePaymentEnabled && (
                         <label className={`border p-5 flex items-center justify-between cursor-pointer transition-colors ${paymentMethod === 'razorpay' ? 'border-fg-luxury bg-fg-luxury/5' : 'border-neutral-soft/80'}`}>
                           <div className="flex items-center gap-3">
                             <input 
@@ -461,7 +466,7 @@ export default function CheckoutPage() {
                               onChange={() => setPaymentMethod('razorpay')}
                               className="accent-fg-luxury"
                             />
-                            <span className="text-xs uppercase tracking-wider font-medium text-fg-luxury">Razorpay Card / UPI</span>
+                            <span className="text-xs uppercase tracking-wider font-medium text-fg-luxury">Online Payment (Coming Soon)</span>
                           </div>
                           <CreditCard size={16} className="text-text-muted" />
                         </label>

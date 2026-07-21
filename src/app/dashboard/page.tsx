@@ -34,6 +34,44 @@ export default function DashboardPage() {
   const [copied, setCopied] = useState(false);
   const referralCode = 'FR-LOYAL-9599';
 
+  const getTimelineSteps = (status: string) => {
+    const s = status.toLowerCase();
+    if (s === 'delivered') {
+      return [
+        { label: 'Ordered', done: true },
+        { label: 'Packed', done: true },
+        { label: 'Shipped', done: true },
+        { label: 'Out for Delivery', done: true },
+        { label: 'Delivered', done: true }
+      ];
+    } else if (s === 'shipped') {
+      return [
+        { label: 'Ordered', done: true },
+        { label: 'Packed', done: true },
+        { label: 'Shipped', done: true },
+        { label: 'Out for Delivery', done: false },
+        { label: 'Delivered', done: false }
+      ];
+    } else if (s === 'cancelled') {
+      return [
+        { label: 'Ordered', done: false },
+        { label: 'Packed', done: false },
+        { label: 'Shipped', done: false },
+        { label: 'Out for Delivery', done: false },
+        { label: 'Cancelled', done: true, isCancel: true }
+      ];
+    } else {
+      // pending / processing
+      return [
+        { label: 'Ordered', done: true },
+        { label: 'Packed', done: true },
+        { label: 'Shipped', done: false },
+        { label: 'Out for Delivery', done: false },
+        { label: 'Delivered', done: false }
+      ];
+    }
+  };
+
   useEffect(() => {
     // Read orders from localStorage
     const saved = localStorage.getItem('freert_orders_log');
@@ -168,6 +206,22 @@ export default function DashboardPage() {
                           <span className="text-fg-luxury">₹{(item.price * item.qty).toLocaleString('en-IN')}</span>
                         </div>
                       ))}
+                    </div>
+
+                    {/* Customer-Facing Tracking Timeline */}
+                    <div className="border-t border-neutral-soft/20 pt-4 pb-2">
+                      <p className="text-[8px] uppercase tracking-widest text-text-muted mb-4 font-semibold">Delivery Timeline Tracker</p>
+                      <div className="grid grid-cols-5 text-center relative items-center max-w-md">
+                        <div className="absolute top-[8px] left-[10%] right-[10%] h-[1px] bg-neutral-soft z-0" />
+                        {getTimelineSteps(order.status).map((pt, idx) => (
+                          <div key={idx} className="z-10 flex flex-col items-center gap-1.5">
+                            <div className={`w-4 h-4 rounded-full flex items-center justify-center border text-[8px] transition-all duration-300 ${pt.done ? 'bg-fg-luxury text-bg-luxury border-fg-luxury' : 'bg-bg-luxury text-text-muted border-neutral-soft'}`}>
+                              {pt.done ? '✓' : idx + 1}
+                            </div>
+                            <span className={`text-[7px] uppercase tracking-widest font-semibold ${pt.done ? 'text-fg-luxury' : 'text-text-muted'}`}>{pt.label}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
                     <div className="flex justify-between items-baseline pt-4 border-t border-neutral-soft/20 text-xs font-semibold uppercase tracking-[0.1em] text-fg-luxury">

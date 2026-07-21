@@ -133,6 +133,8 @@ function AdminCoreWorkspace() {
   ]);
   const [newCouponCode, setNewCouponCode] = useState('');
   const [newCouponValue, setNewCouponValue] = useState(15);
+  const [expressDeliveryEnabled, setExpressDeliveryEnabled] = useState(true);
+  const [onlinePaymentEnabled, setOnlinePaymentEnabled] = useState(false);
 
   const [reviews, setReviews] = useState([
     { id: 'rev-1', product: 'Linen Trench Coat', author: 'Aryan Dev', comment: 'Outstanding drape and quality. Fits beautifully.', rating: 5, date: '2026-07-20' },
@@ -153,6 +155,11 @@ function AdminCoreWorkspace() {
     if (savedBanners) {
       try { setHeroSlide(JSON.parse(savedBanners)); } catch (e) {}
     }
+
+    const expressSaved = localStorage.getItem('freert_express_delivery_enabled') !== 'false';
+    setExpressDeliveryEnabled(expressSaved);
+    const onlineSaved = localStorage.getItem('freert_online_payment_enabled') === 'true';
+    setOnlinePaymentEnabled(onlineSaved);
   }, []);
 
   const saveProductsToStorage = (updatedList: Product[]) => {
@@ -390,6 +397,20 @@ function AdminCoreWorkspace() {
               </div>
 
               <div>
+                <label className="text-[9px] uppercase tracking-wider text-text-muted mb-1 block">Country of Origin</label>
+                <select 
+                  value={newProductForm.brand || 'Made in India'}
+                  onChange={(e) => setNewProductForm({ ...newProductForm, brand: e.target.value })}
+                  className="w-full bg-bg-luxury border border-neutral-soft/80 py-2 px-3 text-[11px] uppercase tracking-wider focus:outline-none"
+                >
+                  <option value="India">India</option>
+                  <option value="Made in India">Made in India</option>
+                  <option value="Imported">Imported</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div>
                 <label className="text-[9px] uppercase tracking-wider text-text-muted mb-1.5 block">Product Image</label>
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-20 bg-neutral-soft/20 border border-neutral-soft overflow-hidden">
@@ -477,6 +498,20 @@ function AdminCoreWorkspace() {
                   className="input-editorial text-xs" 
                   required
                 />
+              </div>
+
+              <div>
+                <label className="text-[9px] uppercase tracking-wider text-text-muted mb-1 block">Country of Origin</label>
+                <select 
+                  value={editingProduct.brand || 'Made in India'}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, brand: e.target.value })}
+                  className="w-full bg-bg-luxury border border-neutral-soft/80 py-2 px-3 text-[11px] uppercase tracking-wider focus:outline-none"
+                >
+                  <option value="India">India</option>
+                  <option value="Made in India">Made in India</option>
+                  <option value="Imported">Imported</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
 
               <div>
@@ -918,20 +953,67 @@ function AdminCoreWorkspace() {
   );
 
   // 9. Settings Render
-  const renderSettings = () => (
-    <form onSubmit={(e) => { e.preventDefault(); showToast('Branding settings saved.', 'success'); }} className="flex flex-col gap-6 text-left max-w-xl bg-bg-luxury border border-neutral-soft/80 p-6 text-xs text-text-muted">
-      <h2 className="text-sm uppercase tracking-widest font-semibold text-fg-luxury border-b border-neutral-soft pb-2">Store Branding Settings</h2>
-      <div>
-        <label className="text-[9px] uppercase mb-1 block font-medium">Store Brand Name</label>
-        <input type="text" className="input-editorial text-xs" defaultValue="FREERT" />
-      </div>
-      <div>
-        <label className="text-[9px] uppercase mb-1 block font-medium">Customer Support Email</label>
-        <input type="email" className="input-editorial text-xs" defaultValue="concierge@freert.net" />
-      </div>
-      <button type="submit" className="btn-editorial-solid py-3 text-[9px] flex items-center justify-center gap-1.5"><Save size={13} /> Save Store Settings</button>
-    </form>
-  );
+  const renderSettings = () => {
+    const handleSaveSettings = (e: React.FormEvent) => {
+      e.preventDefault();
+      localStorage.setItem('freert_express_delivery_enabled', String(expressDeliveryEnabled));
+      localStorage.setItem('freert_online_payment_enabled', String(onlinePaymentEnabled));
+      showToast('Store settings saved successfully.', 'success');
+    };
+
+    return (
+      <form onSubmit={handleSaveSettings} className="flex flex-col gap-6 text-left max-w-xl bg-bg-luxury border border-neutral-soft/80 p-6 text-xs text-text-muted">
+        <h2 className="text-sm uppercase tracking-widest font-semibold text-fg-luxury border-b border-neutral-soft pb-2">Store Settings</h2>
+        
+        <div>
+          <label className="text-[9px] uppercase mb-1 block font-medium">Store Brand Name</label>
+          <input type="text" className="input-editorial text-xs" defaultValue="FREERT" />
+        </div>
+        <div>
+          <label className="text-[9px] uppercase mb-1 block font-medium">Customer Support Email</label>
+          <input type="email" className="input-editorial text-xs" defaultValue="concierge@freert.net" />
+        </div>
+
+        {/* Payment Methods */}
+        <div className="flex flex-col gap-3 pt-4 border-t border-neutral-soft/20">
+          <span className="text-[10px] uppercase tracking-wider font-semibold text-fg-luxury">Payment Options</span>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" defaultChecked disabled className="accent-fg-luxury" />
+            <span>Cash on Delivery (COD)</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={onlinePaymentEnabled} 
+              onChange={(e) => setOnlinePaymentEnabled(e.target.checked)} 
+              className="accent-fg-luxury" 
+            />
+            <span>Online Payment (Coming Soon)</span>
+          </label>
+        </div>
+
+        {/* Delivery Options */}
+        <div className="flex flex-col gap-3 pt-4 border-t border-neutral-soft/20">
+          <span className="text-[10px] uppercase tracking-wider font-semibold text-fg-luxury">Delivery options</span>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" defaultChecked disabled className="accent-fg-luxury" />
+            <span>Standard Delivery (3–5 Business Days)</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={expressDeliveryEnabled} 
+              onChange={(e) => setExpressDeliveryEnabled(e.target.checked)} 
+              className="accent-fg-luxury" 
+            />
+            <span>Express Delivery (1–2 Business Days)</span>
+          </label>
+        </div>
+
+        <button type="submit" className="btn-editorial-solid py-3 text-[9px] flex items-center justify-center gap-1.5"><Save size={13} /> Save Store Settings</button>
+      </form>
+    );
+  };
 
   // 10. Help Page Render
   const renderHelp = () => (

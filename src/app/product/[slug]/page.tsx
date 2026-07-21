@@ -256,25 +256,27 @@ export default function ProductDetailPage() {
             {/* Description */}
             <div className="text-xs text-text-muted leading-relaxed font-light border-t border-b border-neutral-soft/40 py-6 flex flex-col gap-3">
               <p>{product.description}</p>
-              {product.sku && (
-                <div className="grid grid-cols-2 text-[9px] uppercase tracking-wider text-text-muted mt-3 pt-3 border-t border-neutral-soft/10">
-                  <span className="font-medium text-fg-luxury">SKU Code</span>
-                  <span>{product.sku}</span>
-                </div>
-              )}
               {product.material && (
-                <div className="grid grid-cols-2 text-[9px] uppercase tracking-wider text-text-muted">
+                <div className="grid grid-cols-2 text-[9px] uppercase tracking-wider text-text-muted mt-3 pt-3 border-t border-neutral-soft/10">
                   <span className="font-medium text-fg-luxury">Material Composition</span>
                   <span>{product.material}</span>
                 </div>
               )}
               <div className="grid grid-cols-2 text-[9px] uppercase tracking-wider text-text-muted">
-                <span className="font-medium text-fg-luxury">Care Guide</span>
+                <span className="font-medium text-fg-luxury">Fabric Weave</span>
+                <span>Premium Loom Knit</span>
+              </div>
+              <div className="grid grid-cols-2 text-[9px] uppercase tracking-wider text-text-muted">
+                <span className="font-medium text-fg-luxury">Garment Fit</span>
+                <span>Relaxed Architectural Silhouette</span>
+              </div>
+              <div className="grid grid-cols-2 text-[9px] uppercase tracking-wider text-text-muted">
+                <span className="font-medium text-fg-luxury">Wash Care</span>
                 <span>Dry Clean Only / Iron Low</span>
               </div>
               <div className="grid grid-cols-2 text-[9px] uppercase tracking-wider text-text-muted">
                 <span className="font-medium text-fg-luxury">Country of Origin</span>
-                <span>Japan / India Craft</span>
+                <span>{product.brand || 'Made in India'}</span>
               </div>
               {(product.status === 'out-of-stock' || (product.variants ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 10)) === 0 || product.stockQty === 0) ? (
                 <span className="text-[10px] uppercase tracking-widest text-red-800 font-semibold bg-red-50 py-1 px-3 w-fit">
