@@ -1,0 +1,157 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Inter:wght@200;300;400;500;600&display=swap');
+@import "tailwindcss";
+
+:root {
+  --background-luxury: #faf9f6; /* Warm alabaster/ivory */
+  --foreground-luxury: #111111; /* Off-black */
+  --neutral-soft: #eae8e1;
+  --neutral-dark: #2c2a29;
+  --text-muted-luxury: #6e6a64;
+  --accent-gold: #c5a880;
+  
+  --font-editorial: 'Cormorant Garamond', Georgia, serif;
+  --font-clean: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@theme inline {
+  --color-bg-luxury: var(--background-luxury);
+  --color-fg-luxury: var(--foreground-luxury);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-neutral-dark: var(--neutral-dark);
+  --color-text-muted: var(--text-muted-luxury);
+  --color-accent-gold: var(--accent-gold);
+  
+  --font-serif-luxury: var(--font-editorial);
+  --font-sans-luxury: var(--font-clean);
+}
+
+body {
+  background-color: var(--background-luxury);
+  color: var(--foreground-luxury);
+  font-family: var(--font-clean);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.02em;
+}
+
+/* Typography styles for luxury brand positioning */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-editorial);
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.title-editorial {
+  font-family: var(--font-editorial);
+  font-style: italic;
+  font-weight: 300;
+}
+
+/* Custom minimal components */
+.btn-editorial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--foreground-luxury);
+  background-color: transparent;
+  color: var(--foreground-luxury);
+  font-family: var(--font-clean);
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.75rem;
+  padding: 12px 36px;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  cursor: pointer;
+}
+
+.btn-editorial:hover {
+  background-color: var(--foreground-luxury);
+  color: var(--background-luxury);
+}
+
+.btn-editorial-solid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--foreground-luxury);
+  background-color: var(--foreground-luxury);
+  color: var(--background-luxury);
+  font-family: var(--font-clean);
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.75rem;
+  padding: 12px 36px;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  cursor: pointer;
+}
+
+.btn-editorial-solid:hover {
+  background-color: transparent;
+  color: var(--foreground-luxury);
+}
+
+/* Minimal Luxury Inputs */
+.input-editorial {
+  border: none;
+  border-bottom: 1px solid #c8c5bc;
+  background-color: transparent;
+  padding: 10px 0;
+  font-family: var(--font-clean);
+  font-size: 0.875rem;
+  font-weight: 300;
+  width: 100%;
+  border-radius: 0;
+  transition: border-color 0.3s ease;
+}
+
+.input-editorial:focus {
+  outline: none;
+  border-color: var(--foreground-luxury);
+}
+
+/* Luxury Grid & Spacing Utilities */
+.section-luxury-padding {
+  padding-top: 120px;
+  padding-bottom: 120px;
+}
+
+.container-editorial {
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 4%;
+  padding-right: 4%;
+}
+
+/* Animations Keyframes */
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slideOut {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .4; }
+}
+
+.animate-pulse-slow {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Custom focus states for luxury accessibility */
+*:focus-visible {
+  outline: 1px dashed var(--accent-gold);
+  outline-offset: 4px;
+}
