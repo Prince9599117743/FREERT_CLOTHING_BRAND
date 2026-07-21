@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Tag, ClipboardList, PenTool, Settings, Home } from 'lucide-react';
+import { LayoutDashboard, Tag, Image as ImageIcon, ClipboardList, Percent, Users, PenTool, Settings, Home } from 'lucide-react';
 
 export default function AdminLayout({
   children,
@@ -15,10 +15,13 @@ export default function AdminLayout({
   const links = [
     { name: 'Dashboard', path: '/admin', icon: <LayoutDashboard size={14} /> },
     { name: 'Products Catalog', path: '/admin/products', icon: <Tag size={14} /> },
+    { name: 'Media Library', path: '/admin/media', icon: <ImageIcon size={14} /> },
     { name: 'Orders Logs', path: '/admin/orders', icon: <ClipboardList size={14} /> },
+    { name: 'Discounts / Coupons', path: '/admin/discounts', icon: <Percent size={14} /> },
+    { name: 'Customers Base', path: '/admin/customers', icon: <Users size={14} /> },
     { name: 'Homepage CMS', path: '/admin/cms', icon: <PenTool size={14} /> },
-    { name: 'Config Settings', path: '/admin/settings', icon: <Settings size={14} /> },
-    { name: 'Return to Storefront', path: '/', icon: <Home size={14} /> }
+    { name: 'Brand Settings', path: '/admin/settings', icon: <Settings size={14} /> },
+    { name: 'Return to Store', path: '/', icon: <Home size={14} /> }
   ];
 
   const linkStyle = (path: string) => {
