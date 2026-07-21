@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/contexts/ToastContext';
-import { Heart, Star, Eye, ShoppingBag } from 'lucide-react';
+import { Heart, Star, Eye, ShoppingBag, Bell } from 'lucide-react';
 import type { Product } from '@/types';
 
 interface ProductCardProps {
@@ -25,6 +25,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const favorited = isInWishlist(product.id);
   const sizes = product.variants ? Array.from(new Set(product.variants.map(v => v.size))) : [];
 
+  // Stock status logic
+  const totalStock = product.variants ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 10);
+  const isOutOfStock = product.status === 'out-of-stock' || totalStock === 0 || product.stockQty === 0;
+  const isLowStock = totalStock > 0 && totalStock <= 5;
+
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -34,6 +39,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const handleQuickAdd = async (e: React.MouseEvent, size: string) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isOutOfStock) return;
     
     const variant = product.variants?.find(v => v.size === size);
     if (variant) {
@@ -46,6 +52,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const handleBuyNow = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isOutOfStock) return;
     
     const targetSize = activeSize || sizes[0] || 'One Size';
     const variant = product.variants?.find(v => v.size === targetSize) || product.variants?.[0];
@@ -58,6 +65,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   // Image hover swap logic
   const displayImage = isHovered && product.images[1] ? product.images[1] : product.images[0];
+
+  // Dynamic tags / badges list
+  const badges: string[] = [];
+  if (product.tags) {
+    if (product.tags.includes('new-arrival') || product.tags.includes('new-arrivals')) badges.push('New Arrival');
+    if (product.tags.includes('trending')) badges.push('Trending');
+    if (product.tags.includes('best-seller') || product.tags.includes('best-sellers')) badges.push('Best Seller');
+    if (product.tags.includes('featured')) badges.push('Featured');
+    if (product.tags.includes('limited-edition')) badges.push('Limited Edition');
+    if (product.tags.includes('sale')) badges.push('Sale');
+  }
+
+  // Price calculations
+  const hasDiscount = product.mrp && product.mrp > product.basePrice;
+  const discountPercent = hasDiscount ? Math.round(((product.mrp! - product.basePrice) / product.mrp!) * 100) : 0;
 
   return (
     <div 
@@ -96,47 +118,78 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
         {/* Hover Slider Actions */}
         <div className="absolute bottom-0 left-0 right-0 bg-fg-luxury/90 backdrop-blur-[2px] p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-in-out flex flex-col gap-3 z-10">
-          {/* Sizing selection trigger */}
-          {sizes.length > 0 && (
-            <div className="flex flex-col gap-1.5 text-left">
-              <span className="text-[8px] uppercase tracking-widest text-neutral-300 font-light">Quick Equip Size</span>
-              <div className="flex flex-wrap gap-1.5">
-                {sizes.map(size => (
-                  <button
-                    key={size}
-                    onClick={(e) => handleQuickAdd(e, size)}
-                    className="text-[8px] font-semibold bg-bg-luxury hover:bg-accent-gold hover:text-bg-luxury text-fg-luxury py-1 px-2 border border-neutral-soft/30 transition-all cursor-pointer"
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          
+          {isOutOfStock ? (
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showToast(`We will notify you when ${product.name} restocks.`, 'success');
+              }}
+              className="w-full bg-accent-gold text-bg-luxury hover:bg-bg-luxury hover:text-fg-luxury text-[8px] uppercase tracking-wider font-semibold py-2.5 transition-all text-center flex items-center justify-center gap-1 cursor-pointer"
+            >
+              <Bell size={10} /> Notify Me
+            </button>
+          ) : (
+            <>
+              {/* Sizing selection trigger */}
+              {sizes.length > 0 && (
+                <div className="flex flex-col gap-1.5 text-left">
+                  <span className="text-[8px] uppercase tracking-widest text-neutral-300 font-light">Quick Equip Size</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {sizes.map(size => (
+                      <button
+                        key={size}
+                        onClick={(e) => handleQuickAdd(e, size)}
+                        className="text-[8px] font-semibold bg-bg-luxury hover:bg-accent-gold hover:text-bg-luxury text-fg-luxury py-1 px-2 border border-neutral-soft/30 transition-all cursor-pointer"
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-          {/* Quick Buy actions */}
-          <div className="flex gap-2">
-            <button 
-              onClick={(e) => handleQuickAdd(e, activeSize || sizes[0] || 'One Size')}
-              className="flex-1 bg-bg-luxury text-fg-luxury hover:bg-accent-gold hover:text-bg-luxury text-[8px] uppercase tracking-wider font-semibold py-2 transition-all flex items-center justify-center gap-1 cursor-pointer"
-            >
-              <ShoppingBag size={10} /> Add Bag
-            </button>
-            <button 
-              onClick={handleBuyNow}
-              className="flex-1 bg-accent-gold text-bg-luxury hover:bg-bg-luxury hover:text-fg-luxury text-[8px] uppercase tracking-wider font-semibold py-2 transition-all cursor-pointer"
-            >
-              Buy Now
-            </button>
-          </div>
+              {/* Quick Buy actions */}
+              <div className="flex gap-2">
+                <button 
+                  onClick={(e) => handleQuickAdd(e, activeSize || sizes[0] || 'One Size')}
+                  className="flex-1 bg-bg-luxury text-fg-luxury hover:bg-accent-gold hover:text-bg-luxury text-[8px] uppercase tracking-wider font-semibold py-2 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <ShoppingBag size={10} /> Add Bag
+                </button>
+                <button 
+                  onClick={handleBuyNow}
+                  className="flex-1 bg-accent-gold text-bg-luxury hover:bg-bg-luxury hover:text-fg-luxury text-[8px] uppercase tracking-wider font-semibold py-2 transition-all cursor-pointer"
+                >
+                  Buy Now
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Editorial tags */}
-        {product.tags && product.tags.includes('new-arrivals') && (
-          <span className="absolute top-4 left-4 text-[8px] uppercase tracking-[0.2em] bg-fg-luxury text-bg-luxury py-1 px-3 font-light">
-            New Edit
-          </span>
-        )}
+        <div className="absolute top-4 left-4 flex flex-col gap-1.5 items-start">
+          {isOutOfStock ? (
+            <span className="text-[8px] uppercase tracking-[0.2em] bg-red-800 text-bg-luxury py-1 px-3 font-semibold">
+              Sold Out
+            </span>
+          ) : (
+            <>
+              {isLowStock && (
+                <span className="text-[8px] uppercase tracking-[0.2em] bg-amber-600 text-bg-luxury py-1 px-3 font-semibold">
+                  Only {totalStock} Left
+                </span>
+              )}
+              {badges.map((badge, idx) => (
+                <span key={idx} className="text-[8px] uppercase tracking-[0.2em] bg-fg-luxury text-bg-luxury py-1 px-3 font-light">
+                  {badge}
+                </span>
+              ))}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Product Details info */}
@@ -147,9 +200,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               {product.name}
             </Link>
           </h3>
-          <span className="text-[10px] font-light text-fg-luxury tracking-wider">
-            ₹{product.basePrice.toLocaleString('en-IN')}
-          </span>
+          
+          {hasDiscount ? (
+            <div className="flex flex-col text-right">
+              <span className="text-[10px] font-semibold text-fg-luxury tracking-wider">
+                ₹{product.basePrice.toLocaleString('en-IN')}
+              </span>
+              <span className="text-[8px] text-text-muted line-through">
+                ₹{product.mrp?.toLocaleString('en-IN')}
+              </span>
+              <span className="text-[8px] text-red-700 font-semibold uppercase tracking-wider mt-0.5">
+                {discountPercent}% OFF
+              </span>
+            </div>
+          ) : (
+            <span className="text-[10px] font-light text-fg-luxury tracking-wider">
+              ₹{product.basePrice.toLocaleString('en-IN')}
+            </span>
+          )}
         </div>
         
         {/* Rating & reviews */}

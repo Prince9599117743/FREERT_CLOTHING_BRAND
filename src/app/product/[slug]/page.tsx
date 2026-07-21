@@ -195,14 +195,41 @@ export default function ProductDetailPage() {
               <h1 className="text-3xl md:text-4xl font-light uppercase tracking-wide text-fg-luxury leading-tight">
                 {product.name}
               </h1>
-              <p className="text-lg font-light text-fg-luxury tracking-wider mt-1">
-                ₹{product.basePrice.toLocaleString('en-IN')}
-              </p>
+              {product.mrp && product.mrp > product.basePrice ? (
+                <div className="flex items-baseline gap-3 mt-1">
+                  <span className="text-lg font-semibold text-fg-luxury tracking-wider">
+                    ₹{product.basePrice.toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-xs text-text-muted line-through">
+                    ₹{product.mrp.toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-xs text-red-700 font-semibold uppercase tracking-widest">
+                    {Math.round(((product.mrp - product.basePrice) / product.mrp) * 100)}% OFF
+                  </span>
+                </div>
+              ) : (
+                <p className="text-lg font-light text-fg-luxury tracking-wider mt-1">
+                  ₹{product.basePrice.toLocaleString('en-IN')}
+                </p>
+              )}
             </div>
 
             {/* Description */}
-            <div className="text-xs text-text-muted leading-relaxed font-light border-t border-b border-neutral-soft/40 py-6">
-              {product.description}
+            <div className="text-xs text-text-muted leading-relaxed font-light border-t border-b border-neutral-soft/40 py-6 flex flex-col gap-3">
+              <p>{product.description}</p>
+              {(product.status === 'out-of-stock' || (product.variants ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 10)) === 0 || product.stockQty === 0) ? (
+                <span className="text-[10px] uppercase tracking-widest text-red-800 font-semibold bg-red-50 py-1 px-3 w-fit">
+                  Out Of Stock
+                </span>
+              ) : (product.variants ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 10)) <= 5 ? (
+                <span className="text-[10px] uppercase tracking-widest text-amber-700 font-semibold bg-amber-50 py-1 px-3 w-fit">
+                  Only {(product.variants ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 10))} Units Left
+                </span>
+              ) : (
+                <span className="text-[10px] uppercase tracking-widest text-green-700 font-semibold bg-green-50 py-1 px-3 w-fit">
+                  In Stock
+                </span>
+              )}
             </div>
 
             {/* Selection Options */}
@@ -230,15 +257,24 @@ export default function ProductDetailPage() {
                 <div>
                   <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-3">Size Module</h4>
                   <div className="flex gap-3">
-                    {sizes.map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => setSelectedSize(s)}
-                        className={`w-10 h-10 flex items-center justify-center text-[10px] uppercase font-medium border cursor-pointer transition-colors ${selectedSize === s ? 'border-fg-luxury text-fg-luxury bg-fg-luxury/5' : 'border-neutral-soft/80 text-text-muted hover:border-neutral-400'}`}
-                      >
-                        {s}
-                      </button>
-                    ))}
+                    {sizes.map((s) => {
+                      const sizeVariant = product.variants?.find(v => v.size === s && v.color === (selectedColor || colors[0]));
+                      const isSizeOutOfStock = sizeVariant ? sizeVariant.stockQty === 0 : false;
+                      return (
+                        <button
+                          key={s}
+                          disabled={isSizeOutOfStock}
+                          onClick={() => setSelectedSize(s)}
+                          className={`w-10 h-10 flex items-center justify-center text-[10px] uppercase font-medium border transition-colors ${
+                            isSizeOutOfStock ? 'border-neutral-soft/30 text-neutral-300 line-through cursor-not-allowed opacity-50' :
+                            selectedSize === s ? 'border-fg-luxury text-fg-luxury bg-fg-luxury/5 cursor-pointer' : 
+                            'border-neutral-soft/80 text-text-muted hover:border-neutral-400 cursor-pointer'
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -246,19 +282,36 @@ export default function ProductDetailPage() {
 
             {/* Add to Bag and Wishlist Layout */}
             <div className="flex gap-4">
-              <button 
-                onClick={handleAddToBag}
-                disabled={!selectedColor || !selectedSize}
-                className="btn-editorial-solid flex-1 flex items-center justify-center gap-3 text-xs tracking-[0.25em] font-medium py-4 cursor-pointer"
-              >
-                {added ? (
-                  <>
-                    <Check size={14} /> Added to Bag
-                  </>
-                ) : (
-                  'Equip to Shopping Bag'
-                )}
-              </button>
+              {(product.status === 'out-of-stock' || (product.variants ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 10)) === 0 || product.stockQty === 0) ? (
+                <div className="flex flex-col gap-3 flex-1 text-left">
+                  <input 
+                    type="email" 
+                    placeholder="Enter email to get restock alerts" 
+                    className="input-editorial text-xs" 
+                    required 
+                  />
+                  <button 
+                    onClick={() => showToast(`We will notify you when ${product.name} restocks.`, 'success')}
+                    className="btn-editorial-solid text-xs tracking-[0.25em] font-medium py-4 cursor-pointer"
+                  >
+                    Notify Me
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={handleAddToBag}
+                  disabled={!selectedColor || !selectedSize}
+                  className="btn-editorial-solid flex-1 flex items-center justify-center gap-3 text-xs tracking-[0.25em] font-medium py-4 cursor-pointer"
+                >
+                  {added ? (
+                    <>
+                      <Check size={14} /> Added to Bag
+                    </>
+                  ) : (
+                    'Equip to Shopping Bag'
+                  )}
+                </button>
+              )}
               
               <button 
                 onClick={handleWishlistToggle}

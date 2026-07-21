@@ -94,6 +94,10 @@ function AdminCoreWorkspace() {
   // Master databases loaded from MOCK/Local Storage
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [activeFormTab, setActiveFormTab] = useState<'basic' | 'images' | 'pricing' | 'seo'>('basic');
+  const [colorInputName, setColorInputName] = useState('');
+  const [colorInputHex, setColorInputHex] = useState('#111111');
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>(DEFAULT_SLIDES);
   const [homeSections, setHomeSections] = useState<HomepageSection[]>(DEFAULT_SECTIONS);
   const [orders, setOrders] = useState<OrderAdmin[]>([
@@ -247,6 +251,7 @@ function AdminCoreWorkspace() {
         if (!selectedProductIds.includes(p.id)) return p;
         return {
           ...p,
+          stockQty: num,
           variants: p.variants ? p.variants.map(v => ({ ...v, stockQty: num })) : []
         };
       }));
@@ -254,11 +259,516 @@ function AdminCoreWorkspace() {
       setBulkStockValue('');
     };
 
+    const handleBulkPublish = (publish: boolean) => {
+      setProducts(prev => prev.map(p => selectedProductIds.includes(p.id) ? { ...p, isPublished: publish, status: publish ? 'published' : 'draft' } : p));
+      showToast(publish ? 'Bulk published.' : 'Bulk hidden.', 'success');
+    };
+
+    const handleBulkCategory = (cat: string) => {
+      setProducts(prev => prev.map(p => selectedProductIds.includes(p.id) ? { ...p, parentCategory: cat } : p));
+      showToast('Bulk categories updated.', 'success');
+    };
+
+    const handleAddColor = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!colorInputName || !editingProduct) return;
+      const currentColors = editingProduct.availableColors || [];
+      const updated = [...currentColors, { name: colorInputName, hex: colorInputHex }];
+      setEditingProduct({ ...editingProduct, availableColors: updated });
+      setColorInputName('');
+    };
+
+    const handleRemoveColor = (name: string) => {
+      if (!editingProduct) return;
+      const currentColors = editingProduct.availableColors || [];
+      const updated = currentColors.filter(c => c.name !== name);
+      setEditingProduct({ ...editingProduct, availableColors: updated });
+    };
+
+    const handleSaveProduct = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!editingProduct) return;
+
+      // Ensure SKU & base Price updates
+      const updatedProduct = {
+        ...editingProduct,
+        basePrice: editingProduct.basePrice || 0,
+        mrp: editingProduct.mrp || 0,
+        status: editingProduct.stockQty === 0 ? 'out-of-stock' : editingProduct.status || 'published'
+      };
+
+      setProducts(prev => {
+        const exists = prev.some(p => p.id === updatedProduct.id);
+        if (exists) {
+          return prev.map(p => p.id === updatedProduct.id ? updatedProduct : p);
+        } else {
+          return [updatedProduct, ...prev];
+        }
+      });
+
+      setEditingProduct(null);
+      showToast('Product settings successfully committed.', 'success');
+    };
+
+    if (editingProduct) {
+      return (
+        <form onSubmit={handleSaveProduct} className="flex flex-col gap-6 text-left text-xs text-text-muted">
+          {/* Editor Header */}
+          <div className="flex justify-between items-center border-b border-neutral-soft pb-4 flex-wrap gap-2">
+            <div className="flex items-center gap-4">
+              <button 
+                type="button" 
+                onClick={() => setEditingProduct(null)} 
+                className="text-[10px] uppercase tracking-widest text-text-muted hover:text-fg-luxury"
+              >
+                &larr; Back to List
+              </button>
+              <h2 className="text-sm font-semibold uppercase tracking-widest text-fg-luxury">
+                {editingProduct.id.startsWith('new-') ? 'Create Product Workspace' : `Modify: ${editingProduct.name}`}
+              </h2>
+            </div>
+            <div className="flex gap-2">
+              <button 
+                type="button" 
+                onClick={() => setEditingProduct(null)} 
+                className="btn-editorial py-2 px-4 text-[9px]"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                className="btn-editorial-solid py-2 px-6 text-[9px]"
+              >
+                Save Product
+              </button>
+            </div>
+          </div>
+
+          {/* Form Tabs */}
+          <div className="flex gap-4 border-b border-neutral-soft/30 pb-2">
+            {[
+              { id: 'basic', label: 'Basic Info' },
+              { id: 'images', label: 'Visuals' },
+              { id: 'pricing', label: 'Pricing & Stock' },
+              { id: 'seo', label: 'Variants & SEO' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveFormTab(tab.id as any)}
+                className={`py-1 px-3 text-[10px] uppercase tracking-widest font-medium border-b-2 transition-all ${
+                  activeFormTab === tab.id ? 'border-accent-gold text-fg-luxury' : 'border-transparent hover:text-fg-luxury'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Viewports */}
+          {activeFormTab === 'basic' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-bg-luxury border border-neutral-soft/80 p-6">
+              <div>
+                <label className="text-[9px] uppercase tracking-wider mb-1 block">Product Name</label>
+                <input 
+                  type="text" 
+                  value={editingProduct.name}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                  className="input-editorial"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider mb-1 block">Slug (URL pathway)</label>
+                <input 
+                  type="text" 
+                  value={editingProduct.slug}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, slug: e.target.value.toLowerCase().replace(/ /g, '-') })}
+                  className="input-editorial"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider mb-1 block">Brand Label</label>
+                <input 
+                  type="text" 
+                  value={editingProduct.brand || 'FREERT'}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, brand: e.target.value })}
+                  className="input-editorial"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[9px] uppercase tracking-wider mb-1 block">SKU Code</label>
+                  <input 
+                    type="text" 
+                    value={editingProduct.sku || ''}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, sku: e.target.value })}
+                    className="input-editorial"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] uppercase tracking-wider mb-1 block">Barcode</label>
+                  <input 
+                    type="text" 
+                    value={editingProduct.barcode || ''}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, barcode: e.target.value })}
+                    className="input-editorial"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider mb-1 block">Main Category</label>
+                <input 
+                  type="text" 
+                  value={editingProduct.parentCategory || ''}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, parentCategory: e.target.value })}
+                  className="input-editorial"
+                  placeholder="e.g. Men"
+                />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider mb-1 block">Subcategory</label>
+                <input 
+                  type="text" 
+                  value={editingProduct.subCategory || ''}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, subCategory: e.target.value })}
+                  className="input-editorial"
+                  placeholder="e.g. Jeans"
+                />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider mb-1 block">Featured Collection</label>
+                <input 
+                  type="text" 
+                  value={editingProduct.collection?.name || ''}
+                  onChange={(e) => setEditingProduct({ 
+                    ...editingProduct, 
+                    collection: { id: editingProduct.collection?.id || 'col', name: e.target.value, slug: e.target.value.toLowerCase().replace(/ /g, '-'), createdAt: '' } 
+                  })}
+                  className="input-editorial"
+                />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider mb-1 block">Tags (comma-separated)</label>
+                <input 
+                  type="text" 
+                  value={editingProduct.tags?.join(', ') || ''}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, tags: e.target.value.split(',').map(t => t.trim()) })}
+                  className="input-editorial"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-[9px] uppercase tracking-wider mb-1 block">Short Summary</label>
+                <textarea 
+                  rows={2}
+                  value={editingProduct.shortDescription || ''}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, shortDescription: e.target.value })}
+                  className="input-editorial h-12"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-[9px] uppercase tracking-wider mb-1 block">Editorial Description</label>
+                <textarea 
+                  rows={4}
+                  value={editingProduct.description || ''}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                  className="input-editorial h-24"
+                />
+              </div>
+            </div>
+          )}
+
+          {activeFormTab === 'images' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-bg-luxury border border-neutral-soft/80 p-6">
+              <div>
+                <label className="text-[9px] uppercase tracking-wider mb-1 block">Cover Image Link</label>
+                <input 
+                  type="text" 
+                  value={editingProduct.images[0] || ''}
+                  onChange={(e) => {
+                    const img = [...editingProduct.images];
+                    img[0] = e.target.value;
+                    setEditingProduct({ ...editingProduct, images: img });
+                  }}
+                  className="input-editorial"
+                  placeholder="Link/Path"
+                />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase tracking-wider mb-1 block">Hover Image Link</label>
+                <input 
+                  type="text" 
+                  value={editingProduct.images[1] || ''}
+                  onChange={(e) => {
+                    const img = [...editingProduct.images];
+                    img[1] = e.target.value;
+                    setEditingProduct({ ...editingProduct, images: img });
+                  }}
+                  className="input-editorial"
+                  placeholder="Link/Path"
+                />
+              </div>
+              <div className="md:col-span-2 flex flex-col gap-3">
+                <span className="text-[9px] uppercase tracking-widest text-text-muted pb-1 border-b border-neutral-soft/30 font-semibold block">Gallery Images</span>
+                {(editingProduct.images.slice(2)).map((img, idx) => (
+                  <div key={idx} className="flex gap-3 items-center">
+                    <input 
+                      type="text" 
+                      value={img}
+                      onChange={(e) => {
+                        const copy = [...editingProduct.images];
+                        copy[idx + 2] = e.target.value;
+                        setEditingProduct({ ...editingProduct, images: copy });
+                      }}
+                      className="input-editorial flex-1"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        const copy = [...editingProduct.images];
+                        copy.splice(idx + 2, 1);
+                        setEditingProduct({ ...editingProduct, images: copy });
+                      }}
+                      className="text-red-800"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+                <button 
+                  type="button" 
+                  onClick={() => setEditingProduct({ ...editingProduct, images: [...editingProduct.images, ''] })}
+                  className="btn-editorial py-2 w-fit"
+                >
+                  Add Gallery Image
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeFormTab === 'pricing' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-bg-luxury border border-neutral-soft/80 p-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[9px] uppercase tracking-wider mb-1 block">MRP Price (INR)</label>
+                  <input 
+                    type="number" 
+                    value={editingProduct.mrp || ''}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, mrp: parseFloat(e.target.value) || 0 })}
+                    className="input-editorial"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] uppercase tracking-wider mb-1 block">Selling Price (Sale)</label>
+                  <input 
+                    type="number" 
+                    value={editingProduct.basePrice || ''}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, basePrice: parseFloat(e.target.value) || 0 })}
+                    className="input-editorial"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[9px] uppercase tracking-wider mb-1 block">Cost Price (Internal)</label>
+                  <input 
+                    type="number" 
+                    value={editingProduct.costPrice || ''}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, costPrice: parseFloat(e.target.value) || 0 })}
+                    className="input-editorial"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] uppercase tracking-wider mb-1 block">Tax rate (%)</label>
+                  <input 
+                    type="number" 
+                    value={editingProduct.tax || ''}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, tax: parseFloat(e.target.value) || 0 })}
+                    className="input-editorial"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="text-[9px] uppercase tracking-wider mb-1 block">Stock Quantity</label>
+                  <input 
+                    type="number" 
+                    value={editingProduct.stockQty ?? 10}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, stockQty: parseInt(e.target.value) || 0 })}
+                    className="input-editorial"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] uppercase tracking-wider mb-1 block">Reserved Stock</label>
+                  <input 
+                    type="number" 
+                    value={editingProduct.reservedQty || 0}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, reservedQty: parseInt(e.target.value) || 0 })}
+                    className="input-editorial"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] uppercase tracking-wider mb-1 block">Min Alert Limit</label>
+                  <input 
+                    type="number" 
+                    value={editingProduct.minStockAlert || 5}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, minStockAlert: parseInt(e.target.value) || 0 })}
+                    className="input-editorial"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[9px] uppercase tracking-wider mb-1.5 block">Product Ingress Status</label>
+                <select
+                  value={editingProduct.status || 'published'}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, status: e.target.value as any })}
+                  className="w-full bg-bg-luxury border border-neutral-soft/80 py-2 px-3 text-[11px] uppercase tracking-wider focus:outline-none"
+                >
+                  <option value="draft">Draft Mode</option>
+                  <option value="published">Published Live</option>
+                  <option value="hidden">Hidden from search</option>
+                  <option value="archived">Archived</option>
+                  <option value="coming-soon">Coming Soon</option>
+                  <option value="pre-order">Pre-Order Ingress</option>
+                  <option value="out-of-stock">Out Of Stock Force</option>
+                </select>
+              </div>
+
+              <div className="md:col-span-2">
+                <span className="text-[9px] uppercase tracking-widest text-text-muted pb-1 border-b border-neutral-soft/30 font-semibold block mb-3">Editorial Label Badges</span>
+                <div className="flex flex-wrap gap-4">
+                  {['new-arrival', 'trending', 'best-seller', 'featured', 'sale'].map(tag => (
+                    <label key={tag} className="flex items-center gap-1.5 cursor-pointer">
+                      <input 
+                        type="checkbox"
+                        checked={editingProduct.tags?.includes(tag) || false}
+                        onChange={(e) => {
+                          const current = editingProduct.tags || [];
+                          const next = e.target.checked ? [...current, tag] : current.filter(t => t !== tag);
+                          setEditingProduct({ ...editingProduct, tags: next });
+                        }}
+                        className="accent-fg-luxury"
+                      />
+                      <span className="text-[10px] uppercase tracking-widest">{tag.replace('-', ' ')}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeFormTab === 'seo' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-bg-luxury border border-neutral-soft/80 p-6">
+              <div>
+                <span className="text-[9px] uppercase tracking-widest text-text-muted pb-1 border-b border-neutral-soft/30 font-semibold block mb-3">Sizing selection</span>
+                <div className="flex flex-wrap gap-3">
+                  {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(size => {
+                    const isSelected = editingProduct.availableSizes?.includes(size) || false;
+                    return (
+                      <label key={size} className="flex items-center gap-1 cursor-pointer">
+                        <input 
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            const current = editingProduct.availableSizes || [];
+                            const next = e.target.checked ? [...current, size] : current.filter(s => s !== size);
+                            setEditingProduct({ ...editingProduct, availableSizes: next });
+                          }}
+                          className="accent-fg-luxury"
+                        />
+                        <span className="text-[10px] uppercase">{size}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[9px] uppercase tracking-widest text-text-muted pb-1 border-b border-neutral-soft/30 font-semibold block mb-3">Color Swatches Manager</span>
+                <div className="flex gap-2 mb-2 items-center">
+                  <input 
+                    type="text" 
+                    placeholder="Name" 
+                    value={colorInputName} 
+                    onChange={(e) => setColorInputName(e.target.value)}
+                    className="bg-transparent border border-neutral-soft p-1 text-[10px] uppercase w-20 focus:outline-none"
+                  />
+                  <input 
+                    type="color" 
+                    value={colorInputHex} 
+                    onChange={(e) => setColorInputHex(e.target.value)}
+                    className="w-8 h-6 bg-transparent border-0 cursor-pointer"
+                  />
+                  <button type="button" onClick={handleAddColor} className="text-accent-gold font-semibold text-[10px]">Add</button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(editingProduct.availableColors || []).map(col => (
+                    <div key={col.name} className="flex items-center gap-1 bg-neutral-soft/20 px-2 py-0.5 border border-neutral-soft text-[9px] uppercase">
+                      <span className="w-2.5 h-2.5 inline-block" style={{ backgroundColor: col.hex }} />
+                      <span>{col.name}</span>
+                      <button type="button" onClick={() => handleRemoveColor(col.name)} className="text-red-700 font-bold ml-1">x</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="md:col-span-2 border-t border-neutral-soft/30 pt-6 flex flex-col gap-6">
+                <span className="text-[9px] uppercase tracking-widest text-text-muted pb-1 border-b border-neutral-soft/30 font-semibold block">SEO Parameters Configuration</span>
+                <div>
+                  <label className="text-[9px] uppercase tracking-wider mb-1 block">Meta Title</label>
+                  <input 
+                    type="text" 
+                    value={editingProduct.seoTitle || ''}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, seoTitle: e.target.value })}
+                    className="input-editorial"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] uppercase tracking-wider mb-1 block">Meta Description</label>
+                  <textarea 
+                    rows={2}
+                    value={editingProduct.seoDescription || ''}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, seoDescription: e.target.value })}
+                    className="input-editorial h-12"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </form>
+      );
+    }
+
     return (
       <div className="flex flex-col gap-6 text-left">
         <div className="flex justify-between items-center">
           <h2 className="text-sm uppercase tracking-widest font-semibold text-fg-luxury">Store Products</h2>
           <div className="flex gap-2">
+            <button 
+              type="button"
+              onClick={() => setEditingProduct({
+                id: `new-${Math.random().toString(36).substring(2, 9)}`,
+                name: 'New Premium Outerwear',
+                slug: 'new-premium-outerwear',
+                basePrice: 5000,
+                mrp: 7500,
+                isPublished: true,
+                images: ['/assets/trench_coat.jpg', '/assets/trench_coat.jpg'],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                tags: ['new-arrival'],
+                parentCategory: 'Men',
+                subCategory: 'Jackets',
+                stockQty: 20
+              })}
+              className="btn-editorial-solid py-2 px-6 text-[9px]"
+            >
+              Add Product
+            </button>
             <button onClick={() => showToast('Exported file configuration JSON.', 'success')} className="btn-editorial py-2 px-3 text-[9px]">Export JSON</button>
             <label className="btn-editorial py-2 px-3 text-[9px] cursor-pointer">
               Import CSV
@@ -267,20 +777,23 @@ function AdminCoreWorkspace() {
           </div>
         </div>
 
+        {/* Bulk Action Controls bar */}
         {selectedProductIds.length > 0 && (
           <div className="bg-neutral-soft/10 border border-neutral-soft p-4 flex flex-wrap gap-4 items-center justify-between text-xs">
             <span>Selected {selectedProductIds.length} items</span>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               <button 
                 onClick={() => {
                   setProducts(prev => prev.filter(p => !selectedProductIds.includes(p.id)));
                   setSelectedProductIds([]);
-                  showToast('Bulk deleted.', 'info');
+                  showToast('Selected products removed.', 'info');
                 }} 
                 className="text-red-800 uppercase tracking-widest font-semibold"
               >
-                Delete Selected
+                Bulk Delete
               </button>
+              <button onClick={() => handleBulkPublish(true)} className="text-green-800 uppercase tracking-widest font-semibold">Bulk Publish</button>
+              <button onClick={() => handleBulkPublish(false)} className="text-neutral-600 uppercase tracking-widest font-semibold">Bulk Hide</button>
               <div className="flex border border-neutral-soft bg-bg-luxury px-2 py-0.5 text-[9px]">
                 <input 
                   type="number" 
@@ -325,8 +838,12 @@ function AdminCoreWorkspace() {
             </thead>
             <tbody className="divide-y divide-neutral-soft/30 font-light text-text-muted">
               {products.map(p => (
-                <tr key={p.id}>
-                  <td className="p-4">
+                <tr 
+                  key={p.id} 
+                  className="hover:bg-neutral-soft/10 cursor-pointer"
+                  onClick={() => setEditingProduct(p)}
+                >
+                  <td className="p-4" onClick={(e) => e.stopPropagation()}>
                     <input 
                       type="checkbox" 
                       checked={selectedProductIds.includes(p.id)} 
@@ -341,7 +858,7 @@ function AdminCoreWorkspace() {
                   <td className="p-4 uppercase tracking-wider text-[10px]">{p.parentCategory} / {p.subCategory}</td>
                   <td className="p-4 text-fg-luxury font-medium">₹{p.basePrice.toLocaleString()}</td>
                   <td className="p-4">
-                    <span className="text-[8px] uppercase tracking-widest px-2 py-0.5 bg-green-100 text-green-800 font-light">Published</span>
+                    <span className="text-[8px] uppercase tracking-widest px-2 py-0.5 bg-green-100 text-green-800 font-light">{p.status || 'Published'}</span>
                   </td>
                 </tr>
               ))}

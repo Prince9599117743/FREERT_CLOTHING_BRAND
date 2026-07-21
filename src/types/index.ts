@@ -68,9 +68,29 @@ export interface Product {
   subCategory?: string;
   material?: string;
   fit?: string;
-  careInstructions?: string;
   gender?: 'men' | 'women' | 'unisex';
   discountPrice?: number;
+  careInstructions?: string;
+  mrp?: number;
+  costPrice?: number;
+  tax?: number;
+  stockQty?: number;
+  reservedQty?: number;
+  minStockAlert?: number;
+  maxStock?: number;
+  warehouse?: string;
+  status?: 'draft' | 'published' | 'hidden' | 'archived' | 'coming-soon' | 'pre-order' | 'out-of-stock';
+  brand?: string;
+  barcode?: string;
+  sku?: string;
+  shortDescription?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  ogImage?: string;
+  canonicalUrl?: string;
+  availableSizes?: string[];
+  availableColors?: { name: string; hex: string }[];
 }
 
 export interface ProductVariant {
