@@ -2,12 +2,22 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
+const isSupabaseConfigured = () => {
+  return process.env.NEXT_PUBLIC_SUPABASE_URL !== undefined && 
+         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== undefined;
+};
+
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   
-  // Define protected dashboard and api zones
+  // Define protected zones
   const isAdminPath = path.startsWith('/admin') || path.startsWith('/api/admin');
   const isProtectedPath = path.startsWith('/dashboard') || path.startsWith('/checkout') || isAdminPath;
+
+  // Bypass auth checks if database configurations are not present (Local Demo Mode)
+  if (!isSupabaseConfigured()) {
+    return NextResponse.next();
+  }
 
   // Retrieve auth token from cookies (supabase default auth cookies)
   const sessionToken = request.cookies.get('sb-access-token')?.value || '';
@@ -24,12 +34,9 @@ export async function middleware(request: NextRequest) {
     try {
       // Validate role on Supabase
       const { data: { user } } = await supabase.auth.getUser(sessionToken);
-      
-      // In production, we query user details or check custom JWT claims
       const userRole = user?.app_metadata?.role || 'customer';
       
       if (userRole !== 'admin' && userRole !== 'superadmin') {
-        // Forbidden redirect
         return NextResponse.redirect(new URL('/unauthorized', request.url));
       }
     } catch (error) {
@@ -40,7 +47,6 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Config to specify matching route paths
 export const config = {
   matcher: [
     '/admin/:path*',
