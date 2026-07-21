@@ -9,6 +9,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { CartDrawer } from '@/components/CartDrawer';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/contexts/ToastContext';
+import { HeroSlideshow } from '@/components/HeroSlideshow';
 import { ArrowRight } from 'lucide-react';
 
 export default function Home() {
@@ -44,33 +45,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-bg-luxury font-sans selection:bg-accent-gold selection:text-bg-luxury text-fg-luxury">
       <Navbar />
 
-      {/* 1. Full Screen Hero visual */}
-      <section className="relative w-full h-[90vh] overflow-hidden flex items-center justify-center bg-neutral-900">
-        <img 
-          src="/assets/trench_coat.jpg" 
-          alt="FREERT Autumn/Winter Campaign" 
-          className="absolute inset-0 w-full h-full object-cover object-[center_15%] opacity-80"
-        />
-        <div className="absolute inset-0 bg-black/15" />
-        
-        <div className="relative z-10 text-center flex flex-col items-center max-w-xl px-6">
-          <p className="text-[10px] uppercase tracking-[0.4em] text-neutral-300 font-light mb-5">
-            Autumn / Winter Collection 2026
-          </p>
-          <h1 className="text-6xl md:text-8xl font-light tracking-[0.15em] uppercase text-white leading-none mb-6">
-            FREERT
-          </h1>
-          <p className="text-[10.5px] font-editorial italic text-neutral-200 mb-10 tracking-[0.3em] uppercase">
-            BE YOU. BE BOLD. BE FREERT.
-          </p>
-          <button 
-            onClick={() => router.push('/shop')}
-            className="bg-white text-fg-luxury hover:bg-accent-gold hover:text-bg-luxury transition-all duration-500 text-[10px] uppercase tracking-[0.25em] font-medium py-4 px-12 cursor-pointer border border-white"
-          >
-            SHOP NOW
-          </button>
-        </div>
-      </section>
+      <HeroSlideshow />
 
       {/* 2. NEW DROP Banner */}
       <section className="py-24 border-b border-neutral-soft/30 bg-neutral-soft/5">

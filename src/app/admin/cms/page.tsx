@@ -2,7 +2,27 @@
 
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/contexts/ToastContext';
-import { Save, Image as ImageIcon } from 'lucide-react';
+import { Save, ChevronUp, ChevronDown, Trash2, Plus, Eye } from 'lucide-react';
+
+interface HeroSlide {
+  id: string;
+  image: string;
+  heading: string;
+  subtitle: string;
+  ctaText: string;
+  ctaLink: string;
+  enabled: boolean;
+}
+
+const DEFAULT_SLIDES: HeroSlide[] = [
+  { id: 'hs-1', image: '/assets/trench_coat.jpg', heading: 'BE YOU.', subtitle: 'BE BOLD. BE FREERT.', ctaText: 'Shop Now', ctaLink: '/shop', enabled: true },
+  { id: 'hs-2', image: '/assets/slip_dress.jpg', heading: 'New Season Collection', subtitle: 'Autumn / Winter Edit 2026', ctaText: 'Explore Collection', ctaLink: '/shop/new-arrivals', enabled: true },
+  { id: 'hs-3', image: '/assets/kimono_shirt.jpg', heading: 'Luxury Everyday Wear', subtitle: 'Comfort Tailored in Small Batches', ctaText: 'Discover More', ctaLink: '/shop', enabled: true },
+  { id: 'hs-4', image: '/assets/silk_trouser.jpg', heading: 'Timeless Streetwear', subtitle: 'Structure for Identity and Expression', ctaText: 'Shop Bottoms', ctaLink: '/shop/men/cargo-pants', enabled: true },
+  { id: 'hs-5', image: '/assets/knit_hoodie.jpg', heading: 'Minimal Luxury', subtitle: 'Organic Weaves and Soft Textures', ctaText: 'Shop Knitwear', ctaLink: '/shop/men/hoodies', enabled: true },
+  { id: 'hs-6', image: '/assets/cap_1784646670746.png', heading: 'Modern Identity', subtitle: 'Finishing Details for the Modern Wardrobe', ctaText: 'Shop Accessories', ctaLink: '/shop/accessories', enabled: true },
+  { id: 'hs-7', image: '/assets/sneakers_1784646656235.png', heading: 'Premium Essentials', subtitle: 'Sandalwood Santal & Intense Scents', ctaText: 'Shop Perfumes', ctaLink: '/shop/perfumes', enabled: true }
+];
 
 const DEFAULT_PAGES: Record<string, { title: string; content: string }> = {
   about: {
@@ -42,42 +62,43 @@ const DEFAULT_PAGES: Record<string, { title: string; content: string }> = {
 export default function AdminCMSPage() {
   const { showToast } = useToast();
   
-  // State for homepage items
-  const [announcementText, setAnnouncementText] = useState('Complimentary drone delivery on orders above ₹15,000');
-  const [heroTitle, setHeroTitle] = useState('FREERT');
-  const [heroSubtitle, setHeroSubtitle] = useState('BE YOU. BE BOLD. BE FREERT.');
-  const [philosophyText, setPhilosophyText] = useState('We design for the structural space between identity and expression. Minimalist silhouettes tailored from Belgian linens and raw silk. Zero clutter. Pure form.');
-
-  // State for page content editor CMS
+  // State for Pages CMS
   const [pagesContent, setPagesContent] = useState<Record<string, { title: string; content: string }>>(DEFAULT_PAGES);
   const [selectedPageKey, setSelectedPageKey] = useState<string>('about');
   const [editingTitle, setEditingTitle] = useState('');
   const [editingContent, setEditingContent] = useState('');
 
+  // State for Hero Slideshow Manager
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>(DEFAULT_SLIDES);
+
   useEffect(() => {
-    const saved = localStorage.getItem('freert_cms_pages');
-    if (saved) {
+    // Load pages content
+    const savedPages = localStorage.getItem('freert_cms_pages');
+    if (savedPages) {
       try {
-        const parsed = JSON.parse(saved);
+        const parsed = JSON.parse(savedPages);
         const merged = { ...DEFAULT_PAGES, ...parsed };
         setPagesContent(merged);
-        setEditingTitle(merged[selectedPageKey]?.title || '');
-        setEditingContent(merged[selectedPageKey]?.content || '');
       } catch (e) {
         setPagesContent(DEFAULT_PAGES);
-        setEditingTitle(DEFAULT_PAGES[selectedPageKey]?.title || '');
-        setEditingContent(DEFAULT_PAGES[selectedPageKey]?.content || '');
       }
-    } else {
-      setEditingTitle(DEFAULT_PAGES[selectedPageKey]?.title || '');
-      setEditingContent(DEFAULT_PAGES[selectedPageKey]?.content || '');
     }
-  }, [selectedPageKey]);
 
-  const handleSaveHomepageCMS = (e: React.FormEvent) => {
-    e.preventDefault();
-    showToast('Homepage CMS configurations successfully deployed to production edge.', 'success');
-  };
+    // Load hero slides content
+    const savedSlides = localStorage.getItem('freert_hero_slides');
+    if (savedSlides) {
+      try {
+        setHeroSlides(JSON.parse(savedSlides));
+      } catch (e) {
+        setHeroSlides(DEFAULT_SLIDES);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    setEditingTitle(pagesContent[selectedPageKey]?.title || '');
+    setEditingContent(pagesContent[selectedPageKey]?.content || '');
+  }, [selectedPageKey, pagesContent]);
 
   const handleSavePageCMS = (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,81 +111,182 @@ export default function AdminCMSPage() {
     showToast(`Configurations saved for policy page: ${editingTitle}.`, 'success');
   };
 
+  // Hero Slides Operations
+  const handleUpdateSlide = (id: string, field: keyof HeroSlide, value: any) => {
+    setHeroSlides(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s));
+  };
+
+  const handleMoveSlide = (index: number, direction: 'up' | 'down') => {
+    const updated = [...heroSlides];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    if (targetIndex >= 0 && targetIndex < updated.length) {
+      const temp = updated[index];
+      updated[index] = updated[targetIndex];
+      updated[targetIndex] = temp;
+      setHeroSlides(updated);
+    }
+  };
+
+  const handleDeleteSlide = (id: string) => {
+    setHeroSlides(prev => prev.filter(s => s.id !== id));
+    showToast('Slide removed from list buffer.', 'info');
+  };
+
+  const handleAddSlide = () => {
+    const newSlide: HeroSlide = {
+      id: `hs-${Math.random().toString(36).substring(2, 9)}`,
+      image: '/assets/tee_white.jpg',
+      heading: 'New Campaign Heading',
+      subtitle: 'Premium Capsule Edit',
+      ctaText: 'Shop Now',
+      ctaLink: '/shop',
+      enabled: true
+    };
+    setHeroSlides(prev => [...prev, newSlide]);
+    showToast('Appended new slide template.', 'success');
+  };
+
+  const handleSaveHeroCMS = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem('freert_hero_slides', JSON.stringify(heroSlides));
+    showToast('Hero Slideshow configurations deployed to live site.', 'success');
+  };
+
   return (
-    <div className="flex flex-col gap-10 text-left">
+    <div className="flex flex-col gap-12 text-left">
       <div>
         <h1 className="text-2xl uppercase tracking-widest font-light text-fg-luxury">Homepage & Pages CMS</h1>
-        <p className="text-[11px] text-text-muted font-light uppercase tracking-wider mt-1">Configure editorial headlines, policy contents and informational guides</p>
+        <p className="text-[11px] text-text-muted font-light uppercase tracking-wider mt-1">Configure editorial slideshow banners, policy contents and informational guides</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
         
-        {/* Left: Homepage Editor */}
-        <form onSubmit={handleSaveHomepageCMS} className="flex flex-col gap-8 bg-bg-luxury border border-neutral-soft/80 p-8">
-          <h2 className="text-sm uppercase tracking-[0.2em] font-semibold text-fg-luxury pb-2 border-b border-neutral-soft/30">
-            Homepage CMS Nodes
-          </h2>
-
-          <div>
-            <label className="text-[9px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Announcement Ribbon</label>
-            <input 
-              type="text"
-              value={announcementText}
-              onChange={(e) => setAnnouncementText(e.target.value)}
-              className="input-editorial text-xs"
-            />
+        {/* Left: Hero Slideshow Manager (Col span 7) */}
+        <form onSubmit={handleSaveHeroCMS} className="lg:col-span-7 flex flex-col gap-8 bg-bg-luxury border border-neutral-soft/80 p-8">
+          <div className="flex justify-between items-center border-b border-neutral-soft/30 pb-3">
+            <h2 className="text-sm uppercase tracking-[0.2em] font-semibold text-fg-luxury">
+              Hero Banner Manager
+            </h2>
+            <button 
+              type="button"
+              onClick={handleAddSlide}
+              className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-accent-gold hover:text-fg-luxury transition-colors cursor-pointer font-semibold"
+            >
+              <Plus size={14} /> Add Slide
+            </button>
           </div>
 
-          <div className="flex flex-col gap-4">
-            <div>
-              <label className="text-[9px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Hero Headline</label>
-              <input 
-                type="text"
-                value={heroTitle}
-                onChange={(e) => setHeroTitle(e.target.value)}
-                className="input-editorial text-xs"
-              />
-            </div>
-            <div>
-              <label className="text-[9px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Hero Subtitle</label>
-              <input 
-                type="text"
-                value={heroSubtitle}
-                onChange={(e) => setHeroSubtitle(e.target.value)}
-                className="input-editorial text-xs"
-              />
-            </div>
-            <div>
-              <label className="text-[9px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Campaign Image Path</label>
-              <div className="flex items-center border border-neutral-soft p-3 bg-neutral-soft/10 text-xs text-text-muted justify-between">
-                <span>/assets/trench_coat.jpg</span>
-                <button type="button" className="text-fg-luxury hover:text-accent-gold transition-colors flex items-center gap-1 cursor-pointer">
-                  <ImageIcon size={14} /> Update Node
-                </button>
+          <div className="flex flex-col gap-8 max-h-[600px] overflow-y-auto pr-2">
+            {heroSlides.map((slide, idx) => (
+              <div key={slide.id} className="p-5 border border-neutral-soft bg-neutral-soft/5 flex flex-col gap-4 relative">
+                
+                {/* Actions row */}
+                <div className="flex justify-between items-center border-b border-neutral-soft/30 pb-2">
+                  <span className="text-[9px] uppercase tracking-widest text-text-muted font-semibold">Slide 0{idx + 1}</span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      disabled={idx === 0}
+                      onClick={() => handleMoveSlide(idx, 'up')}
+                      className="p-1 hover:text-accent-gold text-text-muted disabled:opacity-30 cursor-pointer"
+                    >
+                      <ChevronUp size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={idx === heroSlides.length - 1}
+                      onClick={() => handleMoveSlide(idx, 'down')}
+                      className="p-1 hover:text-accent-gold text-text-muted disabled:opacity-30 cursor-pointer"
+                    >
+                      <ChevronDown size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSlide(slide.id)}
+                      className="p-1 hover:text-red-700 text-text-muted cursor-pointer"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Inputs Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[8px] uppercase tracking-wider text-text-muted mb-1 block">Heading</label>
+                    <input 
+                      type="text" 
+                      value={slide.heading}
+                      onChange={(e) => handleUpdateSlide(slide.id, 'heading', e.target.value)}
+                      className="input-editorial text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[8px] uppercase tracking-wider text-text-muted mb-1 block">Subtitle</label>
+                    <input 
+                      type="text" 
+                      value={slide.subtitle}
+                      onChange={(e) => handleUpdateSlide(slide.id, 'subtitle', e.target.value)}
+                      className="input-editorial text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[8px] uppercase tracking-wider text-text-muted mb-1 block">Image URL / Path</label>
+                    <input 
+                      type="text" 
+                      value={slide.image}
+                      onChange={(e) => handleUpdateSlide(slide.id, 'image', e.target.value)}
+                      className="input-editorial text-xs"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[8px] uppercase tracking-wider text-text-muted mb-1 block">CTA Text</label>
+                      <input 
+                        type="text" 
+                        value={slide.ctaText}
+                        onChange={(e) => handleUpdateSlide(slide.id, 'ctaText', e.target.value)}
+                        className="input-editorial text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[8px] uppercase tracking-wider text-text-muted mb-1 block">CTA Link</label>
+                      <input 
+                        type="text" 
+                        value={slide.ctaLink}
+                        onChange={(e) => handleUpdateSlide(slide.id, 'ctaLink', e.target.value)}
+                        className="input-editorial text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Enable toggle */}
+                <label className="flex items-center gap-2 cursor-pointer mt-1">
+                  <input 
+                    type="checkbox"
+                    checked={slide.enabled}
+                    onChange={(e) => handleUpdateSlide(slide.id, 'enabled', e.target.checked)}
+                    className="accent-fg-luxury"
+                  />
+                  <span className="text-[9px] uppercase tracking-widest text-fg-luxury">Enable Slide in rotation</span>
+                </label>
+
               </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-[9px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Philosophy Statement</label>
-            <textarea 
-              rows={4}
-              value={philosophyText}
-              onChange={(e) => setPhilosophyText(e.target.value)}
-              className="input-editorial h-24 resize-none text-xs leading-relaxed"
-            />
+            ))}
           </div>
 
           <button 
             type="submit"
-            className="btn-editorial-solid flex items-center justify-center gap-2 py-3.5 tracking-[0.2em] font-medium text-xs cursor-pointer"
+            className="btn-editorial-solid flex items-center justify-center gap-2 py-3.5 tracking-[0.2em] font-medium text-xs cursor-pointer mt-2"
           >
-            <Save size={14} /> Publish Homepage CMS
+            <Save size={14} /> Deploy Slideshow Configurations
           </button>
         </form>
 
-        {/* Right: Policy & Info Pages CMS Editor */}
-        <form onSubmit={handleSavePageCMS} className="flex flex-col gap-8 bg-bg-luxury border border-neutral-soft/80 p-8">
+        {/* Right: Policy & Info Pages CMS Editor (Col span 5) */}
+        <form onSubmit={handleSavePageCMS} className="lg:col-span-5 flex flex-col gap-8 bg-bg-luxury border border-neutral-soft/80 p-8">
           <h2 className="text-sm uppercase tracking-[0.2em] font-semibold text-fg-luxury pb-2 border-b border-neutral-soft/30">
             Legal & Policy Pages Editor
           </h2>
@@ -198,10 +320,10 @@ export default function AdminCMSPage() {
           <div>
             <label className="text-[9px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Page Text Content</label>
             <textarea 
-              rows={12}
+              rows={14}
               value={editingContent}
               onChange={(e) => setEditingContent(e.target.value)}
-              className="input-editorial h-56 resize-none text-xs leading-relaxed"
+              className="input-editorial h-64 resize-none text-xs leading-relaxed"
               required
             />
           </div>
