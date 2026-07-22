@@ -38,15 +38,11 @@ export default function LoginPage() {
         });
 
         if (error) {
-          if (error.message.includes('placeholder') || error.message.includes('API key')) {
-            showToast('Mock Operator Login Successful (Supabase Offline).', 'info');
-            router.push('/dashboard');
-            return;
-          }
           showToast(error.message, 'error');
         } else if (data.user) {
-          showToast('Access connection established.', 'success');
-          router.push('/dashboard');
+          showToast('Welcome back.', 'success');
+          const role = data.user.app_metadata?.role;
+          router.push(role === 'admin' || role === 'superadmin' ? '/admin' : '/dashboard');
         }
       } else {
         // Phone OTP Flow
@@ -55,15 +51,9 @@ export default function LoginPage() {
             phone
           });
           if (error) {
-            if (error.message.includes('placeholder') || error.message.includes('API key')) {
-              showToast('Mock OTP sent to phone line (Supabase Offline).', 'info');
-              setOtpSent(true);
-              setLoading(false);
-              return;
-            }
             showToast(error.message, 'error');
           } else {
-            showToast('OTP verification code dispatched to phone line.', 'success');
+            showToast('Verification code sent to your phone.', 'success');
             setOtpSent(true);
           }
         } else {
@@ -74,14 +64,9 @@ export default function LoginPage() {
             type: 'sms'
           });
           if (error) {
-            if (error.message.includes('placeholder') || error.message.includes('API key')) {
-              showToast('Mock OTP verification successful.', 'success');
-              router.push('/dashboard');
-              return;
-            }
             showToast(error.message, 'error');
           } else if (data.user) {
-            showToast('Phone verification confirmed.', 'success');
+            showToast('Phone verified successfully.', 'success');
             router.push('/dashboard');
           }
         }

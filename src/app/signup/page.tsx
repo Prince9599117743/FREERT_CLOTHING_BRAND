@@ -33,14 +33,9 @@ export default function SignupPage() {
       });
 
       if (error) {
-        if (error.message.includes('placeholder') || error.message.includes('API key')) {
-          showToast('Mock Signup Successful (Supabase Offline).', 'info');
-          router.push('/login');
-          return;
-        }
         showToast(error.message, 'error');
       } else if (data.user) {
-        showToast('Link created. Please verify your email.', 'success');
+        showToast('Account created. Please check your email to verify.', 'success');
         router.push('/login');
       }
     } catch (err) {

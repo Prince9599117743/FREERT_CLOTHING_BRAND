@@ -34,9 +34,7 @@ export default function ShopPage() {
         setAllProducts(list);
         setFilteredProducts(list);
       } catch (e: any) {
-        if (e.message === 'DATABASE_CONNECTION_ERROR') {
-          setDbError(true);
-        }
+        setDbError(true);
       }
     };
     loadData();

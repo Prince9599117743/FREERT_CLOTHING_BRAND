@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { getProducts } from '@/services/database';
-import { MOCK_PRODUCTS } from '@/services/mockData';
 import { X, Search, Clock, ArrowRight } from 'lucide-react';
 import type { Product } from '@/types';
 
@@ -50,8 +49,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose })
       setResults([]);
       return;
     }
-    const targetProducts = allProducts.length > 0 ? allProducts : MOCK_PRODUCTS;
-    const matches = targetProducts.filter(p => 
+    const matches = allProducts.filter(p =>
       p.name.toLowerCase().includes(query.toLowerCase()) || 
       p.description?.toLowerCase().includes(query.toLowerCase()) ||
       p.tags?.some(t => t.toLowerCase().includes(query.toLowerCase()))
@@ -150,7 +148,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose })
             <div className="md:col-span-7">
               <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-text-muted mb-4">Spotlight Suggestions</h4>
               <div className="grid grid-cols-2 gap-4">
-                {(allProducts.length > 0 ? allProducts : MOCK_PRODUCTS).slice(0, 2).map((product) => (
+                {allProducts.slice(0, 2).map((product) => (
                   <Link 
                     key={product.id} 
                     href={`/product/${product.slug}`}
@@ -159,7 +157,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose })
                   >
                     <div className="aspect-[3/4] bg-neutral-soft/20 overflow-hidden">
                       <img 
-                        src={product.images[0]} 
+                        src={product.images && product.images[0] ? product.images[0] : '/assets/trench_coat.jpg'} 
                         alt={product.name} 
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                       />

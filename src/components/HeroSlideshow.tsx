@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { getHeroBanners } from '@/services/database';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 export interface HeroSlide {
@@ -34,19 +35,26 @@ export const HeroSlideshow: React.FC = () => {
   const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
-    // Load custom slides from localStorage if edited via Admin CMS
-    const saved = localStorage.getItem('freert_hero_slides');
-    if (saved) {
+    const loadBanners = async () => {
       try {
-        const parsed = JSON.parse(saved);
-        const enabledOnly = parsed.filter((s: HeroSlide) => s.enabled);
-        if (enabledOnly.length > 0) {
-          setSlides(enabledOnly);
+        const data = await getHeroBanners();
+        if (data && data.length > 0) {
+          const mapped = data.map((b: any) => ({
+            id: b.id,
+            image: b.image_url || b.imageUrl || '/assets/trench_coat.jpg',
+            heading: b.heading,
+            subtitle: b.subtitle || '',
+            ctaText: b.cta_text || b.ctaText || 'Shop Now',
+            ctaLink: b.cta_link || b.ctaLink || '/shop',
+            enabled: b.enabled ?? true
+          }));
+          setSlides(mapped);
         }
       } catch (e) {
-        setSlides(DEFAULT_SLIDES);
+        // Fallback to DEFAULT_SLIDES
       }
-    }
+    };
+    loadBanners();
   }, []);
 
   // Autoplay intervals setup

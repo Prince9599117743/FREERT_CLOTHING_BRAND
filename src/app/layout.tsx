@@ -7,13 +7,42 @@ import { WishlistProvider } from '@/contexts/WishlistContext';
 import { ToastContainer } from '@/components/ui/ToastContainer';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://freert.net'),
   title: 'FREERT | Luxury Minimalist Fashion eCommerce',
   description: 'BE YOU. BE BOLD. BE FREERT. Explore premium minimalist linens, structured outerwear, and contemporary streetwear curated for editorial fashion standards.',
   keywords: 'FREERT, luxury fashion, minimalist clothing, premium ecommerce, editorial design, contemporary streetwear, linen',
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   openGraph: {
     title: 'FREERT | Luxury Minimalist Fashion eCommerce',
-    description: 'BE YOU. BE BOLD. BE FREERT.',
+    description: 'BE YOU. BE BOLD. BE FREERT. Explore premium minimalist linens, structured outerwear, and contemporary streetwear curated for editorial fashion standards.',
     type: 'website',
+    url: 'https://freert.net',
+    siteName: 'FREERT',
+    locale: 'en_IN',
+    images: [
+      {
+        url: '/assets/trench_coat.jpg',
+        width: 1200,
+        height: 1600,
+        alt: 'FREERT Editorial Campaign - Luxury Minimalist Fashion',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'FREERT | Luxury Minimalist Fashion eCommerce',
+    description: 'BE YOU. BE BOLD. BE FREERT.',
+    images: ['/assets/trench_coat.jpg'],
   },
 };
 

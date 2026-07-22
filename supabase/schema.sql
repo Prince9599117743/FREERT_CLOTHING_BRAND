@@ -447,3 +447,25 @@ CREATE POLICY "Allow public read site_settings" ON site_settings FOR SELECT USIN
 CREATE POLICY "Allow admin manage site_settings" ON site_settings FOR ALL USING (
   EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role IN ('admin', 'superadmin'))
 );
+
+-- 23. STORAGE POLICIES FOR freert_media BUCKET
+-- Ensure the storage schema is active before creating policies
+CREATE POLICY "Allow public read access on freert_media bucket" ON storage.objects
+  FOR SELECT USING (bucket_id = 'freert_media');
+
+CREATE POLICY "Allow authenticated users to insert objects in freert_media bucket" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'freert_media' AND 
+    auth.role() = 'authenticated'
+  );
+
+CREATE POLICY "Allow admins full access on freert_media bucket" ON storage.objects
+  FOR ALL USING (
+    bucket_id = 'freert_media' AND
+    EXISTS (
+      SELECT 1 FROM public.users 
+      WHERE users.id = auth.uid() AND 
+      users.role IN ('admin', 'superadmin')
+    )
+  );
+

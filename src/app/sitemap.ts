@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
-import { MOCK_PRODUCTS } from '@/services/mockData';
+import { getProducts } from '@/services/database';
+import type { Product } from '@/types';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://freert.net';
@@ -12,8 +13,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: route === '' ? 1.0 : 0.8
   }));
 
+  let productsList: Product[] = [];
+  try {
+    productsList = await getProducts();
+  } catch (e) {}
+
   // Dynamic products list paths
-  const productRoutes = MOCK_PRODUCTS.map((product) => ({
+  const productRoutes = productsList.map((product) => ({
     url: `${baseUrl}/product/${product.slug}`,
     lastModified: product.updatedAt ? product.updatedAt.split('T')[0] : new Date().toISOString().split('T')[0],
     changeFrequency: 'daily' as const,

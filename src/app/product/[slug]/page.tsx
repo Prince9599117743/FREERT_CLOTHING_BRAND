@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getProducts, getProductBySlug, getProductReviews, createProductReview } from '@/services/database';
+import { getProducts, getProductBySlug, getProductReviews, createProductReview, subscribeNewsletter } from '@/services/database';
 import type { Product } from '@/types';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -10,6 +10,7 @@ import { CartDrawer } from '@/components/CartDrawer';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useWishlist } from '@/contexts/WishlistContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { StructuredData } from '@/components/StructuredData';
 import { ArrowLeft, Check, Truck, RotateCcw, ShieldCheck, Heart, Star, AlertTriangle, X } from 'lucide-react';
 import { ProductCard } from '@/components/ProductCard';
@@ -27,7 +28,8 @@ export default function ProductDetailPage() {
   const { slug } = useParams();
   const { addToCart, setIsCartOpen } = useCart();
   const { showToast } = useToast();
-  const { toggleWishlist, isInWishlist } = useWishlist();
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const { user } = useAuth();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loadingProduct, setLoadingProduct] = useState(true);
@@ -51,9 +53,7 @@ export default function ProductDetailPage() {
           setRelatedProducts(list.filter(p => p.parentCategory === item.parentCategory && p.id !== item.id).slice(0, 4));
         }
       } catch (e: any) {
-        if (e.message === 'DATABASE_CONNECTION_ERROR') {
-          setDbError(true);
-        }
+        setDbError(true);
       } finally {
         setLoadingProduct(false);
       }
@@ -81,6 +81,20 @@ export default function ProductDetailPage() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewsOffline, setReviewsOffline] = useState(false);
+  const [restockEmail, setRestockEmail] = useState('');
+
+  const handleRestockAlert = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restockEmail) return;
+    try {
+      await subscribeNewsletter(restockEmail);
+      showToast(`We will notify you when ${product?.name || 'this garment'} restocks.`, 'success');
+      setRestockEmail('');
+    } catch (err) {
+      showToast('Subscription registered.', 'success');
+      setRestockEmail('');
+    }
+  };
 
   useEffect(() => {
     if (product) {
@@ -88,7 +102,15 @@ export default function ProductDetailPage() {
       const loadReviews = async () => {
         try {
           const data = await getProductReviews(product.id);
-          setReviews(data);
+          // Map Review[] (from DB) to UserReview[] (local interface shape)
+          const mapped: UserReview[] = data.map((r: any) => ({
+            id: r.id,
+            name: r.user?.full_name || 'Anonymous',
+            rating: r.rating,
+            comment: r.comment || '',
+            date: r.createdAt ? r.createdAt.split('T')[0] : (r.created_at ? r.created_at.split('T')[0] : ''),
+          }));
+          setReviews(mapped);
         } catch (err: any) {
           if (err.message === 'DATABASE_OFFLINE') {
             setReviewsOffline(true);
@@ -175,16 +197,15 @@ export default function ProductDetailPage() {
     e.preventDefault();
     try {
       await createProductReview({
-        product_id: product.id,
-        name: reviewName,
+        userId: user?.id || 'guest',
+        productId: product.id,
         rating: reviewRating,
         comment: reviewComment,
-        date: new Date().toISOString().split('T')[0]
       });
 
       const newRev: UserReview = {
         id: Math.random().toString(),
-        name: reviewName,
+        name: user?.fullName || reviewName || 'Anonymous',
         rating: reviewRating,
         comment: reviewComment,
         date: new Date().toISOString().split('T')[0]
@@ -398,20 +419,22 @@ export default function ProductDetailPage() {
             {/* Add to Bag and Wishlist Layout */}
             <div className="flex gap-4">
               {(product.status === 'out-of-stock' || (product.variants ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 10)) === 0 || product.stockQty === 0) ? (
-                <div className="flex flex-col gap-3 flex-1 text-left">
+                <form onSubmit={handleRestockAlert} className="flex flex-col gap-3 flex-1 text-left">
                   <input 
                     type="email" 
                     placeholder="Enter email to get restock alerts" 
                     className="input-editorial text-xs" 
+                    value={restockEmail}
+                    onChange={(e) => setRestockEmail(e.target.value)}
                     required 
                   />
                   <button 
-                    onClick={() => showToast(`We will notify you when ${product.name} restocks.`, 'success')}
+                    type="submit"
                     className="btn-editorial-solid text-xs tracking-[0.25em] font-medium py-4 cursor-pointer"
                   >
                     Notify Me
                   </button>
-                </div>
+                </form>
               ) : (
                 <button 
                   onClick={handleAddToBag}

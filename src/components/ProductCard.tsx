@@ -64,7 +64,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   // Image hover swap logic
-  const displayImage = isHovered && product.images[1] ? product.images[1] : product.images[0];
+  const displayImage = isHovered && product.images && product.images[1] ? product.images[1] : (product.images && product.images[0] ? product.images[0] : '/assets/trench_coat.jpg');
 
   // Dynamic tags / badges list
   const badges: string[] = [];

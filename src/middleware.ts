@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 
 const isSupabaseConfigured = () => {
   return process.env.NEXT_PUBLIC_SUPABASE_URL !== undefined && 
-         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== undefined;
+         process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY !== undefined;
 };
 
 // Fast JWT decoder for edge middleware

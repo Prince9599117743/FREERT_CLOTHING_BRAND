@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getProducts } from '@/services/database';
+import { getProducts, getHomepageSections } from '@/services/database';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
@@ -115,24 +115,30 @@ export default function Home() {
   const [dbError, setDbError] = useState(false);
 
   useEffect(() => {
-    // Load Homepage configuration from localStorage if customized
-    const saved = localStorage.getItem('freert_homepage_cms_layout');
-    if (saved) {
-      try {
-        setSections(JSON.parse(saved));
-      } catch (e) {
-        setSections(DEFAULT_SECTIONS);
-      }
-    }
-
     const loadData = async () => {
       try {
-        const list = await getProducts();
-        setAllProducts(list);
-      } catch (e: any) {
-        if (e.message === 'DATABASE_CONNECTION_ERROR') {
-          setDbError(true);
+        const [productList, cmsSections] = await Promise.all([
+          getProducts(),
+          getHomepageSections()
+        ]);
+        setAllProducts(productList);
+        if (cmsSections && cmsSections.length > 0) {
+          // Map DB structure to local HomepageSection structure
+          const mapped = cmsSections.map((s: any) => ({
+            id: s.id,
+            title: s.title,
+            subtitle: s.subtitle,
+            bannerImage: s.banner_image || s.bannerImage,
+            ctaText: s.cta_text || s.ctaText,
+            ctaLink: s.cta_link || s.ctaLink,
+            visible: s.visible,
+            order: s.order,
+            featuredProductIds: s.featured_product_ids || s.featuredProductIds || []
+          }));
+          setSections(mapped);
         }
+      } catch (e: any) {
+        setDbError(true);
       }
       setFetching(false);
     };

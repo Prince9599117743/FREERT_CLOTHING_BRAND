@@ -23,13 +23,9 @@ export default function ForgotPasswordPage() {
       });
 
       if (error) {
-        if (error.message.includes('placeholder') || error.message.includes('API key')) {
-          showToast('Mock Recovery Email Dispatched (Supabase Offline).', 'info');
-          return;
-        }
         showToast(error.message, 'error');
       } else {
-        showToast('Password recovery payload dispatched.', 'success');
+        showToast('Password reset link sent. Check your email.', 'success');
       }
     } catch (err) {
       showToast('Handshake failed.', 'error');

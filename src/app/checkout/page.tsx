@@ -8,7 +8,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/CartDrawer';
-import { createOrder } from '@/services/database';
+import { createOrder, getSiteSettings } from '@/services/database';
 import { ArrowRight, CreditCard, Shield, Truck, AlertTriangle, Check, MapPin, ClipboardCheck } from 'lucide-react';
 
 export default function CheckoutPage() {
@@ -56,16 +56,23 @@ export default function CheckoutPage() {
       setPhone(user.phone || '');
     }
 
-    const expressSaved = localStorage.getItem('freert_express_delivery_enabled') !== 'false';
-    setIsExpressEnabled(expressSaved);
-    const onlineSaved = localStorage.getItem('freert_online_payment_enabled') === 'true';
-    setIsOnlinePaymentEnabled(onlineSaved);
-    
-    if (onlineSaved) {
-      setPaymentMethod('razorpay');
-    } else {
-      setPaymentMethod('cod');
-    }
+    const loadSettings = async () => {
+      try {
+        const settings = await getSiteSettings();
+        const expressEnabled = settings['express_delivery_enabled'] !== 'false';
+        setIsExpressEnabled(expressEnabled);
+        const onlineEnabled = settings['online_payment_enabled'] === 'true';
+        setIsOnlinePaymentEnabled(onlineEnabled);
+        setPaymentMethod(onlineEnabled ? 'razorpay' : 'cod');
+      } catch (err) {
+        const expressSaved = localStorage.getItem('freert_express_delivery_enabled') !== 'false';
+        setIsExpressEnabled(expressSaved);
+        const onlineSaved = localStorage.getItem('freert_online_payment_enabled') === 'true';
+        setIsOnlinePaymentEnabled(onlineSaved);
+        setPaymentMethod(onlineSaved ? 'razorpay' : 'cod');
+      }
+    };
+    loadSettings();
   }, [cart, user, router, processing, currentStep]);
 
   const discount = promoApplied ? cartSubtotal * 0.20 : 0;

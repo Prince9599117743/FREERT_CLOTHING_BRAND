@@ -3,7 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useToast } from '@/contexts/ToastContext';
-import { MOCK_PRODUCTS } from '@/services/mockData';
+import { supabase } from '@/lib/supabase';
+import { 
+  getProducts, createProduct, updateProduct, deleteProduct,
+  getAllOrders, updateOrderStatus, getAllCustomers,
+  getCoupons, createCoupon, deleteCoupon,
+  getAdminReviews, deleteReview,
+  getAdminSupportTickets, updateTicketStatus,
+  getSiteSettings, saveSiteSetting,
+  getHeroBanners, saveHeroBanner, updateHeroBanner, deleteHeroBanner,
+  getHomepageSections, saveHomepageSections,
+  uploadMedia, getDashboardStats, logActivity,
+  createCategory, deleteCategory, getCategories
+} from '@/services/database';
 import type { Product, Category } from '@/types';
 import { 
   Save, Plus, Trash2, Copy, Upload, ArrowRight, Star, Heart, Check, 
@@ -39,7 +51,7 @@ interface OrderAdmin {
   address: string;
   amount: number;
   date: string;
-  status: 'ordered' | 'packed' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   items: string;
   paymentMethod: string;
 }
@@ -132,82 +144,164 @@ function AdminCoreWorkspace() {
     { id: 'perfumes', title: 'Olfactory Signature block', subtitle: 'Scent Guidelines', bannerImage: '/assets/trench_coat.jpg', ctaText: 'Scent Me', ctaLink: '/shop/perfumes', visible: true }
   ]);
 
-  const [orders, setOrders] = useState<OrderAdmin[]>([
-    { id: 'FR-847291', customer: 'Aryan Dev', phone: '+91 98765 43210', email: 'aryan@dev.com', address: 'Sector-4, Noida, UP, 201301', amount: 20300, date: '2026-07-20', status: 'processing' as any, items: 'Linen Trench Coat (L) x1, Structured Kimono Shirt (M) x1', paymentMethod: 'Cash On Delivery' },
-    { id: 'FR-712891', customer: 'Meera Sen', phone: '+91 99999 88888', email: 'meera@sen.com', address: 'Gurgaon, Haryana 122002', amount: 8900, date: '2026-07-19', status: 'delivered' as any, items: 'Raw Silk Utility Trouser (M) x1', paymentMethod: 'Cash On Delivery' }
-  ]);
+  const [orders, setOrders] = useState<OrderAdmin[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [supportTickets, setSupportTickets] = useState<any[]>([]);
+  const [dashboardStats, setDashboardStats] = useState({ totalRevenue: 0, totalOrders: 0, totalCustomers: 0, totalProducts: 0, lowStockCount: 0, pendingOrders: 0 });
+  const [newCouponForm, setNewCouponForm] = useState({ code: '', discountPercentage: 10, maxUses: 100, activeFrom: '', activeTo: '' });
 
-  const [customers, setCustomers] = useState<Customer[]>([
-    { id: 'cust-1', name: 'Aryan Dev', phone: '+91 98765 43210', email: 'aryan@freert.net', ordersCount: 5, totalSpent: '₹1,12,500', lastOrderDate: '2026-07-20', blocked: false },
-    { id: 'cust-2', name: 'Meera Sen', phone: '+91 99999 88888', email: 'meera@sen.com', ordersCount: 1, totalSpent: '₹8,900', lastOrderDate: '2026-07-19', blocked: false }
-  ]);
-
-  const [coupons, setCoupons] = useState<Coupon[]>([
-    { id: 'c-1', code: 'FREERT20', value: 20, enabled: true }
-  ]);
-
-  const [reviews, setReviews] = useState([
-    { id: 'rev-1', product: 'Linen Trench Coat', author: 'Aryan Dev', comment: 'Outstanding drape and quality. Fits beautifully.', rating: 5, date: '2026-07-20' },
-    { id: 'rev-2', product: 'Structured Kimono Shirt', author: 'Meera Sen', comment: 'Elegant structural silhouette. Organic linen texture feels organic.', rating: 4, date: '2026-07-18' }
-  ]);
-
-  // Load state on mount
+  // Load all admin data on mount
   useEffect(() => {
-    const savedProducts = localStorage.getItem('freert_products_db');
-    if (savedProducts) {
-      try { setProducts(JSON.parse(savedProducts)); } catch (e) {}
-    } else {
-      setProducts(MOCK_PRODUCTS);
-      localStorage.setItem('freert_products_db', JSON.stringify(MOCK_PRODUCTS));
-    }
+    const loadAll = async () => {
+      try {
+        const [productList, orderList, customerList, couponList, reviewList, ticketList, settings, stats, categoriesList, cmsSections] = await Promise.allSettled([
+          getProducts(),
+          getAllOrders(),
+          getAllCustomers(),
+          getCoupons(),
+          getAdminReviews(),
+          getAdminSupportTickets(),
+          getSiteSettings(),
+          getDashboardStats(),
+          getCategories(),
+          getHomepageSections(),
+        ]);
 
-    const savedBanners = localStorage.getItem('freert_hero_slide');
-    if (savedBanners) {
-      try { setHeroSlide(JSON.parse(savedBanners)); } catch (e) {}
-    }
+        if (productList.status === 'fulfilled') setProducts(productList.value);
 
-    const expressSaved = localStorage.getItem('freert_express_delivery_enabled') !== 'false';
-    setExpressDeliveryEnabled(expressSaved);
-    const onlineSaved = localStorage.getItem('freert_online_payment_enabled') === 'true';
-    setOnlinePaymentEnabled(onlineSaved);
+        if (orderList.status === 'fulfilled') {
+          setOrders(orderList.value.map((o: any) => ({
+            id: o.id,
+            customer: o.user?.full_name || 'Guest',
+            phone: o.user?.phone || '—',
+            email: o.user?.email || '—',
+            address: '—',
+            amount: o.total_amount,
+            date: o.created_at?.split('T')[0] || '—',
+            status: o.status,
+            items: o.items?.map((i: any) => `${i.variant?.product?.name || 'Item'} x${i.qty}`).join(', ') || '—',
+            paymentMethod: o.payment?.provider || 'cod',
+          })));
+        }
+
+        if (customerList.status === 'fulfilled') {
+          setCustomers(customerList.value.map((c: any) => ({
+            id: c.id,
+            name: c.full_name || c.email,
+            phone: c.phone || '—',
+            email: c.email,
+            ordersCount: 0,
+            totalSpent: '—',
+            lastOrderDate: c.created_at?.split('T')[0] || '—',
+            blocked: false,
+          })));
+        }
+
+        if (couponList.status === 'fulfilled') {
+          setCoupons(couponList.value.map((c: any) => ({
+            id: c.id,
+            code: c.code,
+            value: c.discount_percentage,
+            enabled: new Date(c.active_to) > new Date(),
+          })));
+        }
+
+        if (reviewList.status === 'fulfilled') {
+          setReviews(reviewList.value.map((r: any) => ({
+            id: r.id,
+            product: r.product?.name || '—',
+            author: r.user?.full_name || r.user?.email || 'Anonymous',
+            comment: r.comment || '',
+            rating: r.rating,
+            date: r.created_at?.split('T')[0] || '—',
+          })));
+        }
+
+        if (ticketList.status === 'fulfilled') setSupportTickets(ticketList.value);
+
+        if (settings.status === 'fulfilled') {
+          setExpressDeliveryEnabled(settings.value['express_delivery_enabled'] !== 'false');
+          setOnlinePaymentEnabled(settings.value['online_payment_enabled'] === 'true');
+        }
+
+        if (stats.status === 'fulfilled') setDashboardStats(stats.value);
+
+        if (categoriesList.status === 'fulfilled' && categoriesList.value.length > 0) {
+          setCategories(categoriesList.value);
+        }
+
+        if (cmsSections.status === 'fulfilled' && cmsSections.value.length > 0) {
+          const mapped = cmsSections.value.map((s: any) => ({
+            id: s.id,
+            title: s.title,
+            subtitle: s.subtitle || '',
+            bannerImage: s.banner_image || s.bannerImage || '/assets/trench_coat.jpg',
+            ctaText: s.cta_text || s.ctaText || 'Shop Now',
+            ctaLink: s.cta_link || s.ctaLink || '/shop',
+            visible: s.visible ?? true,
+          }));
+          setHomeSections(mapped);
+        }
+
+      } catch (e) {
+        // Non-critical: admin loads what it can
+      }
+    };
+    loadAll();
+
+    // Enable Realtime Subscriptions for immediate Admin updates without refreshing
+    const channel = supabase
+      .channel('admin-db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        loadAll();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+        loadAll();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, () => {
+        loadAll();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, () => {
+        loadAll();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  const saveProductsToStorage = (updatedList: Product[]) => {
-    setProducts(updatedList);
-    localStorage.setItem('freert_products_db', JSON.stringify(updatedList));
+  // Refresh products list from DB
+  const refreshProducts = async () => {
+    try { const list = await getProducts(); setProducts(list); } catch (e) {}
   };
 
-  // Multiple Image Base64 Handler
-  const handleMultipleImagesUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'edit' | 'add') => {
+  // Image Upload to Supabase Storage
+  const handleMultipleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'edit' | 'add') => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const base64List: string[] = [];
-    let processed = 0;
+    showToast(`Uploading ${files.length} photo(s)...`, 'info');
+    const uploadedUrls: string[] = [];
 
     for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        base64List.push(reader.result as string);
-        processed++;
-        if (processed === files.length) {
-          if (target === 'edit' && editingProduct) {
-            setEditingProduct({
-              ...editingProduct,
-              images: [...editingProduct.images, ...base64List]
-            });
-            showToast(`${files.length} photos loaded to queue.`, 'info');
-          } else if (target === 'add') {
-            setNewProductForm({
-              ...newProductForm,
-              images: [...(newProductForm.images || []), ...base64List]
-            });
-            showToast(`${files.length} photos loaded to queue.`, 'info');
-          }
-        }
-      };
-      reader.readAsDataURL(file);
+      try {
+        const url = await uploadMedia(files[i], 'products');
+        uploadedUrls.push(url);
+      } catch (err) {
+        showToast(`Failed to upload ${files[i].name}`, 'error');
+      }
+    }
+
+    if (uploadedUrls.length > 0) {
+      if (target === 'edit' && editingProduct) {
+        setEditingProduct({ ...editingProduct, images: [...editingProduct.images, ...uploadedUrls] });
+      } else if (target === 'add') {
+        setNewProductForm({ ...newProductForm, images: [...(newProductForm.images || []), ...uploadedUrls] });
+      }
+      showToast(`${uploadedUrls.length} photo(s) uploaded successfully.`, 'success');
     }
   };
 
@@ -260,80 +354,94 @@ function AdminCoreWorkspace() {
     }
   };
 
-  // Undo Delete implementation
-  const triggerDeleteWithUndo = (product: Product) => {
+  // Delete with undo support
+  const triggerDeleteWithUndo = async (product: Product) => {
     const confirmDelete = window.confirm(`Are you sure you want to delete "${product.name}"?`);
     if (!confirmDelete) return;
 
-    // Save for undo action
     setLastDeletedProduct(product);
     setShowUndoToast(true);
 
-    const updated = products.filter(p => p.id !== product.id);
-    saveProductsToStorage(updated);
+    try {
+      await deleteProduct(product.id);
+      await logActivity('product_delete', `Deleted product: ${product.name}`);
+      setProducts(prev => prev.filter(p => p.id !== product.id));
+    } catch (e) {
+      showToast('Failed to delete product.', 'error');
+    }
 
-    // Hide toast automatically in 10 seconds
-    setTimeout(() => {
-      setShowUndoToast(false);
-    }, 10000);
+    setTimeout(() => setShowUndoToast(false), 10000);
   };
 
-  const handleUndoDelete = () => {
+  const handleUndoDelete = async () => {
     if (lastDeletedProduct) {
-      const updated = [lastDeletedProduct, ...products];
-      saveProductsToStorage(updated);
-      setLastDeletedProduct(null);
-      setShowUndoToast(false);
-      showToast('Deletion undone successfully.', 'success');
+      // Re-create the product in the DB
+      try {
+        await createProduct(lastDeletedProduct);
+        setProducts(prev => [lastDeletedProduct, ...prev]);
+        setLastDeletedProduct(null);
+        setShowUndoToast(false);
+        showToast('Deletion undone successfully.', 'success');
+      } catch (e) {
+        showToast('Could not undo deletion.', 'error');
+      }
     }
   };
 
   // Bulk Product Actions Handlers
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (selectedProductIds.length === 0) return;
     const confirmDelete = window.confirm(`Are you sure you want to delete the ${selectedProductIds.length} selected products?`);
     if (confirmDelete) {
-      const updated = products.filter(p => !selectedProductIds.includes(p.id));
-      saveProductsToStorage(updated);
-      setSelectedProductIds([]);
-      showToast('Selected products deleted.', 'success');
+      try {
+        await Promise.all(selectedProductIds.map(id => deleteProduct(id)));
+        setProducts(prev => prev.filter(p => !selectedProductIds.includes(p.id)));
+        setSelectedProductIds([]);
+        showToast('Selected products deleted.', 'success');
+      } catch (e) {
+        showToast('Some products could not be deleted.', 'error');
+      }
     }
   };
 
-  const handleBulkChangeDiscount = () => {
+  const handleBulkChangeDiscount = async () => {
     const pct = window.prompt('Enter new Selling Price for all selected products (e.g. 2499) or enter discount percentage (e.g. 20%):');
     if (!pct) return;
 
-    const updated = products.map(p => {
-      if (selectedProductIds.includes(p.id)) {
+    try {
+      await Promise.all(selectedProductIds.map(id => {
+        const p = products.find(x => x.id === id);
+        if (!p) return Promise.resolve();
         if (pct.endsWith('%')) {
           const discountPercent = Number(pct.replace('%', ''));
           const calculatedPrice = Math.round(p.basePrice * (1 - discountPercent / 100));
-          return { ...p, basePrice: calculatedPrice, mrp: p.basePrice };
+          return updateProduct(id, { basePrice: calculatedPrice, mrp: p.basePrice });
         } else {
-          return { ...p, basePrice: Number(pct), mrp: p.basePrice };
+          return updateProduct(id, { basePrice: Number(pct), mrp: p.basePrice });
         }
-      }
-      return p;
-    });
-    saveProductsToStorage(updated);
-    setSelectedProductIds([]);
-    showToast('Applied prices update to selected items.', 'success');
+      }));
+      await refreshProducts();
+      setSelectedProductIds([]);
+      showToast('Applied prices update to selected items.', 'success');
+    } catch (e) {
+      showToast('Price update failed.', 'error');
+    }
   };
 
-  const handleBulkUpdateStock = () => {
+  const handleBulkUpdateStock = async () => {
     const qty = window.prompt('Enter new stock quantity for selected items:');
     if (qty === null || qty === '') return;
     const stock = Number(qty);
-    const updated = products.map(p => {
-      if (selectedProductIds.includes(p.id)) {
-        return { ...p, stockQty: stock, status: (stock === 0 ? 'out-of-stock' : 'published') as any };
-      }
-      return p;
-    });
-    saveProductsToStorage(updated);
-    setSelectedProductIds([]);
-    showToast('Updated stock for selected items.', 'success');
+    try {
+      await Promise.all(selectedProductIds.map(id =>
+        updateProduct(id, { stockQty: stock, status: stock === 0 ? 'out-of-stock' : 'published' })
+      ));
+      await refreshProducts();
+      setSelectedProductIds([]);
+      showToast('Updated stock for selected items.', 'success');
+    } catch (e) {
+      showToast('Stock update failed.', 'error');
+    }
   };
 
   // Mock Invoice Printer Window
@@ -444,10 +552,10 @@ function AdminCoreWorkspace() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { title: 'Total Sales', value: '₹14,84,300', note: 'Last 30 days' },
-          { title: 'Total Orders', value: `${orders.length} Orders`, note: 'Processed successfully' },
-          { title: 'Active Customers', value: `${customers.length} Members`, note: 'Registered contacts' },
-          { title: 'Low Stock Alerts', value: '3 Articles', note: 'Under 5 units threshold' }
+          { title: 'Total Revenue', value: `₹${dashboardStats.totalRevenue.toLocaleString('en-IN')}`, note: 'All time revenue' },
+          { title: 'Total Orders', value: `${dashboardStats.totalOrders} Orders`, note: 'All orders placed' },
+          { title: 'Active Customers', value: `${dashboardStats.totalCustomers} Members`, note: 'Registered accounts' },
+          { title: 'Low Stock Alerts', value: `${dashboardStats.lowStockCount} Articles`, note: 'Under 5 units threshold' }
         ].map((item, idx) => (
           <div key={idx} className="bg-bg-luxury border border-neutral-soft/80 p-6 flex flex-col justify-between min-h-[110px] hover:border-neutral-400 transition-all">
             <span className="text-[9px] uppercase tracking-widest text-text-muted font-semibold">{item.title}</span>
@@ -460,21 +568,43 @@ function AdminCoreWorkspace() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-bg-luxury border border-neutral-soft/80 p-6">
           <div className="flex justify-between items-baseline border-b border-neutral-soft/30 pb-2 mb-4">
-            <span className="text-[10px] uppercase tracking-widest text-fg-luxury font-semibold">Revenue Curve</span>
-            <span className="text-[8px] uppercase tracking-widest text-green-700 font-semibold bg-green-50 px-2 py-0.5">+14% Growth</span>
+            <span className="text-[10px] uppercase tracking-widest text-fg-luxury font-semibold">Order Pipeline</span>
+            <span className="text-[8px] uppercase tracking-widest text-text-muted font-semibold">{dashboardStats.pendingOrders} Pending</span>
           </div>
-          <div className="w-full h-40 bg-neutral-soft/10 relative">
-            <svg className="w-full h-full" viewBox="0 0 500 100" preserveAspectRatio="none">
-              <path d="M0,80 Q100,50 200,65 T400,20 T500,10 L500,100 L0,100 Z" fill="#c5a880" fillOpacity="0.1" />
-              <path d="M0,80 Q100,50 200,65 T400,20 T500,10" fill="none" stroke="#c5a880" strokeWidth="2" />
-            </svg>
+          <div className="flex flex-col gap-3">
+            {orders.slice(0, 4).map(o => (
+              <div key={o.id} className="flex justify-between items-center text-[10px] border-b border-neutral-soft/10 pb-2">
+                <span className="text-fg-luxury font-medium">{o.id}</span>
+                <span className="text-text-muted">{o.customer}</span>
+                <span className={`uppercase font-semibold px-2 py-0.5 text-[8px] ${
+                  o.status === 'delivered' ? 'bg-green-50 text-green-800' :
+                  o.status === 'cancelled' ? 'bg-red-50 text-red-800' : 'bg-amber-50 text-amber-800'
+                }`}>{o.status}</span>
+                <span className="font-medium">₹{Number(o.amount).toLocaleString('en-IN')}</span>
+              </div>
+            ))}
+            {orders.length === 0 && <p className="text-[10px] text-text-muted font-light">No orders yet.</p>}
           </div>
         </div>
         <div className="bg-bg-luxury border border-neutral-soft/80 p-6 flex flex-col gap-3">
-          <span className="text-[10px] uppercase tracking-widest text-fg-luxury font-semibold border-b border-neutral-soft/30 pb-2 block">Live Sessions</span>
+          <span className="text-[10px] uppercase tracking-widest text-fg-luxury font-semibold border-b border-neutral-soft/30 pb-2 block">Store Snapshot</span>
           <div className="flex flex-col gap-2">
-            <span className="text-3xl font-light text-fg-luxury">4 Visitors</span>
-            <span className="text-[8px] uppercase tracking-widest text-green-700 font-semibold bg-green-50 px-2 py-0.5 w-fit">Active Sessions</span>
+            <div className="flex justify-between text-[10px]">
+              <span className="text-text-muted">Total Products</span>
+              <span className="font-medium text-fg-luxury">{dashboardStats.totalProducts}</span>
+            </div>
+            <div className="flex justify-between text-[10px]">
+              <span className="text-text-muted">Pending Orders</span>
+              <span className="font-medium text-fg-luxury">{dashboardStats.pendingOrders}</span>
+            </div>
+            <div className="flex justify-between text-[10px]">
+              <span className="text-text-muted">Low Stock Items</span>
+              <span className="font-medium text-red-700">{dashboardStats.lowStockCount}</span>
+            </div>
+            <div className="flex justify-between text-[10px]">
+              <span className="text-text-muted">Total Customers</span>
+              <span className="font-medium text-fg-luxury">{dashboardStats.totalCustomers}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -486,65 +616,54 @@ function AdminCoreWorkspace() {
     const handleSaveProductEdit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!editingProduct) return;
-
       setIsSaving(true);
-      // Mock save delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      const totalStock = editingProduct.stockQty ?? 10;
-      const finalStatus = (totalStock === 0 ? 'out-of-stock' : 'published') as any;
-
-      const updated = products.map(p => 
-        p.id === editingProduct.id ? { ...editingProduct, status: finalStatus } : p
-      );
-      saveProductsToStorage(updated);
-      setEditingProduct(null);
-      setIsSaving(false);
-      showToast('Changes saved instantly.', 'success');
+      try {
+        const totalStock = editingProduct.stockQty ?? 10;
+        const finalStatus = (totalStock === 0 ? 'out-of-stock' : 'published') as any;
+        await updateProduct(editingProduct.id, { ...editingProduct, status: finalStatus });
+        await logActivity('product_update', `Updated product: ${editingProduct.name}`);
+        await refreshProducts();
+        setEditingProduct(null);
+        showToast('Changes saved instantly.', 'success');
+      } catch (e) {
+        showToast('Failed to save product changes.', 'error');
+      } finally {
+        setIsSaving(false);
+      }
     };
 
     const handleAddProductSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!newProductForm.name || !newProductForm.basePrice) return;
-
       setIsSaving(true);
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      const finalProduct: Product = {
-        id: `prod-${Date.now()}`,
-        name: newProductForm.name,
-        slug: newProductForm.name.toLowerCase().replace(/ /g, '-'),
-        description: newProductForm.description || '',
-        basePrice: Number(newProductForm.basePrice),
-        mrp: Number(newProductForm.mrp || newProductForm.basePrice),
-        stockQty: Number(newProductForm.stockQty || 10),
-        status: (Number(newProductForm.stockQty) === 0 ? 'out-of-stock' : 'published') as any,
-        images: newProductForm.images || ['/assets/trench_coat.jpg'],
-        parentCategory: newProductForm.parentCategory || 'men',
-        subCategory: newProductForm.subCategory || 'hoodies',
-        brand: newProductForm.brand || 'Made in India',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        isPublished: true,
-        rating: 4.8,
-        reviewsCount: 0
-      };
-
-      saveProductsToStorage([finalProduct, ...products]);
-      setIsAddingProduct(false);
-      setIsSaving(false);
-      setNewProductForm({
-        name: '',
-        description: '',
-        basePrice: 0,
-        mrp: 0,
-        stockQty: 10,
-        images: ['/assets/trench_coat.jpg'],
-        parentCategory: 'men',
-        subCategory: 'hoodies',
-        brand: 'Made in India'
-      });
-      showToast('Product added successfully.', 'success');
+      try {
+        const stockQty = Number(newProductForm.stockQty || 10);
+        const created = await createProduct({
+          name: newProductForm.name!,
+          slug: (newProductForm.name || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+          description: newProductForm.description || '',
+          basePrice: Number(newProductForm.basePrice),
+          mrp: Number(newProductForm.mrp || newProductForm.basePrice),
+          stockQty,
+          status: (stockQty === 0 ? 'out-of-stock' : 'published') as any,
+          images: newProductForm.images || ['/assets/trench_coat.jpg'],
+          parentCategory: newProductForm.parentCategory || 'men',
+          subCategory: newProductForm.subCategory || 'hoodies',
+          brand: newProductForm.brand || 'Made in India',
+          isPublished: true,
+          rating: 4.8,
+          reviewsCount: 0,
+        });
+        await logActivity('product_create', `Added product: ${created.name}`);
+        await refreshProducts();
+        setIsAddingProduct(false);
+        setNewProductForm({ name: '', description: '', basePrice: 0, mrp: 0, stockQty: 10, images: ['/assets/trench_coat.jpg'], parentCategory: 'men', subCategory: 'hoodies', brand: 'Made in India' });
+        showToast('Product added successfully.', 'success');
+      } catch (e) {
+        showToast('Failed to add product.', 'error');
+      } finally {
+        setIsSaving(false);
+      }
     };
 
     const toggleSelectProduct = (id: string) => {
@@ -1111,31 +1230,51 @@ function AdminCoreWorkspace() {
 
   // 3. Category Management View
   const renderCategories = () => {
-    const handleAddCat = (e: React.FormEvent) => {
+    const handleAddCat = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!newCategoryName) return;
-      
-      const newCategory: Category = {
-        id: newCategoryName.toLowerCase().replace(/ /g, '-'),
-        name: newCategoryName,
-        slug: newCategoryName.toLowerCase().replace(/ /g, '-'),
-        imageUrl: newCategoryBanner,
-        createdAt: new Date().toISOString()
-      };
-      setCategories([...categories, newCategory]);
-      setNewCategoryName('');
-      showToast('Category created successfully.', 'success');
+      try {
+        const slug = newCategoryName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        let bannerUrl = newCategoryBanner;
+        // Upload banner to storage if it's a blob URL
+        if (newCategoryBanner.startsWith('blob:')) {
+          const res = await fetch(newCategoryBanner);
+          const blob = await res.blob();
+          const file = new File([blob], `${slug}-banner.jpg`, { type: blob.type });
+          bannerUrl = await uploadMedia(file, 'categories');
+        }
+        const created = await createCategory({ name: newCategoryName, slug, imageUrl: bannerUrl });
+        setCategories(prev => [...prev, created]);
+        setNewCategoryName('');
+        setNewCategoryBanner('/assets/trench_coat.jpg');
+        showToast('Category created successfully.', 'success');
+      } catch (err) {
+        showToast('Failed to create category.', 'error');
+      }
     };
 
-    const handleBannerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleDeleteCat = async (id: string) => {
+      try {
+        await deleteCategory(id);
+        setCategories(prev => prev.filter(c => c.id !== id));
+        showToast('Category removed.', 'info');
+      } catch (err) {
+        showToast('Failed to delete category.', 'error');
+      }
+    };
+
+    const handleBannerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewCategoryBanner(reader.result as string);
-        showToast('Banner loaded.', 'info');
-      };
-      reader.readAsDataURL(file);
+      try {
+        const url = await uploadMedia(file, 'categories');
+        setNewCategoryBanner(url);
+        showToast('Banner uploaded.', 'success');
+      } catch {
+        // Fallback: use blob URL for preview
+        setNewCategoryBanner(URL.createObjectURL(file));
+        showToast('Banner queued for upload.', 'info');
+      }
     };
 
     return (
@@ -1153,7 +1292,7 @@ function AdminCoreWorkspace() {
                   </div>
                   <span className="uppercase font-medium text-fg-luxury">{cat.name}</span>
                 </div>
-                <button onClick={() => setCategories(categories.filter(c => c.id !== cat.id))} className="text-red-700 hover:text-red-800"><Trash2 size={13} /></button>
+                <button onClick={() => handleDeleteCat(cat.id)} className="text-red-700 hover:text-red-800"><Trash2 size={13} /></button>
               </div>
             ))}
           </div>
@@ -1241,25 +1380,28 @@ function AdminCoreWorkspace() {
                 <input 
                   type="file" 
                   accept="image/*" 
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    const r = new FileReader();
-                    r.onloadend = () => {
-                      const updated = homeSections.map(s => s.id === sec.id ? { ...s, bannerImage: r.result as string } : s);
+                    try {
+                      const url = await uploadMedia(file, 'homepage');
+                      const updated = homeSections.map(s => s.id === sec.id ? { ...s, bannerImage: url } : s);
                       setHomeSections(updated);
-                      showToast(`Section banner loaded successfully.`, 'success');
-                    };
-                    r.readAsDataURL(file);
+                      await saveHomepageSections(updated);
+                      showToast('Section banner updated.', 'success');
+                    } catch {
+                      showToast('Upload failed.', 'error');
+                    }
                   }}
                   className="hidden" 
                 />
               </label>
 
               <button 
-                onClick={() => {
+                onClick={async () => {
                   const updated = homeSections.map(s => s.id === sec.id ? { ...s, visible: !s.visible } : s);
                   setHomeSections(updated);
+                  try { await saveHomepageSections(updated); } catch {}
                   showToast(sec.visible ? 'Section hidden.' : 'Section published.', 'info');
                 }}
                 className={`py-1.5 px-3 text-[9px] uppercase font-semibold border ${sec.visible ? 'border-neutral-soft text-fg-luxury' : 'border-red-200 text-red-800 bg-red-50'}`}
@@ -1304,24 +1446,28 @@ function AdminCoreWorkspace() {
 
             {/* Workflow buttons */}
             <div className="flex flex-wrap gap-2 pt-3 border-t border-neutral-soft/20">
-              {o.status === 'ordered' && (
+              {o.status === 'pending' && (
                 <button 
-                  onClick={() => {
-                    const updated = orders.map(item => item.id === o.id ? { ...item, status: 'packed' as any } : item);
-                    setOrders(updated);
-                    showToast('Order Accepted.', 'success');
+                  onClick={async () => {
+                    try {
+                      await updateOrderStatus(o.id, 'processing');
+                      setOrders(prev => prev.map(item => item.id === o.id ? { ...item, status: 'processing' as any } : item));
+                      showToast('Order accepted.', 'success');
+                    } catch { showToast('Update failed.', 'error'); }
                   }} 
                   className="btn-editorial-solid py-1.5 px-3 text-[9px]"
                 >
                   Accept
                 </button>
               )}
-              {o.status === 'packed' && (
+              {o.status === 'processing' && (
                 <button 
-                  onClick={() => {
-                    const updated = orders.map(item => item.id === o.id ? { ...item, status: 'shipped' as any } : item);
-                    setOrders(updated);
-                    showToast('Order Packed and Ready.', 'success');
+                  onClick={async () => {
+                    try {
+                      await updateOrderStatus(o.id, 'shipped');
+                      setOrders(prev => prev.map(item => item.id === o.id ? { ...item, status: 'shipped' as any } : item));
+                      showToast('Order marked as shipped.', 'success');
+                    } catch { showToast('Update failed.', 'error'); }
                   }} 
                   className="btn-editorial-solid py-1.5 px-3 text-[9px]"
                 >
@@ -1330,10 +1476,12 @@ function AdminCoreWorkspace() {
               )}
               {o.status === 'shipped' && (
                 <button 
-                  onClick={() => {
-                    const updated = orders.map(item => item.id === o.id ? { ...item, status: 'delivered' as any } : item);
-                    setOrders(updated);
-                    showToast('Order Marked as Delivered.', 'success');
+                  onClick={async () => {
+                    try {
+                      await updateOrderStatus(o.id, 'delivered');
+                      setOrders(prev => prev.map(item => item.id === o.id ? { ...item, status: 'delivered' as any } : item));
+                      showToast('Order marked as delivered.', 'success');
+                    } catch { showToast('Update failed.', 'error'); }
                   }} 
                   className="btn-editorial-solid py-1.5 px-3 text-[9px]"
                 >
@@ -1342,12 +1490,14 @@ function AdminCoreWorkspace() {
               )}
               {o.status !== 'cancelled' && o.status !== 'delivered' && (
                 <button 
-                  onClick={() => {
+                  onClick={async () => {
                     const confirmCancel = window.confirm(`Cancel order ${o.id}?`);
                     if (confirmCancel) {
-                      const updated = orders.map(item => item.id === o.id ? { ...item, status: 'cancelled' as any } : item);
-                      setOrders(updated);
-                      showToast('Order cancelled.', 'info');
+                      try {
+                        await updateOrderStatus(o.id, 'cancelled');
+                        setOrders(prev => prev.map(item => item.id === o.id ? { ...item, status: 'cancelled' as any } : item));
+                        showToast('Order cancelled.', 'info');
+                      } catch { showToast('Update failed.', 'error'); }
                     }
                   }} 
                   className="text-red-700 hover:text-red-800 text-[9px] uppercase font-semibold py-1 px-2 border border-red-100 hover:bg-red-50 ml-auto"
@@ -1398,15 +1548,38 @@ function AdminCoreWorkspace() {
 
   // 7. Coupons Render
   const renderCoupons = () => {
-    const handleAddCoupon = (e: React.FormEvent) => {
+    const handleAddCoupon = async (e: React.FormEvent) => {
       e.preventDefault();
-      const code = (e.target as any).elements.code.value.trim().toUpperCase();
-      const value = Number((e.target as any).elements.value.value);
+      const code = (e.target as any).elements.couponCode.value.trim().toUpperCase();
+      const value = Number((e.target as any).elements.couponValue.value);
       if (!code) return;
-      
-      setCoupons([...coupons, { id: `c-${Date.now()}`, code, value, enabled: true }]);
-      (e.target as any).reset();
-      showToast('Coupon discount created.', 'success');
+      try {
+        const now = new Date();
+        const oneYear = new Date(now);
+        oneYear.setFullYear(oneYear.getFullYear() + 1);
+        const created = await createCoupon({
+          code,
+          discountPercentage: value,
+          maxUses: 1000,
+          activeFrom: now.toISOString(),
+          activeTo: oneYear.toISOString(),
+        });
+        setCoupons(prev => [...prev, { id: created.id, code: created.code, value: created.discountPercentage, enabled: true }]);
+        (e.target as any).reset();
+        showToast('Coupon created successfully.', 'success');
+      } catch (err) {
+        showToast('Failed to create coupon.', 'error');
+      }
+    };
+
+    const handleDeleteCoupon = async (id: string) => {
+      try {
+        await deleteCoupon(id);
+        setCoupons(prev => prev.filter(c => c.id !== id));
+        showToast('Coupon removed.', 'info');
+      } catch (err) {
+        showToast('Failed to delete coupon.', 'error');
+      }
     };
 
     return (
@@ -1422,7 +1595,7 @@ function AdminCoreWorkspace() {
                   <span className="font-semibold text-fg-luxury uppercase tracking-wider">{c.code}</span>
                   <span className="text-[9px] text-text-muted ml-3">{c.value}% OFF</span>
                 </div>
-                <button onClick={() => setCoupons(coupons.filter((_, i) => i !== idx))} className="text-red-700 hover:text-red-800"><Trash2 size={13} /></button>
+                <button onClick={() => handleDeleteCoupon(c.id)} className="text-red-700 hover:text-red-800"><Trash2 size={13} /></button>
               </div>
             ))}
           </div>
@@ -1436,7 +1609,7 @@ function AdminCoreWorkspace() {
             <div>
               <label className="text-[9px] uppercase mb-1 block">Coupon Code</label>
               <input 
-                name="code"
+                name="couponCode"
                 type="text" 
                 className="input-editorial text-xs" 
                 placeholder="e.g. SPRING30" 
@@ -1446,7 +1619,7 @@ function AdminCoreWorkspace() {
             <div>
               <label className="text-[9px] uppercase mb-1 block">Discount percentage (%)</label>
               <input 
-                name="value"
+                name="couponValue"
                 type="number" 
                 className="input-editorial text-xs" 
                 min="5" 
@@ -1481,7 +1654,13 @@ function AdminCoreWorkspace() {
             </div>
             <p className="font-light italic mt-1">&ldquo;{rev.comment}&rdquo;</p>
             <button 
-              onClick={() => { setReviews(reviews.filter(r => r.id !== rev.id)); showToast('Review deleted.', 'info'); }}
+              onClick={async () => { 
+                try {
+                  await deleteReview(rev.id);
+                  setReviews(reviews.filter(r => r.id !== rev.id)); 
+                  showToast('Review deleted.', 'info'); 
+                } catch { showToast('Failed to delete review.', 'error'); }
+              }}
               className="text-red-700 self-end font-semibold text-[9px] uppercase tracking-wider"
             >
               Delete Review
@@ -1494,11 +1673,18 @@ function AdminCoreWorkspace() {
 
   // 9. Settings Render
   const renderSettings = () => {
-    const handleSaveSettings = (e: React.FormEvent) => {
+    const handleSaveSettings = async (e: React.FormEvent) => {
       e.preventDefault();
-      localStorage.setItem('freert_express_delivery_enabled', String(expressDeliveryEnabled));
-      localStorage.setItem('freert_online_payment_enabled', String(onlinePaymentEnabled));
-      showToast('Store settings saved successfully.', 'success');
+      try {
+        await Promise.all([
+          saveSiteSetting('express_delivery_enabled', String(expressDeliveryEnabled)),
+          saveSiteSetting('online_payment_enabled', String(onlinePaymentEnabled)),
+        ]);
+        await logActivity('settings_update', 'Store settings updated');
+        showToast('Store settings saved successfully.', 'success');
+      } catch (err) {
+        showToast('Failed to save settings.', 'error');
+      }
     };
 
     return (
