@@ -19,21 +19,17 @@ const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
 async function run() {
-  console.log('Querying columns of public.products table...');
-  const { data, error } = await supabaseAdmin.rpc('get_products_columns_info');
-  
-  // If RPC doesn't exist (likely), let's just select a single product and dump keys,
-  // or query pg_attribute / information_schema via RPC if possible.
-  // Since we cannot run raw SQL directly, let's select all fields of one row
-  const { data: products, error: selectError } = await supabaseAdmin.from('products').select('*').limit(1);
-  if (selectError) {
-    console.error('Select failed:', selectError);
-  } else {
-    console.log('Product columns found:', products.length > 0 ? Object.keys(products[0]) : 'No products exist yet');
-    if (products.length > 0) {
-      console.log('Full product object keys:', Object.keys(products[0]));
-    }
-  }
+  const { data: products, error: pError } = await supabaseAdmin.from('products').select('id, name');
+  if (pError) console.error('Products fetch error:', pError);
+  else console.log(`Total products count: ${products.length}`);
+
+  const { data: variants, error: vError } = await supabaseAdmin.from('product_variants').select('id, product_id, size, color');
+  if (vError) console.error('Variants fetch error:', vError);
+  else console.log(`Total variants count: ${variants.length}`);
+
+  const { data: wishlist, error: wError } = await supabaseAdmin.from('wishlist').select('id');
+  if (wError) console.error('Wishlist fetch error:', wError);
+  else console.log(`Total wishlist count: ${wishlist.length}`);
 }
 
 run();

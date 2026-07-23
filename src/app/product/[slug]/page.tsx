@@ -74,6 +74,13 @@ export default function ProductDetailPage() {
         const item = await getProductBySlug(slug as string);
         setProduct(item);
         if (item) {
+          const itemColors = item.variants ? Array.from(new Set(item.variants.map(v => v.color))) : [];
+          const itemSizes = item.variants ? Array.from(new Set(item.variants.map(v => v.size))) : [];
+          if (itemColors.length > 0) setSelectedColor(itemColors[0]);
+          else setSelectedColor('Default');
+          if (itemSizes.length > 0) setSelectedSize(itemSizes[0]);
+          else setSelectedSize('One Size');
+
           const list = await getProducts();
           const itemTags = item.tags || [];
           const scored = list
@@ -235,12 +242,6 @@ export default function ProductDetailPage() {
   ];
   const activeAccordionSections = infoSections.length > 0 ? infoSections : defaultAccordionSections;
 
-  if (!selectedColor && colors.length > 0) {
-    setSelectedColor(colors[0]);
-  }
-  if (!selectedSize && sizes.length > 0) {
-    setSelectedSize(sizes[0]);
-  }
 
   const handleAddToBag = async () => {
     const variant = product.variants?.find(v => v.size === selectedSize && v.color === selectedColor);
@@ -443,7 +444,7 @@ export default function ProductDetailPage() {
             {/* Selection Options */}
             <div className="flex flex-col gap-6">
               {/* Colorways */}
-              {colors.length > 0 && colors[0] !== product.name && (
+              {colors.length > 0 && colors[0] !== product.name && colors[0] !== 'Default' && (
                 <div>
                   <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-3">Colorway</h4>
                   <div className="flex gap-3">
