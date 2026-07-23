@@ -110,8 +110,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return;
     const { error } = await supabase
       .from('users')
-      .update({ full_name: fullName, phone })
-      .eq('id', user.id);
+      .upsert({ 
+        id: user.id, 
+        email: user.email, 
+        full_name: fullName, 
+        phone,
+        role: user.role
+      }, { onConflict: 'id' });
     if (error) throw error;
     setUser(prev => prev ? { ...prev, fullName, phone } : null);
   };

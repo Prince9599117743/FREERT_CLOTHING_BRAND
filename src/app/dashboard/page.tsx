@@ -153,9 +153,20 @@ export default function DashboardPage() {
             <div className="border-t border-neutral-soft/30 pt-6 flex flex-col gap-4">
               <div>
                 <p className="text-[9px] uppercase tracking-widest text-text-muted mb-1 font-medium">Account Details</p>
-                <p className="text-xs uppercase tracking-widest text-fg-luxury font-medium mt-1">
-                  Registered Customer Profile
-                </p>
+                <div className="flex flex-col gap-3 mt-3 text-xs uppercase tracking-wider text-fg-luxury font-light">
+                  <p className="border-b border-neutral-soft/10 pb-2">
+                    <span className="text-[9px] text-text-muted font-normal block normal-case tracking-wider mb-0.5">Full Name</span> 
+                    {user?.fullName || 'N/A'}
+                  </p>
+                  <p className="border-b border-neutral-soft/10 pb-2">
+                    <span className="text-[9px] text-text-muted font-normal block normal-case tracking-wider mb-0.5">Email Address</span> 
+                    <span className="lowercase tracking-normal font-light">{user?.email || 'N/A'}</span>
+                  </p>
+                  <p className="pb-1">
+                    <span className="text-[9px] text-text-muted font-normal block normal-case tracking-wider mb-0.5">Phone Number</span> 
+                    {user?.phone || 'N/A'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>

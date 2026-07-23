@@ -372,6 +372,7 @@ ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 -- Users
 CREATE POLICY "Allow public read users profiles" ON users FOR SELECT USING (true);
 CREATE POLICY "Allow users update own profiles" ON users FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Allow users insert own profiles" ON users FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- Addresses
 CREATE POLICY "Allow users access own addresses" ON addresses FOR ALL USING (auth.uid() = user_id);
