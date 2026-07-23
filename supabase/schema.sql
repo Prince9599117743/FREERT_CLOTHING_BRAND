@@ -58,8 +58,13 @@ BEGIN
     new.email,
     COALESCE(new.raw_user_meta_data->>'full_name', ''),
     COALESCE((new.raw_app_meta_data->>'role')::user_role, 'customer'::user_role)
-  );
+  )
+  ON CONFLICT (id) DO UPDATE
+  SET email = EXCLUDED.email,
+      full_name = EXCLUDED.full_name;
   RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RETURN NEW; -- Safeguard to prevent Auth signup/OAuth login failures
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -242,6 +247,7 @@ CREATE TABLE IF NOT EXISTS reviews (
     product_id UUID REFERENCES products(id) ON DELETE CASCADE,
     rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
     comment TEXT,
+    status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, product_id)
 );
@@ -273,6 +279,7 @@ CREATE TABLE IF NOT EXISTS homepage_sections (
     id VARCHAR(100) PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     subtitle VARCHAR(255),
+    banner_image TEXT, -- added for dynamic banners
     cta_text VARCHAR(100),
     cta_link VARCHAR(255),
     visible BOOLEAN DEFAULT TRUE,
@@ -299,8 +306,10 @@ CREATE TABLE IF NOT EXISTS support_tickets (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
+    phone VARCHAR(50),
+    subject VARCHAR(255),
     message TEXT NOT NULL,
-    status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'resolved', 'closed'
+    status VARCHAR(50) DEFAULT 'New', -- 'New', 'Read', 'Resolved'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -469,3 +478,53 @@ CREATE POLICY "Allow admins full access on freert_media bucket" ON storage.objec
     )
   );
 
+-- 24. EDITORIAL JOURNAL TABLE (New)
+CREATE TABLE IF NOT EXISTS public.editorial_journal (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    image_url TEXT NOT NULL,
+    link_url VARCHAR(255) DEFAULT '/shop',
+    "order" INT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE public.editorial_journal ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read editorial_journal" ON public.editorial_journal FOR SELECT USING (true);
+CREATE POLICY "Allow admin manage editorial_journal" ON public.editorial_journal FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role IN ('admin', 'superadmin'))
+);
+
+-- 25. RESTOCK ALERTS TABLE (New)
+CREATE TABLE IF NOT EXISTS public.restock_alerts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    product_id UUID REFERENCES public.products(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    email VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE public.restock_alerts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public insert restock_alerts" ON public.restock_alerts FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow admin manage restock_alerts" ON public.restock_alerts FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role IN ('admin', 'superadmin'))
+);
+
+-- 26. PRODUCT DETAILS SECTIONS (New)
+CREATE TABLE IF NOT EXISTS public.product_details_sections (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    product_id UUID REFERENCES public.products(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    display_order INT DEFAULT 0,
+    enabled BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE public.product_details_sections ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read product_details_sections" ON public.product_details_sections FOR SELECT USING (true);
+CREATE POLICY "Allow admin manage product_details_sections" ON public.product_details_sections FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role IN ('admin', 'superadmin'))
+);

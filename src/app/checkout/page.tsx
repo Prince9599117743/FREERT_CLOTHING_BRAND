@@ -181,7 +181,7 @@ export default function CheckoutPage() {
     return (
       <div style={{ background: '#0a0a0a', color: '#f5f5f5', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', margin: 0, padding: 20, textAlign: 'center' }}>
         <h2 style={{ fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10, fontSize: 16 }}>System Maintenance</h2>
-        <p style={{ color: '#888', fontSize: 12, maxWidth: 320, fontWeight: 300, lineHeight: 1.6, marginBottom: 20 }}>We are currently updating our database clusters. Secure connections will resume shortly.</p>
+        <p style={{ color: '#888', fontSize: 12, maxWidth: 320, fontWeight: 300, lineHeight: 1.6, marginBottom: 20 }}>We are currently carrying out system updates. Services will resume shortly.</p>
         <div style={{ width: 20, height: 20, border: '1px solid #333', borderTop: '1px solid #fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
         <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
       </div>
@@ -215,12 +215,12 @@ export default function CheckoutPage() {
         </div>
 
         {databaseOfflineError && (
-          <div className="mb-10 p-6 border border-red-700 bg-red-50 text-left flex items-start gap-4 max-w-2xl mx-auto">
-            <AlertTriangle size={20} className="text-red-700 mt-0.5 flex-shrink-0" />
+          <div className="mb-10 p-6 border border-amber-700 bg-amber-50/20 text-left flex items-start gap-4 max-w-2xl mx-auto">
+            <AlertTriangle size={20} className="text-amber-700 mt-0.5 flex-shrink-0" />
             <div>
-              <h4 className="text-xs uppercase tracking-wider font-semibold text-red-700 mb-1">System Offline</h4>
-              <p className="text-xs font-light text-red-700/80 leading-relaxed">
-                The database credentials are unconfigured. The transaction is registered in local fallback storage.
+              <h4 className="text-xs uppercase tracking-wider font-semibold text-amber-700 mb-1">Temporary Offline Checkout</h4>
+              <p className="text-xs font-light text-amber-700/80 leading-relaxed">
+                Our checkout database is temporarily undergoing maintenance. Your order is registered in local fallback storage.
               </p>
             </div>
           </div>
@@ -564,7 +564,7 @@ export default function CheckoutPage() {
                   </div>
                 )}
                 <div className="flex justify-between text-text-muted uppercase tracking-wider text-[10px]">
-                  <span>Drone Delivery</span>
+                  <span>Express Delivery</span>
                   <span>{shippingCost === 0 ? 'FREE' : `₹${shippingCost.toLocaleString('en-IN')}`}</span>
                 </div>
                 <div className="flex justify-between text-fg-luxury font-semibold uppercase tracking-[0.1em] text-sm pt-4 border-t border-neutral-soft/20">
@@ -575,7 +575,7 @@ export default function CheckoutPage() {
 
               <div className="flex justify-center items-center gap-2 text-[9px] uppercase tracking-widest text-text-muted font-light mt-2">
                 <Shield size={12} className="text-accent-gold" />
-                <span>SSL Encrypted Handshake Secured</span>
+                <span>Secure SSL Checkout Secured</span>
               </div>
             </div>
 

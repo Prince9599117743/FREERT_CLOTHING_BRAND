@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getProducts, getProductBySlug, getProductReviews, createProductReview, subscribeNewsletter } from '@/services/database';
+import { getProducts, getProductBySlug, getProductReviews, createProductReview, subscribeNewsletter, createRestockAlert, getProductDetailsSections } from '@/services/database';
 import type { Product } from '@/types';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -23,6 +23,30 @@ interface UserReview {
   date: string;
 }
 
+const AccordionSection: React.FC<{ title: string; content: string }> = ({ title, content }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="border-b border-neutral-soft/40 py-4 transition-all duration-300">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex justify-between items-center text-[10px] uppercase tracking-widest text-fg-luxury font-medium focus:outline-none cursor-pointer"
+      >
+        <span>{title}</span>
+        <span className="text-xs transition-transform duration-300 font-light text-text-muted">
+          {isOpen ? '—' : '+'}
+        </span>
+      </button>
+      <div 
+        className={`overflow-hidden transition-all duration-500 ease-in-out ${isOpen ? 'max-h-96 mt-3 opacity-100' : 'max-h-0 opacity-0'}`}
+      >
+        <p className="text-[11px] font-light text-text-muted leading-relaxed whitespace-pre-line text-left">
+          {content}
+        </p>
+      </div>
+    </div>
+  );
+};
+
 export default function ProductDetailPage() {
   const router = useRouter();
   const { slug } = useParams();
@@ -42,6 +66,7 @@ export default function ProductDetailPage() {
   const [zoomStyle, setZoomStyle] = useState<React.CSSProperties>({});
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [dbError, setDbError] = useState(false);
+  const [infoSections, setInfoSections] = useState<any[]>([]);
 
   useEffect(() => {
     const loadItem = async () => {
@@ -50,7 +75,33 @@ export default function ProductDetailPage() {
         setProduct(item);
         if (item) {
           const list = await getProducts();
-          setRelatedProducts(list.filter(p => p.parentCategory === item.parentCategory && p.id !== item.id).slice(0, 4));
+          const itemTags = item.tags || [];
+          const scored = list
+            .filter(p => p.id !== item.id)
+            .map(p => {
+              let score = 0;
+              if (p.categoryId && p.categoryId === item.categoryId) score += 10;
+              if (p.subCategory && p.subCategory === item.subCategory) score += 5;
+              if (p.parentCategory && p.parentCategory === item.parentCategory) score += 4;
+              if (p.collectionId && p.collectionId === item.collectionId) score += 3;
+              if (p.tags && itemTags.length > 0) {
+                const commonTags = p.tags.filter(t => itemTags.includes(t));
+                score += commonTags.length * 2;
+              }
+              return { product: p, score };
+            })
+            .sort((a, b) => b.score - a.score)
+            .map(x => x.product)
+            .slice(0, 4);
+
+          setRelatedProducts(scored);
+          
+          try {
+            const sectionsData = await getProductDetailsSections(item.id);
+            setInfoSections(sectionsData);
+          } catch {
+            setInfoSections([]);
+          }
         }
       } catch (e: any) {
         setDbError(true);
@@ -85,13 +136,13 @@ export default function ProductDetailPage() {
 
   const handleRestockAlert = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!restockEmail) return;
+    if (!restockEmail || !product) return;
     try {
-      await subscribeNewsletter(restockEmail);
-      showToast(`We will notify you when ${product?.name || 'this garment'} restocks.`, 'success');
+      await createRestockAlert(product.id, user?.id || null, restockEmail);
+      showToast(`Restock alert set. We will notify you when ${product.name} is available.`, 'success');
       setRestockEmail('');
     } catch (err) {
-      showToast('Subscription registered.', 'success');
+      showToast('Restock alert registered.', 'success');
       setRestockEmail('');
     }
   };
@@ -130,7 +181,7 @@ export default function ProductDetailPage() {
     return (
       <div style={{ background: '#0a0a0a', color: '#f5f5f5', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', margin: 0, padding: 20, textAlign: 'center' }}>
         <h2 style={{ fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10, fontSize: 16 }}>System Maintenance</h2>
-        <p style={{ color: '#888', fontSize: 12, maxWidth: 320, fontWeight: 300, lineHeight: 1.6, marginBottom: 20 }}>We are currently updating our database clusters. Secure connections will resume shortly.</p>
+        <p style={{ color: '#888', fontSize: 12, maxWidth: 320, fontWeight: 300, lineHeight: 1.6, marginBottom: 20 }}>We are currently carrying out system updates. Services will resume shortly.</p>
         <div style={{ width: 20, height: 20, border: '1px solid #333', borderTop: '1px solid #fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
         <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
       </div>
@@ -170,6 +221,20 @@ export default function ProductDetailPage() {
   const colors = product.variants ? Array.from(new Set(product.variants.map(v => v.color))) : [product.name];
   const sizes = product.variants ? Array.from(new Set(product.variants.map(v => v.size))) : ['One Size'];
 
+  const totalStock = product.variants && product.variants.length > 0 ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 0);
+  const isOutOfStock = product.status === 'out-of-stock' || totalStock === 0;
+
+  const selectedVariant = product.variants?.find(v => v.color === selectedColor && v.size === selectedSize);
+  const isSelectedVariantOutOfStock = selectedVariant ? selectedVariant.stockQty === 0 : false;
+  const showNotifyMe = isOutOfStock || isSelectedVariantOutOfStock;
+
+  const defaultAccordionSections = [
+    { title: 'Material & Fabric', content: product.material ? `Composed of 100% premium ${product.material}. Hand-woven in small batches to preserve texture.` : 'Tailored from organic raw fibers. Finished with fine detailing.' },
+    { title: 'Care Guide', content: 'Our garments are made to last. We recommend professional dry clean only or gentle hand wash in cold water. Do not bleach. Air dry in the shade. Iron on low heat if needed.' },
+    { title: 'Shipping & Returns', content: 'We offer complimentary express delivery for all domestic orders above ₹15,000 INR. Below this, a courier return shipping rate of ₹500 INR applies. Returns are accepted within 14 days of receipt.' }
+  ];
+  const activeAccordionSections = infoSections.length > 0 ? infoSections : defaultAccordionSections;
+
   if (!selectedColor && colors.length > 0) {
     setSelectedColor(colors[0]);
   }
@@ -195,31 +260,30 @@ export default function ProductDetailPage() {
 
   const handlePostReview = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      showToast('Please sign in to write a review.', 'error');
+      return;
+    }
     try {
       await createProductReview({
-        userId: user?.id || 'guest',
+        userId: user.id,
         productId: product.id,
         rating: reviewRating,
         comment: reviewComment,
       });
 
-      const newRev: UserReview = {
-        id: Math.random().toString(),
-        name: user?.fullName || reviewName || 'Anonymous',
-        rating: reviewRating,
-        comment: reviewComment,
-        date: new Date().toISOString().split('T')[0]
-      };
-      setReviews(prev => [newRev, ...prev]);
-      showToast('Review submitted successfully.', 'success');
+      showToast('Thank you! Your review is submitted and will appear after approval.', 'success');
       setReviewName('');
       setReviewComment('');
       setReviewRating(5);
     } catch (err: any) {
-      if (err.message === 'DATABASE_OFFLINE') {
-        showToast('Submissions offline (Database unconfigured).', 'error');
+      const msg = err.message || '';
+      if (msg.includes('DATABASE_OFFLINE')) {
+        showToast('Reviews are temporarily offline. Please try again later.', 'error');
+      } else if (msg.includes('unique constraint') || msg.includes('duplicate key')) {
+        showToast('You have already submitted a review for this product.', 'info');
       } else {
-        showToast(err.message || 'Review post failed.', 'error');
+        showToast('An error occurred. Please try again.', 'error');
       }
     }
   };
@@ -260,38 +324,42 @@ export default function ProductDetailPage() {
         {/* Asymmetric Editorial Detail Layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20 items-start">
           
-          {/* Image Display & Thumbnails */}
-          <div className="flex gap-4 items-start col-span-1">
-            {/* Thumbnails */}
-            <div className="flex flex-col gap-3 w-16 flex-shrink-0">
-              {product.images.map((img, idx) => (
-                <button
+          {/* Vertical Gallery Stack (Left Column) */}
+          <div className="col-span-1 flex flex-col gap-6 w-full">
+            {product.images.map((mediaUrl, idx) => {
+              const isVideo = mediaUrl.endsWith('.mp4') || 
+                              mediaUrl.endsWith('.webm') || 
+                              mediaUrl.endsWith('.mov') || 
+                              mediaUrl.includes('/video/') || 
+                              mediaUrl.includes('_video');
+              return (
+                <div 
                   key={idx}
-                  onClick={() => setActiveImageIndex(idx)}
-                  className={`aspect-[3/4] border overflow-hidden transition-all duration-300 ${activeImageIndex === idx ? 'border-fg-luxury' : 'border-neutral-soft/50 hover:border-neutral-400'}`}
+                  className="w-full aspect-[3/4] bg-neutral-soft/30 overflow-hidden border border-neutral-soft/30 relative"
                 >
-                  <img src={img} className="w-full h-full object-cover animate-[fadeIn_0.3s_ease-out]" alt="" />
-                </button>
-              ))}
-            </div>
-
-            {/* Main Image Frame (Zoom on hover) */}
-            <div 
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
-              className="flex-1 aspect-[3/4] bg-neutral-soft/30 overflow-hidden relative cursor-zoom-in border border-neutral-soft/30"
-            >
-              <img 
-                src={product.images[activeImageIndex] || product.images[0]} 
-                alt={product.name} 
-                style={zoomStyle}
-                className="w-full h-full object-cover transition-transform duration-200 ease-out animate-[fadeIn_0.3s_ease-out]"
-              />
-            </div>
+                  {isVideo ? (
+                    <video
+                      src={mediaUrl}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <img 
+                      src={mediaUrl} 
+                      alt={`${product.name} - View ${idx + 1}`} 
+                      className="w-full h-full object-cover hover:scale-[1.02] transition-transform duration-700 ease-out"
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
 
-          {/* Details Content info */}
-          <div className="text-left flex flex-col gap-8 max-w-md">
+          {/* Details Content info (Sticky Right Column) */}
+          <div className="text-left flex flex-col gap-8 max-w-md md:sticky md:top-28">
             {/* Headers */}
             <div className="flex flex-col gap-2">
               <p className="text-[10px] uppercase tracking-[0.25em] text-text-muted font-light">
@@ -300,6 +368,19 @@ export default function ProductDetailPage() {
               <h1 className="text-3xl md:text-4xl font-light uppercase tracking-wide text-fg-luxury leading-tight">
                 {product.name}
               </h1>
+              {/* Dynamic Rating & Reviews header link */}
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <div className="flex text-accent-gold">
+                  <Star size={10} className="fill-current" />
+                </div>
+                <span className="text-[9px] text-text-muted font-light uppercase tracking-widest">
+                  {product.reviewsCount && product.reviewsCount > 0 ? (
+                    `${Number(product.rating || 0).toFixed(1)} (${product.reviewsCount} ${product.reviewsCount === 1 ? 'Review' : 'Reviews'})`
+                  ) : (
+                    'No reviews yet'
+                  )}
+                </span>
+              </div>
               {product.mrp && product.mrp > product.basePrice ? (
                 <div className="flex items-baseline gap-3 mt-1">
                   <span className="text-lg font-semibold text-fg-luxury tracking-wider">
@@ -344,13 +425,13 @@ export default function ProductDetailPage() {
                 <span className="font-medium text-fg-luxury">Country of Origin</span>
                 <span>{product.brand || 'Made in India'}</span>
               </div>
-              {(product.status === 'out-of-stock' || (product.variants ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 10)) === 0 || product.stockQty === 0) ? (
+              {isOutOfStock ? (
                 <span className="text-[10px] uppercase tracking-widest text-red-800 font-semibold bg-red-50 py-1 px-3 w-fit">
                   Out Of Stock
                 </span>
-              ) : (product.variants ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 10)) <= 5 ? (
+              ) : totalStock <= 5 ? (
                 <span className="text-[10px] uppercase tracking-widest text-amber-700 font-semibold bg-amber-50 py-1 px-3 w-fit">
-                  Only {(product.variants ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 10))} Units Left
+                  Only {totalStock} Units Left
                 </span>
               ) : (
                 <span className="text-[10px] uppercase tracking-widest text-green-700 font-semibold bg-green-50 py-1 px-3 w-fit">
@@ -418,7 +499,7 @@ export default function ProductDetailPage() {
 
             {/* Add to Bag and Wishlist Layout */}
             <div className="flex gap-4">
-              {(product.status === 'out-of-stock' || (product.variants ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 10)) === 0 || product.stockQty === 0) ? (
+              {showNotifyMe ? (
                 <form onSubmit={handleRestockAlert} className="flex flex-col gap-3 flex-1 text-left">
                   <input 
                     type="email" 
@@ -468,12 +549,19 @@ export default function ProductDetailPage() {
               </div>
               <div className="flex items-center gap-3">
                 <RotateCcw size={14} className="text-accent-gold" />
-                <span>Complimentary 14-day drone return pick-up</span>
+                <span>Complimentary 14-day courier return pick-up</span>
               </div>
               <div className="flex items-center gap-3">
                 <ShieldCheck size={14} className="text-accent-gold" />
                 <span>Genuine production verification guaranteed</span>
               </div>
+            </div>
+
+            {/* Expandable Accordion sections */}
+            <div className="flex flex-col border-t border-neutral-soft/40 pt-8 mt-8">
+              {activeAccordionSections.map((sec, idx) => (
+                <AccordionSection key={idx} title={sec.title} content={sec.content} />
+              ))}
             </div>
           </div>
 
@@ -550,12 +638,12 @@ export default function ProductDetailPage() {
             {/* Reviews List */}
             <div className="md:col-span-7 flex flex-col gap-6">
               {reviewsOffline && (
-                <div className="p-4 border border-red-700 bg-red-50 text-left flex items-start gap-3 mb-4">
-                  <AlertTriangle size={16} className="text-red-700 mt-0.5 flex-shrink-0" />
+                <div className="p-4 border border-amber-700 bg-amber-50/20 text-left flex items-start gap-3 mb-4">
+                  <AlertTriangle size={16} className="text-amber-700 mt-0.5 flex-shrink-0" />
                   <div>
-                    <span className="text-[10px] uppercase tracking-wider font-semibold text-red-700 block">Reviews Host Offline</span>
-                    <span className="text-[10px] font-light text-red-700/80 leading-relaxed block">
-                      Supabase variables are missing. Rendering local lookbook reviews logs as offline fallback.
+                    <span className="text-[10px] uppercase tracking-wider font-semibold text-amber-700 block">Reviews Temporarily Offline</span>
+                    <span className="text-[10px] font-light text-amber-700/80 leading-relaxed block">
+                      We are currently carrying out system updates. Live reviews are temporarily unavailable.
                     </span>
                   </div>
                 </div>

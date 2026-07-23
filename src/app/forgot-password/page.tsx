@@ -28,7 +28,7 @@ export default function ForgotPasswordPage() {
         showToast('Password reset link sent. Check your email.', 'success');
       }
     } catch (err) {
-      showToast('Handshake failed.', 'error');
+      showToast('An error occurred. Please try again.', 'error');
     } finally {
       setLoading(false);
     }

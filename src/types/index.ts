@@ -34,6 +34,7 @@ export interface Category {
   slug: string;
   description?: string;
   imageUrl?: string;
+  parentCategory?: string | null;
   createdAt: string;
 }
 

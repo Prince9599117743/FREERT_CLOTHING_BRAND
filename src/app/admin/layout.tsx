@@ -4,7 +4,7 @@ import React, { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { 
-  Home, LayoutDashboard, Tag, FolderTree, Image, ClipboardList, Users, Percent, Star, Settings, HelpCircle
+  Home, LayoutDashboard, Tag, FolderTree, Image, ClipboardList, Users, Percent, Star, Settings, HelpCircle, Mail, Bell
 } from 'lucide-react';
 
 const links = [
@@ -16,6 +16,9 @@ const links = [
   { name: 'Customers', view: 'customers', icon: <Users size={13} /> },
   { name: 'Coupons', view: 'coupons', icon: <Percent size={13} /> },
   { name: 'Reviews', view: 'reviews', icon: <Star size={13} /> },
+  { name: 'Enquiries', view: 'enquiries', icon: <Mail size={13} /> },
+  { name: 'Subscribers', view: 'subscribers', icon: <Mail size={13} /> },
+  { name: 'Restock Alerts', view: 'restock_alerts', icon: <Bell size={13} /> },
   { name: 'Store Settings', view: 'settings', icon: <Settings size={13} /> },
   { name: 'Help', view: 'help', icon: <HelpCircle size={13} /> }
 ];

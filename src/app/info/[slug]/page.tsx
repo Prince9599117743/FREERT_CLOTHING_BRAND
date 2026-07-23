@@ -29,15 +29,15 @@ const DEFAULT_PAGES: Record<string, InfoPageContent> = {
   },
   'shipping-policy': {
     title: 'Shipping Policy',
-    content: 'All orders are dispatched from our Tokyo or Delhi fulfillment centers. We provide complimentary drone shipping for orders above ₹15,000 INR. Below this threshold, a flat delivery fee of ₹500 INR applies. Packages are typically dispatched within 48 hours and arrive inside 3 to 5 business cycles.'
+    content: 'All orders are dispatched from our Tokyo or Delhi fulfillment centers. We provide complimentary express shipping for orders above ₹15,000 INR. Below this threshold, a flat delivery fee of ₹500 INR applies. Packages are typically dispatched within 48 hours and arrive within 3 to 5 business days.'
   },
   'refund-policy': {
     title: 'Refund Policy',
-    content: 'Refunds are processed back to the original payment source within 7 working cycles of return package validation. For COD orders, refunds are credited directly to your registered bank account parameters. Shipping fees are non-refundable.'
+    content: 'Refunds are processed back to the original payment source within 7 working days of return package validation. For COD orders, refunds are credited directly to your registered bank account. Shipping fees are non-refundable.'
   },
   'return-exchange': {
     title: 'Return & Exchange Policy',
-    content: 'We offer a complimentary 14-day return and exchange window. To submit a return request, navigate to your order history panel in the dashboard. Return packages must be unworn, unwashed, and in their original packaging nodes. Our courier drone will complete package pickups.'
+    content: 'We offer a complimentary 14-day return and exchange window. To submit a return request, navigate to your order history panel in the dashboard. Return packages must be unworn, unwashed, and in their original packaging. Our logistics partner will coordinate a courier collection at your doorstep.'
   },
   'cancellation-policy': {
     title: 'Cancellation Policy',
@@ -78,9 +78,9 @@ export default function InfoPage() {
     if (pages[pageKey]) {
       setPage(pages[pageKey]);
     } else if (pageKey === 'contact') {
-      setPage({ title: 'Contact Us', content: 'Get in touch with our operations node.' });
+      setPage({ title: 'Contact Us', content: 'Get in touch with our concierge team.' });
     } else if (pageKey === 'faq') {
-      setPage({ title: 'Frequently Asked Questions', content: 'Common inquiries regarding batches, drone dispatches, and customization.' });
+      setPage({ title: 'Frequently Asked Questions', content: 'Common inquiries regarding collections, shipping, and customization.' });
     } else if (pageKey === 'size-guide') {
       setPage({ title: 'Size Guide', content: 'Sizing matrix for our structured, relaxed silhouetted garments.' });
     } else {
@@ -90,7 +90,7 @@ export default function InfoPage() {
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    showToast(`Comms payload logged successfully for ${contactName}.`, 'success');
+    showToast(`Thank you. Your message has been sent successfully.`, 'success');
     setContactName('');
     setContactEmail('');
     setContactMsg('');
@@ -160,7 +160,7 @@ export default function InfoPage() {
                     type="submit"
                     className="btn-editorial-solid w-full text-xs tracking-[0.2em] font-medium py-3.5 cursor-pointer"
                   >
-                    Submit Comms payload
+                    Submit Message
                   </button>
                 </form>
               </div>
@@ -170,8 +170,8 @@ export default function InfoPage() {
               <div className="mt-8 flex flex-col gap-6">
                 {[
                   { q: 'How do clothing batches work?', a: 'To prevent excess inventory waste, each garment edit is limited to a batch production run of 50 units. Once a batch sells out, we configure waitlists for the next release.' },
-                  { q: 'What is drone shipping?', a: 'In partner areas, we deploy zero-emission autonomous delivery drones that deliver orders within 24 to 48 hours of dispatch.' },
-                  { q: 'How do returns work?', a: 'Returns are complimentary within 14 days. Simply log a return in the operations dashboard and our logistics system will coordinate a drone collection.' }
+                  { q: 'What are your shipping times?', a: 'Orders are processed and dispatched within 24-48 hours. Standard delivery takes 3-5 business days, while Express shipping delivers in 1-2 business days.' },
+                  { q: 'How do returns work?', a: 'Returns are complimentary within 14 days. Simply log a return in your account dashboard and our logistics partner will arrange a doorstep pick-up.' }
                 ].map((item, idx) => (
                   <div key={idx} className="border-b border-neutral-soft/40 pb-5">
                     <h4 className="text-xs uppercase tracking-wider font-semibold text-fg-luxury mb-2">{item.q}</h4>

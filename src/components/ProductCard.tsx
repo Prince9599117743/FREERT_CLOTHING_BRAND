@@ -26,8 +26,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const sizes = product.variants ? Array.from(new Set(product.variants.map(v => v.size))) : [];
 
   // Stock status logic
-  const totalStock = product.variants ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 10);
-  const isOutOfStock = product.status === 'out-of-stock' || totalStock === 0 || product.stockQty === 0;
+  const totalStock = product.variants && product.variants.length > 0 ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 10);
+  const isOutOfStock = product.status === 'out-of-stock' || totalStock === 0;
   const isLowStock = totalStock > 0 && totalStock <= 5;
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
@@ -226,7 +226,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             <Star size={9} className="fill-current" />
           </div>
           <span className="text-[8px] text-text-muted font-light uppercase tracking-widest">
-            {product.rating || 4.5} ({product.reviewsCount || 10} Reviews)
+            {product.reviewsCount && product.reviewsCount > 0 ? (
+              `${Number(product.rating || 0).toFixed(1)} (${product.reviewsCount} ${product.reviewsCount === 1 ? 'Review' : 'Reviews'})`
+            ) : (
+              'No reviews yet'
+            )}
           </span>
         </div>
 

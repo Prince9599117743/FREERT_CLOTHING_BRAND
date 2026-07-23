@@ -63,7 +63,7 @@ export const CartDrawer: React.FC = () => {
         {/* Shipping Indicator */}
         <div className="bg-neutral-soft/30 px-8 py-3 border-b border-neutral-soft/30 text-[10px] uppercase tracking-widest text-text-muted text-center font-light">
           {cartSubtotal >= shippingThreshold ? (
-            <span className="text-fg-luxury font-medium">Free drone delivery active</span>
+            <span className="text-fg-luxury font-medium">Free shipping active</span>
           ) : (
             <span>Add ₹{(shippingThreshold - cartSubtotal).toLocaleString('en-IN')} more for free delivery</span>
           )}

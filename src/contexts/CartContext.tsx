@@ -38,19 +38,52 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
               variant_id,
               qty,
               created_at,
-              updated_at
+              updated_at,
+              variant:product_variants (
+                id,
+                product_id,
+                size,
+                color,
+                additional_price,
+                stock,
+                product:products (
+                  id,
+                  name,
+                  slug,
+                  base_price,
+                  images
+                )
+              )
             `)
             .eq('user_id', user.id);
 
           if (!error && data) {
             // Map db elements to CartItem interfaces
-            const items: CartItem[] = data.map(item => ({
+            const items: CartItem[] = data.map((item: any) => ({
               id: item.id,
               userId: item.user_id,
               variantId: item.variant_id,
               qty: item.qty,
               createdAt: item.created_at,
-              updatedAt: item.updated_at
+              updatedAt: item.updated_at,
+              variant: item.variant ? {
+                id: item.variant.id,
+                productId: item.variant.product_id,
+                size: item.variant.size,
+                color: item.variant.color,
+                sku: item.variant.sku || '',
+                stockQty: item.variant.stock_qty || item.variant.stock || 0,
+                additionalPrice: item.variant.additional_price || 0,
+                createdAt: item.variant.created_at || '',
+                updatedAt: item.variant.updated_at || '',
+                product: item.variant.product ? {
+                  ...item.variant.product,
+                  basePrice: item.variant.product.base_price,
+                  isPublished: item.variant.product.is_published,
+                  createdAt: item.variant.product.created_at,
+                  updatedAt: item.variant.product.updated_at
+                } : undefined
+              } as any : undefined
             }));
             setCart(items);
           }

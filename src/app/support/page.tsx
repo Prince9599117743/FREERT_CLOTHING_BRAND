@@ -12,6 +12,8 @@ export default function SupportPage() {
   const { showToast } = useToast();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   
   const [databaseOffline, setDatabaseOffline] = useState(false);
@@ -21,17 +23,20 @@ export default function SupportPage() {
     setDatabaseOffline(false);
 
     try {
-      await createSupportTicket({ name, email, message });
+      await createSupportTicket({ name, email, phone, subject, message });
       showToast(`Your message was sent successfully.`, 'success');
       setName('');
       setEmail('');
+      setPhone('');
+      setSubject('');
       setMessage('');
     } catch (err: any) {
-      if (err.message === 'DATABASE_OFFLINE') {
+      const msg = err.message || '';
+      if (msg.includes('DATABASE_OFFLINE') || msg.includes('connection') || msg.includes('fetch')) {
         setDatabaseOffline(true);
-        showToast('Database is currently offline.', 'error');
+        showToast('Messaging system is temporarily offline. Please try again later.', 'error');
       } else {
-        showToast(err.message || 'Support submission failed.', 'error');
+        showToast('Something went wrong. Please check your inputs and try again.', 'error');
       }
     }
   };
@@ -44,12 +49,12 @@ export default function SupportPage() {
         <h1 className="text-3xl font-light uppercase tracking-widest text-left mb-12 text-fg-luxury">Contact Us</h1>
 
         {databaseOffline && (
-          <div className="mb-10 p-6 border border-red-700 bg-red-50 text-left flex items-start gap-4 max-w-2xl">
-            <AlertTriangle size={20} className="text-red-700 mt-0.5 flex-shrink-0" />
+          <div className="mb-10 p-6 border border-amber-700 bg-amber-50/20 text-left flex items-start gap-4 max-w-2xl">
+            <AlertTriangle size={20} className="text-amber-700 mt-0.5 flex-shrink-0" />
             <div>
-              <h4 className="text-xs uppercase tracking-wider font-semibold text-red-700 mb-1">System Offline</h4>
-              <p className="text-xs font-light text-red-700/80 leading-relaxed">
-                The database credentials are unconfigured. To submit support queries, please check your system configuration setup.
+              <h4 className="text-xs uppercase tracking-wider font-semibold text-amber-700 mb-1">Service Under Maintenance</h4>
+              <p className="text-xs font-light text-amber-700/80 leading-relaxed">
+                Our messaging service is temporarily offline. Please contact us directly at concierge@freert.net or try again later.
               </p>
             </div>
           </div>
@@ -75,15 +80,38 @@ export default function SupportPage() {
                   placeholder="Enter your name"
                 />
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="text-[10px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Email Address</label>
+                  <input 
+                    type="email" 
+                    required 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="input-editorial"
+                    placeholder="name@domain.com"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Phone Number</label>
+                  <input 
+                    type="tel" 
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="input-editorial"
+                    placeholder="Enter phone number"
+                  />
+                </div>
+              </div>
               <div>
-                <label className="text-[10px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Email Address</label>
+                <label className="text-[10px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Subject</label>
                 <input 
-                  type="email" 
+                  type="text" 
                   required 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
                   className="input-editorial"
-                  placeholder="name@domain.com"
+                  placeholder="Specify subject of enquiry"
                 />
               </div>
               <div>

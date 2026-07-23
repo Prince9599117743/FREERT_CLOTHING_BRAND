@@ -12,6 +12,15 @@ import { ShieldCheck, ArrowRight } from 'lucide-react';
 export default function SignupPage() {
   const router = useRouter();
   const { showToast } = useToast();
+
+  React.useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        const role = session.user.app_metadata?.role;
+        router.push(role === 'admin' || role === 'superadmin' ? '/admin' : '/');
+      }
+    });
+  }, [router]);
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
@@ -22,6 +31,19 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
+      // Check if user already exists
+      const { data: existingUser, error: checkError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (existingUser) {
+        showToast('User already exists. Please login.', 'error');
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -33,13 +55,17 @@ export default function SignupPage() {
       });
 
       if (error) {
-        showToast(error.message, 'error');
+        if (error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already exists')) {
+          showToast('User already exists. Please login.', 'error');
+        } else {
+          showToast(error.message, 'error');
+        }
       } else if (data.user) {
         showToast('Account created. Please check your email to verify.', 'success');
         router.push('/login');
       }
     } catch (err) {
-      showToast('Handshake failed.', 'error');
+      showToast('An error occurred. Please check your connection and try again.', 'error');
     } finally {
       setLoading(false);
     }

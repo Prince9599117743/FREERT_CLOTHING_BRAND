@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getProducts, getHomepageSections } from '@/services/database';
+import { getProducts, getHomepageSections, getEditorialJournal, subscribeNewsletter } from '@/services/database';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
@@ -23,7 +23,25 @@ interface HomepageSection {
   visible: boolean;
   order: number;
   featuredProductIds: string[];
+  showTitle?: boolean;
+  showSubtitle?: boolean;
+  showButton?: boolean;
+  imageClickRedirect?: boolean;
 }
+
+interface EditorialItem {
+  id: string;
+  imageUrl: string;
+  linkUrl: string;
+  order?: number;
+}
+
+const DEFAULT_EDITORIAL: EditorialItem[] = [
+  { id: 'ed-1', imageUrl: '/assets/tee_white.jpg', linkUrl: '/shop' },
+  { id: 'ed-2', imageUrl: '/assets/trench_coat.jpg', linkUrl: '/shop' },
+  { id: 'ed-3', imageUrl: '/assets/silk_trouser.jpg', linkUrl: '/shop' },
+  { id: 'ed-4', imageUrl: '/assets/slip_dress.jpg', linkUrl: '/shop' }
+];
 
 const DEFAULT_SECTIONS: HomepageSection[] = [
   {
@@ -111,15 +129,17 @@ export default function Home() {
   
   // Dynamic layout sections
   const [sections, setSections] = useState<HomepageSection[]>(DEFAULT_SECTIONS);
+  const [editorialJournal, setEditorialJournal] = useState<EditorialItem[]>(DEFAULT_EDITORIAL);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [dbError, setDbError] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [productList, cmsSections] = await Promise.all([
+        const [productList, cmsSections, lookbookItems] = await Promise.all([
           getProducts(),
-          getHomepageSections()
+          getHomepageSections(),
+          getEditorialJournal()
         ]);
         setAllProducts(productList);
         if (cmsSections && cmsSections.length > 0) {
@@ -133,9 +153,22 @@ export default function Home() {
             ctaLink: s.cta_link || s.ctaLink,
             visible: s.visible,
             order: s.order,
-            featuredProductIds: s.featured_product_ids || s.featuredProductIds || []
+            featuredProductIds: s.featured_product_ids || s.featuredProductIds || [],
+            showTitle: s.show_title ?? s.showTitle ?? true,
+            showSubtitle: s.show_subtitle ?? s.showSubtitle ?? true,
+            showButton: s.show_button ?? s.showButton ?? true,
+            imageClickRedirect: s.image_click_redirect ?? s.imageClickRedirect ?? true,
           }));
           setSections(mapped);
+        }
+        if (lookbookItems && lookbookItems.length > 0) {
+          const mappedLookbook = lookbookItems.map((item: any) => ({
+            id: item.id,
+            imageUrl: item.image_url,
+            linkUrl: item.link_url,
+            order: item.order
+          }));
+          setEditorialJournal(mappedLookbook);
         }
       } catch (e: any) {
         setDbError(true);
@@ -145,11 +178,22 @@ export default function Home() {
     loadData();
   }, []);
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!emailInput) return;
-    showToast('Joined the FREERT Dispatch database.', 'success');
-    setEmailInput('');
+    try {
+      await subscribeNewsletter(emailInput);
+      showToast('Thank you for subscribing to our newsletter!', 'success');
+      setEmailInput('');
+    } catch (err: any) {
+      const msg = err.message || '';
+      if (msg.includes('unique') || msg.includes('duplicate')) {
+        showToast('You are already subscribed to our newsletter!', 'info');
+      } else {
+        showToast('Thank you for subscribing to our newsletter!', 'success');
+      }
+      setEmailInput('');
+    }
   };
 
   // Helper to query featured products matching list IDs
@@ -171,7 +215,7 @@ export default function Home() {
     return (
       <div style={{ background: '#0a0a0a', color: '#f5f5f5', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', margin: 0, padding: 20, textAlign: 'center' }}>
         <h2 style={{ fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10, fontSize: 16 }}>System Maintenance</h2>
-        <p style={{ color: '#888', fontSize: 12, maxWidth: 320, fontWeight: 300, lineHeight: 1.6, marginBottom: 20 }}>We are currently updating our database clusters. Secure connections will resume shortly.</p>
+        <p style={{ color: '#888', fontSize: 12, maxWidth: 320, fontWeight: 300, lineHeight: 1.6, marginBottom: 20 }}>We are currently carrying out system updates. Services will resume shortly.</p>
         <div style={{ width: 20, height: 20, border: '1px solid #333', borderTop: '1px solid #fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
         <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
       </div>
@@ -189,7 +233,7 @@ export default function Home() {
         // Render New Drop Block
         if (sec.id === 'new-drop') {
           return (
-            <section key={sec.id} className="py-24 border-b border-neutral-soft/30 bg-neutral-soft/5">
+            <section key={sec.id} className="py-12 md:py-24 border-b border-neutral-soft/30 bg-neutral-soft/5">
               <div className="container-editorial flex flex-col md:flex-row md:items-center justify-between gap-8 text-left">
                 <div className="max-w-xl">
                   <p className="text-[9px] uppercase tracking-[0.3em] text-text-muted mb-2 font-medium">{sec.subtitle}</p>
@@ -213,223 +257,70 @@ export default function Home() {
           );
         }
 
-        // Render Men Asymmetrical Block
-        if (sec.id === 'men') {
-          const prods = getSectionProducts(sec, 'men', 2);
+        // Render Campaign Banners (Men, Women, Accessories, Perfumes)
+        if (sec.id === 'men' || sec.id === 'women' || sec.id === 'accessories' || sec.id === 'perfumes') {
+          const fallbackImages: Record<string, string> = {
+            men: '/assets/trench_coat.jpg',
+            women: '/assets/slip_dress.jpg',
+            accessories: '/assets/cap_1784646670746.png',
+            perfumes: '/assets/sneakers_1784646656235.png'
+          };
+          const bannerSrc = sec.bannerImage || fallbackImages[sec.id] || '/assets/trench_coat.jpg';
+
           return (
-            <section key={sec.id} className="py-20 border-b border-neutral-soft/30 container-editorial">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-                <div className="lg:col-span-7 relative aspect-[4/3] md:aspect-[16/10] overflow-hidden group cursor-pointer" onClick={() => router.push(sec.ctaLink)}>
-                  <img 
-                    src={sec.bannerImage || '/assets/trench_coat.jpg'} 
-                    alt={sec.title} 
-                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-102"
-                  />
-                  <div className="absolute inset-0 bg-black/10 group-hover:bg-black/25 transition-colors duration-500" />
-                  <div className="absolute bottom-10 left-10 text-left z-10">
-                    <h3 className="text-2xl font-light uppercase tracking-widest text-white mb-4">{sec.title}</h3>
-                    <button className="bg-white/95 text-fg-luxury hover:bg-accent-gold hover:text-bg-luxury transition-all text-[9px] uppercase tracking-widest font-semibold py-3 px-8">
-                      {sec.ctaText}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="lg:col-span-5 flex flex-col gap-6">
-                  <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted text-left font-semibold">{sec.subtitle}</p>
-                  {fetching ? (
-                    <div className="grid grid-cols-2 gap-6">
-                      {[1, 2].map(idx => <Skeleton key={idx} variant="image" />)}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-6">
-                      {prods.map(p => <ProductCard key={p.id} product={p} />)}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
-          );
-        }
-
-        // Render Women Asymmetrical Block
-        if (sec.id === 'women') {
-          const prods = getSectionProducts(sec, 'women', 2);
-          return (
-            <section key={sec.id} className="py-20 border-b border-neutral-soft/30 container-editorial">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-                <div className="lg:col-span-5 order-2 lg:order-1 flex flex-col gap-6">
-                  <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted text-left font-semibold">{sec.subtitle}</p>
-                  {fetching ? (
-                    <div className="grid grid-cols-2 gap-6">
-                      {[1, 2].map(idx => <Skeleton key={idx} variant="image" />)}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-6">
-                      {prods.map(p => <ProductCard key={p.id} product={p} />)}
-                    </div>
-                  )}
-                </div>
-
-                <div className="lg:col-span-7 order-1 lg:order-2 relative aspect-[4/3] md:aspect-[16/10] overflow-hidden group cursor-pointer" onClick={() => router.push(sec.ctaLink)}>
-                  <img 
-                    src={sec.bannerImage || '/assets/slip_dress.jpg'} 
-                    alt={sec.title} 
-                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-102"
-                  />
-                  <div className="absolute inset-0 bg-black/10 group-hover:bg-black/25 transition-colors duration-500" />
-                  <div className="absolute bottom-10 left-10 text-left z-10">
-                    <h3 className="text-2xl font-light uppercase tracking-widest text-white mb-4">{sec.title}</h3>
-                    <button className="bg-white/95 text-fg-luxury hover:bg-accent-gold hover:text-bg-luxury transition-all text-[9px] uppercase tracking-widest font-semibold py-3 px-8">
-                      {sec.ctaText}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </section>
-          );
-        }
-
-        // Render Accessories Asymmetrical Block
-        if (sec.id === 'accessories') {
-          const prods = getSectionProducts(sec, 'accessories', 2);
-          return (
-            <section key={sec.id} className="py-20 border-b border-neutral-soft/30 container-editorial">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-                <div className="lg:col-span-7 relative aspect-[4/3] md:aspect-[16/10] overflow-hidden group cursor-pointer" onClick={() => router.push(sec.ctaLink)}>
-                  <img 
-                    src={sec.bannerImage || '/assets/cap_1784646670746.png'} 
-                    alt={sec.title} 
-                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-102"
-                  />
-                  <div className="absolute inset-0 bg-black/10 group-hover:bg-black/25 transition-colors duration-500" />
-                  <div className="absolute bottom-10 left-10 text-left z-10">
-                    <h3 className="text-2xl font-light uppercase tracking-widest text-white mb-4">{sec.title}</h3>
-                    <button className="bg-white/95 text-fg-luxury hover:bg-accent-gold hover:text-bg-luxury transition-all text-[9px] uppercase tracking-widest font-semibold py-3 px-8">
-                      {sec.ctaText}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="lg:col-span-5 flex flex-col gap-6">
-                  <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted text-left font-semibold">{sec.subtitle}</p>
-                  {fetching ? (
-                    <div className="grid grid-cols-2 gap-6">
-                      {[1, 2].map(idx => <Skeleton key={idx} variant="image" />)}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-6">
-                      {prods.map(p => <ProductCard key={p.id} product={p} />)}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
-          );
-        }
-
-        // Render Perfumes Asymmetrical Block
-        if (sec.id === 'perfumes') {
-          const prods = getSectionProducts(sec, 'perfumes', 2);
-          return (
-            <section key={sec.id} className="py-20 border-b border-neutral-soft/30 container-editorial">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-                <div className="lg:col-span-5 order-2 lg:order-1 flex flex-col gap-6">
-                  <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted text-left font-semibold">{sec.subtitle}</p>
-                  {fetching ? (
-                    <div className="grid grid-cols-2 gap-6">
-                      {[1, 2].map(idx => <Skeleton key={idx} variant="image" />)}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-6">
-                      {prods.map(p => <ProductCard key={p.id} product={p} />)}
-                    </div>
-                  )}
-                </div>
-
-                <div className="lg:col-span-7 order-1 lg:order-2 relative aspect-[4/3] md:aspect-[16/10] overflow-hidden group cursor-pointer" onClick={() => router.push(sec.ctaLink)}>
-                  <img 
-                    src={sec.bannerImage || '/assets/sneakers_1784646656235.png'} 
-                    alt={sec.title} 
-                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-102"
-                  />
-                  <div className="absolute inset-0 bg-black/10 group-hover:bg-black/25 transition-colors duration-500" />
-                  <div className="absolute bottom-10 left-10 text-left z-10">
-                    <h3 className="text-2xl font-light uppercase tracking-widest text-white mb-4">{sec.title}</h3>
-                    <button className="bg-white/95 text-fg-luxury hover:bg-accent-gold hover:text-bg-luxury transition-all text-[9px] uppercase tracking-widest font-semibold py-3 px-8">
-                      {sec.ctaText}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </section>
-          );
-        }
-
-        // Render Trending Centered Grid
-        if (sec.id === 'trending') {
-          const prods = getSectionProducts(sec, 'trending', 4);
-          return (
-            <section key={sec.id} className="py-24 border-b border-neutral-soft/30 container-editorial text-center flex flex-col items-center">
-              <div className="mb-12">
-                <p className="text-[9px] uppercase tracking-[0.35em] text-text-muted mb-2">{sec.subtitle}</p>
-                <h2 className="text-2xl font-light uppercase tracking-widest text-fg-luxury">{sec.title}</h2>
-              </div>
-
-              {fetching ? (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 w-full mb-12">
-                  {[1, 2, 3, 4].map(idx => <Skeleton key={idx} variant="image" />)}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 w-full mb-12">
-                  {prods.map(p => <ProductCard key={p.id} product={p} />)}
-                </div>
-              )}
-
-              <button 
-                onClick={() => router.push(sec.ctaLink)}
-                className="btn-editorial text-[9.5px] tracking-[0.25em] font-semibold py-3.5 px-10 cursor-pointer"
+            <section key={sec.id} className="py-10 md:py-20 border-b border-neutral-soft/30 container-editorial">
+              <div 
+                className={`relative w-full aspect-[4/3] md:aspect-[16/7] overflow-hidden group ${sec.imageClickRedirect ? 'cursor-pointer' : ''}`}
+                onClick={sec.imageClickRedirect ? () => router.push(sec.ctaLink) : undefined}
               >
-                {sec.ctaText}
-              </button>
+                <img 
+                  src={bannerSrc} 
+                  alt={sec.title} 
+                  className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-102"
+                />
+                <div className="absolute inset-0 bg-black/10 group-hover:bg-black/25 transition-colors duration-500" />
+                
+                {/* Content Overlay Box */}
+                {(sec.showTitle || sec.showSubtitle || sec.showButton) && (
+                  <div className="absolute bottom-10 left-10 text-left z-10">
+                    {sec.showSubtitle && sec.subtitle && (
+                      <p className="text-[8px] uppercase tracking-[0.3em] text-white/80 mb-2 font-semibold">
+                        {sec.subtitle}
+                      </p>
+                    )}
+                    {sec.showTitle && sec.title && (
+                      <h3 className="text-2xl font-light uppercase tracking-widest text-white mb-4">
+                        {sec.title}
+                      </h3>
+                    )}
+                    {sec.showButton && sec.ctaText && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(sec.ctaLink);
+                        }}
+                        className="bg-white/95 text-fg-luxury hover:bg-accent-gold hover:text-bg-luxury transition-all text-[9px] uppercase tracking-widest font-semibold py-3 px-8 cursor-pointer"
+                      >
+                        {sec.ctaText}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </section>
           );
         }
 
-        // Render Best Sellers Centered Grid
-        if (sec.id === 'best-sellers') {
-          const prods = getSectionProducts(sec, 'best-sellers', 4);
-          return (
-            <section key={sec.id} className="py-24 border-b border-neutral-soft/30 container-editorial text-center flex flex-col items-center">
-              <div className="mb-12">
-                <p className="text-[9px] uppercase tracking-[0.35em] text-text-muted mb-2">{sec.subtitle}</p>
-                <h2 className="text-2xl font-light uppercase tracking-widest text-fg-luxury">{sec.title}</h2>
-              </div>
-
-              {fetching ? (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 w-full mb-12">
-                  {[1, 2, 3, 4].map(idx => <Skeleton key={idx} variant="image" />)}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 w-full mb-12">
-                  {prods.map(p => <ProductCard key={p.id} product={p} />)}
-                </div>
-              )}
-
-              <button 
-                onClick={() => router.push(sec.ctaLink)}
-                className="btn-editorial text-[9.5px] tracking-[0.25em] font-semibold py-3.5 px-10 cursor-pointer"
-              >
-                {sec.ctaText}
-              </button>
-            </section>
-          );
+        // Skip trending and best-sellers sections to clean the home page
+        if (sec.id === 'trending' || sec.id === 'best-sellers') {
+          return null;
         }
 
         return null;
       })}
 
       {/* Brand story details (Not layout block) */}
-      <section className="py-32 text-center px-6 border-b border-neutral-soft/30 max-w-4xl mx-auto flex flex-col items-center">
+      <section className="py-16 md:py-32 text-center px-6 border-b border-neutral-soft/30 max-w-4xl mx-auto flex flex-col items-center">
         <p className="text-[9px] uppercase tracking-[0.3em] text-text-muted mb-6">Our DNA</p>
         <h3 className="font-editorial text-3xl md:text-4xl text-fg-luxury leading-relaxed font-light italic max-w-3xl mb-8">
           &ldquo;We tailor structure for the spaces between expression and identity. Zero clutter. Pure form.&rdquo;
@@ -440,30 +331,27 @@ export default function Home() {
       </section>
 
       {/* Lookbook gallery */}
-      <section className="py-20 border-b border-neutral-soft/30 container-editorial">
+      <section className="py-10 md:py-20 border-b border-neutral-soft/30 container-editorial">
         <div className="mb-10 text-left">
           <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">Lookbook gallery</p>
           <h2 className="text-xl uppercase tracking-widest font-light text-fg-luxury">Editorial Journal</h2>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="aspect-[3/4] overflow-hidden bg-neutral-soft/20">
-            <img src="/assets/tee_white.jpg" alt="Staples" className="w-full h-full object-cover" />
-          </div>
-          <div className="aspect-[3/4] overflow-hidden bg-neutral-soft/20">
-            <img src="/assets/trench_coat.jpg" alt="Tailoring details" className="w-full h-full object-cover" />
-          </div>
-          <div className="aspect-[3/4] overflow-hidden bg-neutral-soft/20">
-            <img src="/assets/silk_trouser.jpg" alt="Drape profile" className="w-full h-full object-cover" />
-          </div>
-          <div className="aspect-[3/4] overflow-hidden bg-neutral-soft/20">
-            <img src="/assets/slip_dress.jpg" alt="Mulberry silk dress" className="w-full h-full object-cover" />
-          </div>
+          {editorialJournal.map((item) => (
+            <div 
+              key={item.id} 
+              onClick={() => router.push(item.linkUrl || '/shop')}
+              className="relative w-full aspect-[3/4] overflow-hidden bg-neutral-soft/20 cursor-pointer hover:opacity-90 transition-opacity duration-300"
+            >
+              <img src={item.imageUrl} alt="Editorial look" className="w-full h-full object-cover" />
+            </div>
+          ))}
         </div>
       </section>
 
       {/* Newsletter */}
-      <section className="py-24 container-editorial text-center flex flex-col items-center">
+      <section className="py-12 md:py-24 container-editorial text-center flex flex-col items-center">
         <div className="max-w-md w-full flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <p className="text-[9px] uppercase tracking-[0.3em] text-text-muted">Stay Connected</p>

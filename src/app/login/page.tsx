@@ -13,6 +13,15 @@ export default function LoginPage() {
   const router = useRouter();
   const { showToast } = useToast();
   
+  React.useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        const role = session.user.app_metadata?.role;
+        router.push(role === 'admin' || role === 'superadmin' ? '/admin' : '/');
+      }
+    });
+  }, [router]);
+
   const [loginMethod, setLoginMethod] = useState<'email' | 'otp'>('email');
   
   // Email state
@@ -42,7 +51,7 @@ export default function LoginPage() {
         } else if (data.user) {
           showToast('Welcome back.', 'success');
           const role = data.user.app_metadata?.role;
-          router.push(role === 'admin' || role === 'superadmin' ? '/admin' : '/dashboard');
+          router.push(role === 'admin' || role === 'superadmin' ? '/admin' : '/');
         }
       } else {
         // Phone OTP Flow
@@ -72,7 +81,7 @@ export default function LoginPage() {
         }
       }
     } catch (err) {
-      showToast('Handshake configuration failed.', 'error');
+      showToast('An error occurred. Please check your connection and try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -80,14 +89,21 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     try {
-      await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            prompt: 'select_account',
+            access_type: 'offline'
+          }
         }
       });
-    } catch (err) {
-      showToast('Google OAuth trigger failure.', 'error');
+      if (error) {
+        showToast(error.message || 'Google sign-in failed. Please try again.', 'error');
+      }
+    } catch (err: any) {
+      showToast('An error occurred during Google sign-in. Please try again.', 'error');
     }
   };
 

@@ -21,6 +21,21 @@ const verifyConnection = () => {
 // 1. PRODUCTS
 // ─────────────────────────────────────────────
 
+const mapProduct = (row: any): Product => ({
+  ...row,
+  basePrice: row.base_price ?? row.basePrice,
+  mrp: row.mrp,
+  isPublished: row.is_published ?? row.isPublished,
+  stockQty: row.stock_qty ?? row.stockQty ?? 0,
+  parentCategory: row.parent_category ?? row.parentCategory,
+  subCategory: row.sub_category ?? row.subCategory,
+  tags: row.tags || [],
+  rating: row.rating || 0,
+  reviewsCount: row.reviews_count ?? row.reviewsCount ?? 0,
+  createdAt: row.created_at ?? row.createdAt,
+  updatedAt: row.updated_at ?? row.updatedAt,
+});
+
 export const getProducts = async (): Promise<Product[]> => {
   verifyConnection();
   const { data, error } = await supabase
@@ -33,7 +48,7 @@ export const getProducts = async (): Promise<Product[]> => {
     `)
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data || []) as Product[];
+  return (data || []).map(mapProduct);
 };
 
 export const getProductBySlug = async (slug: string): Promise<Product | null> => {
@@ -49,7 +64,7 @@ export const getProductBySlug = async (slug: string): Promise<Product | null> =>
     .eq('slug', slug)
     .single();
   if (error && error.code !== 'PGRST116') throw error;
-  return (data as Product) || null;
+  return data ? mapProduct(data) : null;
 };
 
 export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> => {
@@ -58,7 +73,7 @@ export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 
     name: product.name,
     slug: product.slug || product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
     description: product.description || '',
-    short_description: product.shortDescription || '',
+    short_description: (product as any).shortDescription || '',
     base_price: product.basePrice,
     mrp: product.mrp || product.basePrice,
     is_published: product.isPublished ?? true,
@@ -66,6 +81,12 @@ export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 
     brand: product.brand || 'Made in India',
     category_id: product.categoryId || null,
     collection_id: product.collectionId || null,
+    stock_qty: product.stockQty ?? 10,
+    parent_category: product.parentCategory || null,
+    sub_category: product.subCategory || null,
+    tags: product.tags || [],
+    rating: product.rating || 0,
+    reviews_count: product.reviewsCount || 0,
   };
   const { data, error } = await supabase.from('products').insert(payload).select().single();
   if (error) throw error;
@@ -78,7 +99,7 @@ export const updateProduct = async (id: string, updates: Partial<Product>): Prom
   if (updates.name !== undefined) payload.name = updates.name;
   if (updates.slug !== undefined) payload.slug = updates.slug;
   if (updates.description !== undefined) payload.description = updates.description;
-  if (updates.shortDescription !== undefined) payload.short_description = updates.shortDescription;
+  if ((updates as any).shortDescription !== undefined) payload.short_description = (updates as any).shortDescription;
   if (updates.basePrice !== undefined) payload.base_price = updates.basePrice;
   if (updates.mrp !== undefined) payload.mrp = updates.mrp;
   if (updates.isPublished !== undefined) payload.is_published = updates.isPublished;
@@ -87,10 +108,13 @@ export const updateProduct = async (id: string, updates: Partial<Product>): Prom
   if (updates.categoryId !== undefined) payload.category_id = updates.categoryId || null;
   if (updates.collectionId !== undefined) payload.collection_id = updates.collectionId || null;
   if (updates.stockQty !== undefined) payload.stock_qty = updates.stockQty;
-  if (updates.status !== undefined) payload.status = updates.status;
+  if ((updates as any).status !== undefined) payload.status = (updates as any).status;
   if (updates.tags !== undefined) payload.tags = updates.tags;
-  if (updates.seoTitle !== undefined) payload.seo_title = updates.seoTitle;
-  if (updates.seoDescription !== undefined) payload.seo_description = updates.seoDescription;
+  if (updates.parentCategory !== undefined) payload.parent_category = updates.parentCategory || null;
+  if (updates.subCategory !== undefined) payload.sub_category = updates.subCategory || null;
+  if ((updates as any).seoTitle !== undefined) payload.seo_title = (updates as any).seoTitle;
+  if ((updates as any).seoDescription !== undefined) payload.seo_description = (updates as any).seoDescription;
+  if (updates.rating !== undefined) payload.rating = updates.rating;
   payload.updated_at = new Date().toISOString();
 
   const { data, error } = await supabase.from('products').update(payload).eq('id', id).select().single();
@@ -135,19 +159,36 @@ export const getCategories = async (): Promise<Category[]> => {
   verifyConnection();
   const { data, error } = await supabase.from('categories').select('*').order('name');
   if (error) throw error;
-  return (data || []) as Category[];
+  return (data || []).map((item: any) => ({
+    id: item.id,
+    name: item.name,
+    slug: item.slug,
+    description: item.description,
+    imageUrl: item.image_url,
+    parentCategory: item.parent_category,
+    createdAt: item.created_at
+   })) as Category[];
 };
 
-export const createCategory = async (category: { name: string; slug: string; description?: string; imageUrl?: string }): Promise<Category> => {
+export const createCategory = async (category: { name: string; slug: string; description?: string; imageUrl?: string; parentCategory?: string | null }): Promise<Category> => {
   verifyConnection();
   const { data, error } = await supabase.from('categories').insert({
     name: category.name,
     slug: category.slug,
     description: category.description || '',
     image_url: category.imageUrl || '',
+    parent_category: category.parentCategory || null
   }).select().single();
   if (error) throw error;
-  return data as Category;
+  return {
+    id: data.id,
+    name: data.name,
+    slug: data.slug,
+    description: data.description,
+    imageUrl: data.image_url,
+    parentCategory: data.parent_category,
+    createdAt: data.created_at
+  } as Category;
 };
 
 export const deleteCategory = async (id: string): Promise<void> => {
@@ -352,6 +393,7 @@ export const getProductReviews = async (productId: string): Promise<Review[]> =>
     .from('reviews')
     .select('*, user:users(full_name)')
     .eq('product_id', productId)
+    .eq('status', 'approved')   // Only show approved reviews on product page
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data || []) as Review[];
@@ -362,7 +404,7 @@ export const getAdminReviews = async (): Promise<any[]> => {
   const { data, error } = await supabase
     .from('reviews')
     .select('*, user:users(full_name, email), product:products(name)')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }); // Admin sees ALL reviews (pending + approved + rejected)
   if (error) throw error;
   return data || [];
 };
@@ -374,7 +416,20 @@ export const createProductReview = async (review: Omit<Review, 'id' | 'createdAt
     product_id: review.productId,
     rating: review.rating,
     comment: review.comment || '',
+    status: 'pending',  // Always start as pending — admin must approve
   });
+  if (error) throw error;
+};
+
+export const approveReview = async (id: string): Promise<void> => {
+  verifyConnection();
+  const { error } = await supabase.from('reviews').update({ status: 'approved' }).eq('id', id);
+  if (error) throw error;
+};
+
+export const rejectReview = async (id: string): Promise<void> => {
+  verifyConnection();
+  const { error } = await supabase.from('reviews').update({ status: 'rejected' }).eq('id', id);
   if (error) throw error;
 };
 
@@ -388,7 +443,7 @@ export const deleteReview = async (id: string): Promise<void> => {
 // 10. SUPPORT TICKETS
 // ─────────────────────────────────────────────
 
-export const createSupportTicket = async (ticket: { name: string; email: string; message: string }): Promise<void> => {
+export const createSupportTicket = async (ticket: { name: string; email: string; phone?: string; subject?: string; message: string }): Promise<void> => {
   verifyConnection();
   const { error } = await supabase.from('support_tickets').insert(ticket);
   if (error) throw error;
@@ -481,6 +536,22 @@ export const saveHeroBanner = async (banner: { imageUrl: string; heading: string
   return data;
 };
 
+export const seedDefaultHeroBanners = async (): Promise<any[]> => {
+  verifyConnection();
+  const defaults = [
+    { image_url: '/assets/trench_coat.jpg', heading: 'BE YOU.', subtitle: 'BE BOLD. BE FREERT.', cta_text: 'Shop Now', cta_link: '/shop' },
+    { image_url: '/assets/slip_dress.jpg', heading: 'New Season Collection', subtitle: 'Autumn / Winter Edit 2026', cta_text: 'Explore Collection', cta_link: '/shop/new-arrivals' },
+    { image_url: '/assets/kimono_shirt.jpg', heading: 'Luxury Everyday Wear', subtitle: 'Comfort Tailored in Small Batches', cta_text: 'Discover More', cta_link: '/shop' },
+    { image_url: '/assets/silk_trouser.jpg', heading: 'Timeless Streetwear', subtitle: 'Structure for Identity and Expression', cta_text: 'Shop Bottoms', cta_link: '/shop/men/cargo-pants' },
+    { image_url: '/assets/knit_hoodie.jpg', heading: 'Minimal Luxury', subtitle: 'Organic Weaves and Soft Textures', cta_text: 'Shop Knitwear', cta_link: '/shop/men/hoodies' },
+    { image_url: '/assets/cap_1784646670746.png', heading: 'Modern Identity', subtitle: 'Finishing Details for the Modern Wardrobe', cta_text: 'Shop Accessories', cta_link: '/shop/accessories' },
+    { image_url: '/assets/sneakers_1784646656235.png', heading: 'Premium Essentials', subtitle: 'Sandalwood Santal & Intense Scents', cta_text: 'Shop Perfumes', cta_link: '/shop/perfumes' }
+  ];
+  const { data, error } = await supabase.from('hero_banners').insert(defaults).select();
+  if (error) throw error;
+  return data || [];
+};
+
 export const updateHeroBanner = async (id: string, updates: Partial<{ imageUrl: string; heading: string; subtitle: string; ctaText: string; ctaLink: string }>): Promise<any> => {
   verifyConnection();
   const payload: Record<string, any> = { updated_at: new Date().toISOString() };
@@ -521,16 +592,74 @@ export const saveHomepageSections = async (sections: any[]): Promise<void> => {
       id: section.id,
       title: section.title,
       subtitle: section.subtitle || '',
+      banner_image: section.bannerImage || '', 
       cta_text: section.ctaText || '',
       cta_link: section.ctaLink || '',
       visible: section.visible ?? true,
       order: section.order || 0,
       featured_product_ids: section.featuredProductIds || [],
+      show_title: section.showTitle ?? true,
+      show_subtitle: section.showSubtitle ?? true,
+      show_button: section.showButton ?? true,
+      image_click_redirect: section.imageClickRedirect ?? true,
       updated_at: new Date().toISOString(),
     };
     await supabase.from('homepage_sections').upsert(payload, { onConflict: 'id' });
   }
 };
+
+// ─────────────────────────────────────────────
+// 15. EDITORIAL JOURNAL
+// ─────────────────────────────────────────────
+
+export const getEditorialJournal = async (): Promise<any[]> => {
+  verifyConnection();
+  const { data, error } = await supabase
+    .from('editorial_journal')
+    .select('*')
+    .order('"order"', { ascending: true });
+  if (error) throw error;
+  return data || [];
+};
+
+export const saveEditorialJournalItem = async (item: { id?: string; imageUrl: string; linkUrl: string; order?: number }): Promise<any> => {
+  verifyConnection();
+  const payload = {
+    image_url: item.imageUrl,
+    link_url: item.linkUrl,
+    "order": item.order || 0,
+    updated_at: new Date().toISOString()
+  };
+
+  if (item.id) {
+    const { data, error } = await supabase
+      .from('editorial_journal')
+      .update(payload)
+      .eq('id', item.id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } else {
+    const { data, error } = await supabase
+      .from('editorial_journal')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+};
+
+export const deleteEditorialJournalItem = async (id: string): Promise<void> => {
+  verifyConnection();
+  const { error } = await supabase
+    .from('editorial_journal')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+};
+
 
 // ─────────────────────────────────────────────
 // 15. ACTIVITY LOGS
@@ -585,4 +714,105 @@ export const getDashboardStats = async (): Promise<{
     lowStockCount,
     pendingOrders,
   };
+};
+
+// ─────────────────────────────────────────────
+// 19. RESTOCK ALERTS / NOTIFY REQUESTS
+// ─────────────────────────────────────────────
+
+export const createRestockAlert = async (productId: string, userId: string | null, email: string): Promise<any> => {
+  verifyConnection();
+  const { data, error } = await supabase.from('restock_alerts').insert({
+    product_id: productId,
+    user_id: userId,
+    email: email
+  }).select().single();
+  if (error) throw error;
+  return data;
+};
+
+export const getRestockAlerts = async (): Promise<any[]> => {
+  verifyConnection();
+  const { data, error } = await supabase
+    .from('restock_alerts')
+    .select('*, product:products(name, slug)')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+};
+
+export const deleteRestockAlert = async (id: string): Promise<void> => {
+  verifyConnection();
+  const { error } = await supabase.from('restock_alerts').delete().eq('id', id);
+  if (error) throw error;
+};
+
+// ─────────────────────────────────────────────
+// 20. PRODUCT DETAILS ACCORDION SECTIONS
+// ─────────────────────────────────────────────
+
+export const getProductDetailsSections = async (productId: string): Promise<any[]> => {
+  verifyConnection();
+  const { data, error } = await supabase
+    .from('product_details_sections')
+    .select('*')
+    .eq('product_id', productId)
+    .eq('enabled', true)
+    .order('display_order', { ascending: true });
+  if (error) throw error;
+  return data || [];
+};
+
+export const getAdminProductDetailsSections = async (productId: string): Promise<any[]> => {
+  verifyConnection();
+  const { data, error } = await supabase
+    .from('product_details_sections')
+    .select('*')
+    .eq('product_id', productId)
+    .order('display_order', { ascending: true });
+  if (error) throw error;
+  return data || [];
+};
+
+export const saveProductDetailsSection = async (section: { 
+  id?: string; 
+  productId: string; 
+  title: string; 
+  content: string; 
+  displayOrder: number; 
+  enabled: boolean; 
+}): Promise<any> => {
+  verifyConnection();
+  const payload = {
+    product_id: section.productId,
+    title: section.title,
+    content: section.content,
+    display_order: section.displayOrder,
+    enabled: section.enabled
+  };
+  
+  if (section.id) {
+    const { data, error } = await supabase
+      .from('product_details_sections')
+      .update(payload)
+      .eq('id', section.id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } else {
+    const { data, error } = await supabase
+      .from('product_details_sections')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+};
+
+export const deleteProductDetailsSection = async (id: string): Promise<void> => {
+  verifyConnection();
+  const { error } = await supabase.from('product_details_sections').delete().eq('id', id);
+  if (error) throw error;
 };

@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getProducts } from '@/services/database';
-import type { Product } from '@/types';
+import { getProducts, getCategories } from '@/services/database';
+import type { Product, Category } from '@/types';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/CartDrawer';
@@ -18,6 +18,7 @@ export default function ShopPage() {
   const slug = params.slug as string[] | undefined;
 
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [dbCategories, setDbCategories] = useState<Category[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [sortBy, setSortBy] = useState<'default' | 'price-low' | 'price-high' | 'rating'>('default');
   const [priceRange, setPriceRange] = useState<number>(20000);
@@ -30,8 +31,9 @@ export default function ShopPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const list = await getProducts();
+        const [list, cats] = await Promise.all([getProducts(), getCategories()]);
         setAllProducts(list);
+        setDbCategories(cats);
         setFilteredProducts(list);
       } catch (e: any) {
         setDbError(true);
@@ -58,7 +60,10 @@ export default function ShopPage() {
     // Filter by sub-category
     if (subParam) {
       const decodedSub = decodeURIComponent(subParam).toLowerCase();
-      list = list.filter(p => p.subCategory === decodedSub);
+      list = list.filter(p => 
+        p.subCategory === decodedSub || 
+        p.subCategory?.toLowerCase().replace(/\s+/g, '-') === decodedSub
+      );
     }
 
     // Filter by price range
@@ -74,7 +79,7 @@ export default function ShopPage() {
     }
 
     setFilteredProducts(list);
-  }, [parentParam, subParam, sortBy, priceRange]);
+  }, [allProducts, parentParam, subParam, sortBy, priceRange]);
 
   const getPageTitle = () => {
     if (!parentParam) return 'Shop Catalog';
@@ -84,20 +89,25 @@ export default function ShopPage() {
     return `${main} / ${sub}`;
   };
 
-  const getSubcategories = () => {
-    if (parentParam === 'men') {
-      return ['Oversized T-Shirts', 'Regular T-Shirts', 'Shirts', 'Hoodies', 'Sweatshirts', 'Jeans', 'Cargo Pants', 'Joggers', 'Shorts', 'Jackets'];
+  const getSubcategories = (): { name: string; slug: string }[] => {
+    const parent = parentParam.toLowerCase();
+    const filtered = dbCategories.filter(c => c.parentCategory === parent);
+    if (filtered.length > 0) {
+      return filtered.map(c => ({ name: c.name, slug: c.slug }));
     }
-    if (parentParam === 'women') {
-      return ['T-Shirts', 'Oversized', 'Tops', 'Hoodies', 'Jeans', 'Dresses', 'Co-ords'];
+    
+    // Fallback static arrays
+    let fallbackNames: string[] = [];
+    if (parent === 'men') {
+      fallbackNames = ['Oversized T-Shirts', 'Regular T-Shirts', 'Shirts', 'Hoodies', 'Sweatshirts', 'Jeans', 'Cargo Pants', 'Joggers', 'Shorts', 'Jackets'];
+    } else if (parent === 'women') {
+      fallbackNames = ['T-Shirts', 'Oversized', 'Tops', 'Hoodies', 'Jeans', 'Dresses', 'Co-ords'];
+    } else if (parent === 'accessories') {
+      fallbackNames = ['Caps', 'Belts', 'Wallets', 'Bags', 'Chains', 'Rings'];
+    } else if (parent === 'perfumes') {
+      fallbackNames = ['Men', 'Women', 'Unisex', 'Travel Packs'];
     }
-    if (parentParam === 'accessories') {
-      return ['Caps', 'Belts', 'Wallets', 'Bags', 'Chains', 'Rings'];
-    }
-    if (parentParam === 'perfumes') {
-      return ['Men', 'Women', 'Unisex', 'Travel Packs'];
-    }
-    return [];
+    return fallbackNames.map(name => ({ name, slug: name.toLowerCase().replace(/\s+/g, '-') }));
   };
 
   const activeSubcategories = getSubcategories();
@@ -106,7 +116,7 @@ export default function ShopPage() {
     return (
       <div style={{ background: '#0a0a0a', color: '#f5f5f5', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', margin: 0, padding: 20, textAlign: 'center' }}>
         <h2 style={{ fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10, fontSize: 16 }}>System Maintenance</h2>
-        <p style={{ color: '#888', fontSize: 12, maxWidth: 320, fontWeight: 300, lineHeight: 1.6, marginBottom: 20 }}>We are currently updating our database clusters. Secure connections will resume shortly.</p>
+        <p style={{ color: '#888', fontSize: 12, maxWidth: 320, fontWeight: 300, lineHeight: 1.6, marginBottom: 20 }}>We are currently carrying out system updates. Services will resume shortly.</p>
         <div style={{ width: 20, height: 20, border: '1px solid #333', borderTop: '1px solid #fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
         <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
       </div>
@@ -158,15 +168,14 @@ export default function ShopPage() {
                 </h4>
                 <div className="flex flex-col gap-2.5">
                   {activeSubcategories.map((sub) => {
-                    const slugified = sub.toLowerCase().replace(/ /g, '-');
-                    const isActive = subParam === slugified;
+                    const isActive = subParam === sub.slug;
                     return (
                       <button
-                        key={sub}
-                        onClick={() => router.push(`/shop/${parentParam}/${slugified}`)}
+                        key={sub.slug}
+                        onClick={() => router.push(`/shop/${parentParam}/${sub.slug}`)}
                         className={`text-[10px] uppercase tracking-wider text-left transition-colors cursor-pointer hover:text-accent-gold ${isActive ? 'text-accent-gold font-medium' : 'text-text-muted font-light'}`}
                       >
-                        {sub}
+                        {sub.name}
                       </button>
                     );
                   })}
@@ -180,16 +189,29 @@ export default function ShopPage() {
                 Departments
               </h4>
               <div className="flex flex-col gap-2.5">
-                {['Men', 'Women', 'Accessories', 'Perfumes', 'Sale', 'New Arrivals'].map((dept) => {
-                  const slugified = dept.toLowerCase().replace(/ /g, '-');
-                  const isActive = parentParam === slugified;
+                {/* Dynamic departments from DB */}
+                {dbCategories.filter(c => !c.parentCategory).map((dept) => {
+                  const isActive = parentParam === dept.slug;
                   return (
                     <button
-                      key={dept}
-                      onClick={() => router.push(`/shop/${slugified}`)}
+                      key={dept.id}
+                      onClick={() => router.push(`/shop/${dept.slug}`)}
                       className={`text-[10px] uppercase tracking-wider text-left transition-colors cursor-pointer hover:text-accent-gold ${isActive ? 'text-accent-gold font-medium' : 'text-text-muted font-light'}`}
                     >
-                      {dept}
+                      {dept.name}
+                    </button>
+                  );
+                })}
+                {/* Static special filters */}
+                {[{ name: 'Sale', slug: 'sale' }, { name: 'New Arrivals', slug: 'new-arrivals' }].map((item) => {
+                  const isActive = parentParam === item.slug;
+                  return (
+                    <button
+                      key={item.slug}
+                      onClick={() => router.push(`/shop/${item.slug}`)}
+                      className={`text-[10px] uppercase tracking-wider text-left transition-colors cursor-pointer hover:text-accent-gold ${isActive ? 'text-accent-gold font-medium' : 'text-text-muted font-light'}`}
+                    >
+                      {item.name}
                     </button>
                   );
                 })}
