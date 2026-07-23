@@ -180,7 +180,7 @@ CREATE INDEX IF NOT EXISTS idx_coupons_code ON coupons(code);
 -- 9. ORDERS TABLE
 CREATE TABLE IF NOT EXISTS orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     coupon_id UUID REFERENCES coupons(id) ON DELETE SET NULL,
     shipping_address_id UUID REFERENCES addresses(id) ON DELETE SET NULL,
     billing_address_id UUID REFERENCES addresses(id) ON DELETE SET NULL,

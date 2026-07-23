@@ -37,10 +37,7 @@ export default function CheckoutPage() {
   const [dbConnectionError, setDbConnectionError] = useState(false);
   const [placedOrderDetails, setPlacedOrderDetails] = useState<any>(null);
 
-  const shippingThreshold = 15000;
-  const standardShippingCost = cartSubtotal >= shippingThreshold ? 0 : 500;
-  const expressShippingCost = 1200;
-  const shippingCost = shippingMethod === 'standard' ? standardShippingCost : expressShippingCost;
+  const shippingCost = cartSubtotal >= 499 ? 0 : 60;
 
   useEffect(() => {
     if (cart.length === 0 && !processing && currentStep !== 4) {
@@ -85,8 +82,6 @@ export default function CheckoutPage() {
         showToast('Please fill out all address details.', 'error');
         return;
       }
-      setCurrentStep(2);
-    } else if (currentStep === 2) {
       setCurrentStep(3);
     }
   };
@@ -170,7 +165,6 @@ export default function CheckoutPage() {
 
   const steps = [
     { label: 'Address', number: 1 },
-    { label: 'Shipping', number: 2 },
     { label: 'Payment', number: 3 },
     { label: 'Confirm', number: 4 }
   ];
@@ -194,7 +188,7 @@ export default function CheckoutPage() {
         {/* Progress Indicator */}
         <div className="max-w-xl mx-auto mb-16 flex justify-between items-center relative">
           <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-neutral-soft/50 z-0 -translate-y-1/2" />
-          {steps.map((st) => (
+          {steps.map((st, idx) => (
             <div key={st.number} className="z-10 flex flex-col items-center gap-2">
               <div 
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] uppercase font-semibold border transition-all duration-300 ${
@@ -203,7 +197,7 @@ export default function CheckoutPage() {
                     : 'bg-bg-luxury text-text-muted border-neutral-soft'
                 }`}
               >
-                {currentStep > st.number ? <Check size={12} /> : st.number}
+                {currentStep > st.number ? <Check size={12} /> : (idx + 1)}
               </div>
               <span className={`text-[8px] uppercase tracking-widest font-semibold ${currentStep >= st.number ? 'text-fg-luxury' : 'text-text-muted'}`}>
                 {st.label}
@@ -447,74 +441,12 @@ export default function CheckoutPage() {
                     type="submit"
                     className="btn-editorial-solid w-full flex items-center justify-center gap-2 text-xs tracking-[0.2em] font-medium py-3.5 mt-4"
                   >
-                    Continue to Shipping <ArrowRight size={14} />
+                    Continue to Payment <ArrowRight size={14} />
                   </button>
                 </form>
               )}
 
-              {currentStep === 2 && (
-                /* Step 2: Shipping Method Selection */
-                <form onSubmit={handleNextStep} className="text-left flex flex-col gap-8">
-                  <div>
-                    <h3 className="text-xs uppercase tracking-[0.2em] font-semibold text-fg-luxury border-b border-neutral-soft/40 pb-2 mb-6">
-                      03. Shipping Mode
-                    </h3>
-                    <div className="flex flex-col gap-4">
-                      <label className={`border p-5 flex items-center justify-between cursor-pointer transition-colors ${shippingMethod === 'standard' ? 'border-fg-luxury bg-fg-luxury/5' : 'border-neutral-soft/80'}`}>
-                        <div className="flex items-center gap-3">
-                          <input 
-                            type="radio" 
-                            name="shipping" 
-                            checked={shippingMethod === 'standard'}
-                            onChange={() => setShippingMethod('standard')}
-                            className="accent-fg-luxury"
-                          />
-                          <div>
-                            <span className="text-xs uppercase tracking-wider font-semibold text-fg-luxury block">Standard Delivery (3–5 Business Days)</span>
-                            <span className="text-[10px] text-text-muted font-light mt-0.5 block">Delivery in 3 to 5 business cycles.</span>
-                          </div>
-                        </div>
-                        <span className="text-xs font-semibold text-fg-luxury">{standardShippingCost === 0 ? 'FREE' : `₹${standardShippingCost}`}</span>
-                      </label>
 
-                      {isExpressEnabled && (
-                        <label className={`border p-5 flex items-center justify-between cursor-pointer transition-colors ${shippingMethod === 'express' ? 'border-fg-luxury bg-fg-luxury/5' : 'border-neutral-soft/80'}`}>
-                          <div className="flex items-center gap-3">
-                            <input 
-                              type="radio" 
-                              name="shipping" 
-                              checked={shippingMethod === 'express'}
-                              onChange={() => setShippingMethod('express')}
-                              className="accent-fg-luxury"
-                            />
-                            <div>
-                              <span className="text-xs uppercase tracking-wider font-semibold text-fg-luxury block">Express Delivery (1–2 Business Days)</span>
-                              <span className="text-[10px] text-text-muted font-light mt-0.5 block">Guaranteed delivery inside 24 to 48 hours.</span>
-                            </div>
-                          </div>
-                          <span className="text-xs font-semibold text-fg-luxury">₹{expressShippingCost}</span>
-                        </label>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <button 
-                      type="button"
-                      onClick={() => setCurrentStep(1)}
-                      className="btn-editorial flex-1 text-xs py-3.5 tracking-widest uppercase"
-                    >
-                      Back
-                    </button>
-                    <button 
-                      type="submit"
-                      className="btn-editorial-solid flex-1 flex items-center justify-center gap-2 text-xs tracking-[0.2em] font-medium py-3.5"
-                    >
-                      Continue to Payment <ArrowRight size={14} />
-                    </button>
-                  </div>
-                </form>
-              )}
 
               {currentStep === 3 && (
                 /* Step 3: Payment Modes Selection */
@@ -558,7 +490,7 @@ export default function CheckoutPage() {
                   <div className="flex gap-4">
                     <button 
                       type="button"
-                      onClick={() => setCurrentStep(2)}
+                      onClick={() => setCurrentStep(1)}
                       className="btn-editorial flex-1 text-xs py-3.5 tracking-widest uppercase"
                     >
                       Back

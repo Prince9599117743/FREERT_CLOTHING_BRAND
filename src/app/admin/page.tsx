@@ -1884,7 +1884,7 @@ function AdminCoreWorkspace() {
                     Change Media
                     <input 
                       type="file" 
-                      accept="image/*,video/*"
+                      accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.webm"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) handleHeroImageChange(slide.id, file);
