@@ -9,16 +9,17 @@ function AuthCallbackContent() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    let active = true;
+    let subscription: any = null;
+
     const handleCallback = async () => {
       const code = searchParams.get('code');
       if (code) {
         try {
-          // Exchange PKCE authorization code for a session
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
 
-          if (data?.session) {
-            // Write access token to cookie immediately to prevent middleware redirection bails
+          if (data?.session && active) {
             document.cookie = `sb-access-token=${data.session.access_token}; path=/; max-age=604800; SameSite=Lax; Secure`;
             window.location.href = '/';
             return;
@@ -28,11 +29,44 @@ function AuthCallbackContent() {
         }
       }
       
-      // Fallback redirection on check fail
-      window.location.href = '/login';
+      // Implicit flow: Check if session is already parsed
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && active) {
+        document.cookie = `sb-access-token=${session.access_token}; path=/; max-age=604800; SameSite=Lax; Secure`;
+        window.location.href = '/';
+        return;
+      }
+
+      // Listen for auth state changes (implicit flow async parsing)
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        if (session && active) {
+          document.cookie = `sb-access-token=${session.access_token}; path=/; max-age=604800; SameSite=Lax; Secure`;
+          if (subscription) subscription.unsubscribe();
+          window.location.href = '/';
+        }
+      });
+      subscription = data.subscription;
+
+      // Safety timeout fallback
+      const timeout = setTimeout(() => {
+        if (active) {
+          if (subscription) subscription.unsubscribe();
+          window.location.href = '/login';
+        }
+      }, 3500);
+
+      return () => {
+        clearTimeout(timeout);
+        if (subscription) subscription.unsubscribe();
+      };
     };
 
     handleCallback();
+
+    return () => {
+      active = false;
+      if (subscription) subscription.unsubscribe();
+    };
   }, [searchParams, router]);
 
   return (

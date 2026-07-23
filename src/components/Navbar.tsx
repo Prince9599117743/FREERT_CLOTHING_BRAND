@@ -118,56 +118,69 @@ export const Navbar: React.FC = () => {
             </button>
 
             {isAccountDropdownOpen && (
-              <div className="absolute right-0 mt-3 w-56 bg-bg-luxury border border-neutral-soft/80 p-4 shadow-xl z-50 animate-[fadeIn_0.15s_ease-out] flex flex-col text-left">
-                {user ? (
-                  <div className="flex flex-col gap-3.5 text-xs text-text-muted">
-                    <div className="pb-3 border-b border-neutral-soft/30 flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-neutral-soft/20 text-fg-luxury flex items-center justify-center font-semibold text-[10px]">
-                        {user.fullName?.substring(0, 2).toUpperCase() || 'OP'}
+              <>
+                <style>{`
+                  @keyframes slideDownFade {
+                    from { transform: translateY(-8px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                  }
+                `}</style>
+                <div className="absolute right-0 mt-5 w-60 bg-bg-luxury/95 backdrop-blur-md border border-neutral-soft/80 p-5 shadow-[0_15px_40px_rgba(0,0,0,0.12)] z-50 animate-[slideDownFade_0.2s_ease-out] flex flex-col text-left">
+                  {/* Pointing Arrow */}
+                  <div className="absolute -top-[6px] right-3.5 w-2.5 h-2.5 bg-bg-luxury border-t border-l border-neutral-soft/80 transform rotate-45 z-50"></div>
+                  
+                  {user ? (
+                    <div className="flex flex-col gap-3.5 text-[9px] uppercase tracking-widest text-text-muted font-light">
+                      <div className="pb-3.5 border-b border-neutral-soft/30 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-neutral-soft/20 text-fg-luxury flex items-center justify-center font-semibold text-[10px]">
+                          {user.fullName?.substring(0, 2).toUpperCase() || 'US'}
+                        </div>
+                        <div className="truncate flex-1">
+                          <p className="font-semibold text-fg-luxury truncate max-w-[130px]">{user.fullName || 'User Profile'}</p>
+                          <p className="text-[7.5px] text-text-muted lowercase truncate max-w-[130px] mt-0.5">{user.email}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold text-fg-luxury truncate max-w-[120px] uppercase text-[10px]">{user.fullName || 'Active User'}</p>
-                        <p className="text-[8px] text-text-muted truncate max-w-[120px]">{user.email}</p>
+                      <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2 hover:text-fg-luxury transition-transform hover:translate-x-1 duration-200">
+                        <User size={12} strokeWidth={1.5} /> My Profile
+                      </Link>
+                      <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2 hover:text-fg-luxury transition-transform hover:translate-x-1 duration-200">
+                        <ClipboardList size={12} strokeWidth={1.5} /> My Orders
+                      </Link>
+                      <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2 hover:text-fg-luxury transition-transform hover:translate-x-1 duration-200">
+                        <Heart size={12} strokeWidth={1.5} /> Wishlist
+                      </Link>
+                      <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2 hover:text-fg-luxury transition-transform hover:translate-x-1 duration-200">
+                        <Settings size={12} strokeWidth={1.5} /> Addresses
+                      </Link>
+                      <button 
+                        onClick={() => { handleLogoutClick(); setIsAccountDropdownOpen(false); }}
+                        className="flex items-center gap-2 hover:text-red-700 transition-colors text-left w-full mt-2 pt-3 border-t border-neutral-soft/30 cursor-pointer uppercase text-[9px] tracking-widest"
+                      >
+                        <LogOut size={12} strokeWidth={1.5} /> Logout
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3.5 text-[9px] uppercase tracking-widest text-text-muted font-light">
+                      <Link href="/login" onClick={() => setIsAccountDropdownOpen(false)} className="btn-editorial-solid text-center py-2.5 text-[9px] font-semibold tracking-[0.2em]">
+                        Sign In
+                      </Link>
+                      <Link href="/signup" onClick={() => setIsAccountDropdownOpen(false)} className="btn-editorial text-center py-2.5 text-[9px] font-semibold tracking-[0.2em]">
+                        Create Account
+                      </Link>
+                      <div className="border-t border-neutral-soft/30 pt-3 flex flex-col gap-2.5">
+                        <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center justify-between hover:text-fg-luxury hover:translate-x-1 transition-transform duration-200">
+                          <span className="flex items-center gap-2"><Heart size={12} strokeWidth={1.5} /> Wishlist</span>
+                          <ChevronRight size={10} />
+                        </Link>
+                        <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center justify-between hover:text-fg-luxury hover:translate-x-1 transition-transform duration-200">
+                          <span className="flex items-center gap-2"><ClipboardList size={12} strokeWidth={1.5} /> Track Order</span>
+                          <ChevronRight size={10} />
+                        </Link>
                       </div>
                     </div>
-                    <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2 hover:text-fg-luxury transition-colors">
-                      <User size={12} /> My Profile
-                    </Link>
-                    <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2 hover:text-fg-luxury transition-colors">
-                      <ClipboardList size={12} /> My Orders
-                    </Link>
-                    <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2 hover:text-fg-luxury transition-colors">
-                      <Heart size={12} /> Wishlist
-                    </Link>
-                    <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2 hover:text-fg-luxury transition-colors">
-                      <Settings size={12} /> Saved Addresses
-                    </Link>
-                    <button 
-                      onClick={() => { handleLogoutClick(); setIsAccountDropdownOpen(false); }}
-                      className="flex items-center gap-2 hover:text-red-700 transition-colors text-left w-full mt-1.5 pt-2.5 border-t border-neutral-soft/30 cursor-pointer"
-                    >
-                      <LogOut size={12} /> Logout
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-3.5 text-xs text-text-muted">
-                    <Link href="/login" onClick={() => setIsAccountDropdownOpen(false)} className="btn-editorial-solid text-center py-2 text-[9px] font-semibold tracking-widest">
-                      Sign In
-                    </Link>
-                    <Link href="/signup" onClick={() => setIsAccountDropdownOpen(false)} className="btn-editorial text-center py-2 text-[9px] font-semibold tracking-widest">
-                      Create Account
-                    </Link>
-                    <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center justify-between hover:text-fg-luxury transition-colors pt-2.5 border-t border-neutral-soft/30">
-                      <span className="flex items-center gap-2"><Heart size={12} /> Wishlist</span>
-                      <ChevronRight size={10} />
-                    </Link>
-                    <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center justify-between hover:text-fg-luxury transition-colors">
-                      <span className="flex items-center gap-2"><ClipboardList size={12} /> Track Order</span>
-                      <ChevronRight size={10} />
-                    </Link>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
 
