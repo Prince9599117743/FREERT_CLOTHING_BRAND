@@ -294,7 +294,10 @@ export const createOrder = async (order: Omit<Order, 'id' | 'createdAt' | 'updat
     const { error: itemsError } = await supabase.from('order_items').insert(itemsPayload);
     if (itemsError) throw itemsError;
   }
-  return data as Order;
+  return {
+    ...data,
+    orderNumber: data.order_number
+  } as Order;
 };
 
 // ─────────────────────────────────────────────

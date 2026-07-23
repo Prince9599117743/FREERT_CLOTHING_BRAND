@@ -52,6 +52,7 @@ interface HomepageSection {
 
 interface OrderAdmin {
   id: string;
+  orderNumber?: number;
   customer: string;
   phone: string;
   email: string;
@@ -206,6 +207,7 @@ function AdminCoreWorkspace() {
         if (orderList.status === 'fulfilled') {
           setOrders(orderList.value.map((o: any) => ({
             id: o.id,
+            orderNumber: o.order_number || o.orderNumber,
             customer: o.user?.full_name || 'Guest',
             phone: o.user?.phone || '—',
             email: o.user?.email || '—',
@@ -2162,7 +2164,9 @@ function AdminCoreWorkspace() {
           <div key={o.id} className="border border-neutral-soft p-6 bg-bg-luxury flex flex-col gap-4 justify-between">
             <div className="flex justify-between items-start">
               <div>
-                <span className="font-semibold text-fg-luxury uppercase tracking-wider">{o.id}</span>
+                <span className="font-semibold text-fg-luxury uppercase tracking-wider">
+                  {o.orderNumber ? `#${o.orderNumber}` : o.id}
+                </span>
                 <span className="text-[8px] text-text-muted font-light ml-3">{o.date}</span>
               </div>
               <span className={`text-[9.5px] uppercase font-semibold py-1 px-3 border border-neutral-soft ${o.status === 'delivered' ? 'bg-green-50 text-green-800' : o.status === 'cancelled' ? 'bg-red-50 text-red-800' : 'bg-amber-50 text-amber-800'}`}>
@@ -2182,67 +2186,39 @@ function AdminCoreWorkspace() {
               <span>₹{o.amount.toLocaleString('en-IN')}</span>
             </div>
 
-            {/* Workflow buttons */}
-            <div className="flex flex-wrap gap-2 pt-3 border-t border-neutral-soft/20">
-              {o.status === 'pending' && (
-                <button 
-                  onClick={async () => {
-                    try {
-                      await updateOrderStatus(o.id, 'processing');
-                      setOrders(prev => prev.map(item => item.id === o.id ? { ...item, status: 'processing' as any } : item));
-                      showToast('Order accepted.', 'success');
-                    } catch { showToast('Update failed.', 'error'); }
-                  }} 
-                  className="btn-editorial-solid py-1.5 px-3 text-[9px]"
-                >
-                  Accept
-                </button>
-              )}
-              {o.status === 'processing' && (
-                <button 
-                  onClick={async () => {
-                    try {
-                      await updateOrderStatus(o.id, 'shipped');
-                      setOrders(prev => prev.map(item => item.id === o.id ? { ...item, status: 'shipped' as any } : item));
-                      showToast('Order marked as shipped.', 'success');
-                    } catch { showToast('Update failed.', 'error'); }
-                  }} 
-                  className="btn-editorial-solid py-1.5 px-3 text-[9px]"
-                >
-                  Ship
-                </button>
-              )}
-              {o.status === 'shipped' && (
-                <button 
-                  onClick={async () => {
-                    try {
-                      await updateOrderStatus(o.id, 'delivered');
-                      setOrders(prev => prev.map(item => item.id === o.id ? { ...item, status: 'delivered' as any } : item));
-                      showToast('Order marked as delivered.', 'success');
-                    } catch { showToast('Update failed.', 'error'); }
-                  }} 
-                  className="btn-editorial-solid py-1.5 px-3 text-[9px]"
-                >
-                  Deliver
-                </button>
-              )}
-              {o.status !== 'cancelled' && o.status !== 'delivered' && (
-                <button 
-                  onClick={async () => {
-                    const confirmCancel = window.confirm(`Cancel order ${o.id}?`);
-                    if (confirmCancel) {
+            {/* Workflow and status buttons */}
+            <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-neutral-soft/20">
+              <span className="text-[8px] uppercase tracking-widest text-text-muted mr-1 font-semibold">Change Status:</span>
+              
+              {(['processing', 'shipped', 'delivered', 'cancelled'] as const).map(status => {
+                if (o.status === status) return null;
+                
+                // Color formatting per status transition
+                const btnStyles = 
+                  status === 'delivered' ? 'border-green-200 text-green-800 hover:bg-green-50' :
+                  status === 'cancelled' ? 'border-red-200 text-red-800 hover:bg-red-50' :
+                  status === 'shipped' ? 'border-blue-200 text-blue-800 hover:bg-blue-50' :
+                  'border-neutral-soft text-text-muted hover:border-fg-luxury';
+
+                return (
+                  <button
+                    key={status}
+                    onClick={async () => {
                       try {
-                        await updateOrderStatus(o.id, 'cancelled');
-                        setOrders(prev => prev.map(item => item.id === o.id ? { ...item, status: 'cancelled' as any } : item));
-                        showToast('Order cancelled.', 'info');
-                      } catch { showToast('Update failed.', 'error'); }
-                    }
-                  }} 
-                  className="text-red-700 hover:text-red-800 text-[9px] uppercase font-semibold py-1 px-2 border border-red-100 hover:bg-red-50 ml-auto"
-                >
-                  Cancel
-                </button>
-              )}
+                        await updateOrderStatus(o.id, status);
+                        setOrders(prev => prev.map(item => item.id === o.id ? { ...item, status: status as any } : item));
+                        showToast(`Order marked as ${status}.`, 'success');
+                      } catch {
+                        showToast('Update failed.', 'error');
+                      }
+                    }}
+                    className={`text-[8.5px] uppercase font-semibold py-1.5 px-3.5 border cursor-pointer transition-colors ${btnStyles}`}
+                  >
+                    {status === 'processing' ? 'Accept' : status}
+                  </button>
+                );
+              })}
+              
               <button 
                 onClick={() => handlePrintInvoice(o)}
                 className="btn-editorial py-1.5 px-3 text-[9px] flex items-center gap-1 ml-auto"

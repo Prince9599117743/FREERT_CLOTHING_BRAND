@@ -99,8 +99,15 @@ export default function CheckoutPage() {
     setDatabaseOfflineError(false);
 
     try {
-      const newOrder = {
-        id: `FR-${Math.floor(100000 + Math.random() * 900000)}`,
+      const dbOrder = await createOrder({
+        userId: user?.id || undefined,
+        totalAmount: total,
+        discountAmount: discount,
+        status: 'processing'
+      }, cart);
+
+      const placedOrder = {
+        id: dbOrder.orderNumber ? String(dbOrder.orderNumber) : dbOrder.id,
         date: new Date().toISOString().split('T')[0],
         totalAmount: total,
         discountAmount: discount,
@@ -108,27 +115,18 @@ export default function CheckoutPage() {
         items: cart.map(item => ({
           name: item.variant?.product?.name || 'Garment',
           qty: item.qty,
-          price: item.variant?.product?.basePrice || 0,
-          size: item.variant?.size || 'M',
-          color: item.variant?.color || 'Black'
+          price: (item.variant?.product?.basePrice || 0) + (item.variant?.additionalPrice || 0),
+          size: item.variant?.size || 'One Size',
+          color: item.variant?.color || 'Default'
         }))
       };
 
-      // Direct call to database service
-      await createOrder({
-        userId: user?.id || undefined, // Set undefined to avoid foreign key violations in SQL
-        totalAmount: total,
-        discountAmount: discount,
-        status: 'processing'
-      }, cart);
-
-      // Save order details for step 4 confirmation screen
-      setPlacedOrderDetails(newOrder);
+      setPlacedOrderDetails(placedOrder);
 
       // Append to local storage orders log
       const existing = localStorage.getItem('freert_orders_log');
       const orderHistory = existing ? JSON.parse(existing) : [];
-      localStorage.setItem('freert_orders_log', JSON.stringify([newOrder, ...orderHistory]));
+      localStorage.setItem('freert_orders_log', JSON.stringify([placedOrder, ...orderHistory]));
 
       clearCart();
       sessionStorage.removeItem('freert_discount_active');
@@ -234,63 +232,112 @@ export default function CheckoutPage() {
             </p>
           </div>
         ) : currentStep === 4 ? (
-          /* Step 4: Confirmation screen with delivery timeline tracking */
-          <div className="max-w-2xl mx-auto text-left flex flex-col gap-10 bg-bg-luxury border border-neutral-soft/80 p-8 shadow-xl">
-            <div className="flex flex-col gap-2 items-center text-center pb-6 border-b border-neutral-soft/30">
-              <div className="w-12 h-12 bg-green-100 text-green-800 rounded-full flex items-center justify-center mb-2">
-                <Check size={22} />
+          /* Step 4: Premium Success screen with animations */
+          <div className="max-w-2xl mx-auto text-left flex flex-col gap-8 bg-bg-luxury border border-neutral-soft/80 p-8 shadow-2xl animate-[fadeIn_0.5s_ease-out]">
+            <style>{`
+              @keyframes drawCheck {
+                to { stroke-dashoffset: 0; }
+              }
+              @keyframes checkScale {
+                0% { transform: scale(0.8); opacity: 0; }
+                50% { transform: scale(1.1); }
+                100% { transform: scale(1); opacity: 1; }
+              }
+            `}</style>
+
+            <div className="flex flex-col gap-3 items-center text-center pb-8 border-b border-neutral-soft/30 bg-emerald-950/[0.02] p-6 rounded-lg border border-emerald-800/10">
+              <div className="w-20 h-20 rounded-full bg-emerald-50 border border-emerald-200/50 flex items-center justify-center mb-2 animate-[checkScale_0.5s_ease-out]">
+                <svg className="w-10 h-10 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    d="M5 13l4 4L19 7" 
+                    strokeDasharray="30"
+                    strokeDashoffset="30"
+                    className="animate-[drawCheck_0.6s_ease-out_0.2s_forwards]"
+                  />
+                </svg>
               </div>
-              <h2 className="text-xl uppercase tracking-widest font-semibold text-fg-luxury">Order Confirmed</h2>
-              <p className="text-xs text-text-muted">Thank you for your purchase. Your order {placedOrderDetails?.id} has been registered.</p>
+              <span className="text-[10px] uppercase tracking-[0.3em] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-3 py-1 rounded-full">
+                Order Placed Successfully
+              </span>
+              <h2 className="text-2xl uppercase tracking-widest font-semibold text-fg-luxury mt-2">
+                Order ID: #{placedOrderDetails?.id}
+              </h2>
+              <p className="text-[11px] text-text-muted max-w-sm leading-relaxed mt-1">
+                Thank you for choosing FREERT. Your bespoke order has been registered and is being prepared by our master craftsmen.
+              </p>
             </div>
 
             {/* Tracking Timeline */}
-            <div>
-              <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-6">Delivery Timeline Status</h4>
+            <div className="bg-neutral-soft/5 p-6 rounded-lg border border-neutral-soft/20">
+              <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-6">Delivery Progression</h4>
               <div className="grid grid-cols-5 text-center relative items-center">
-                <div className="absolute top-[11px] left-[10%] right-[10%] h-[2px] bg-neutral-soft/50 z-0" />
-                <div className="absolute top-[11px] left-[10%] w-[20%] h-[2px] bg-fg-luxury z-0" />
+                <div className="absolute top-[11px] left-[10%] right-[10%] h-[2px] bg-neutral-soft/40 z-0" />
+                <div className="absolute top-[11px] left-[10%] w-[20%] h-[2px] bg-emerald-600 z-0" />
                 
                 {[
-                  { label: 'Ordered', done: true },
-                  { label: 'Packed', done: true },
-                  { label: 'Shipped', done: false },
-                  { label: 'Out for Delivery', done: false },
-                  { label: 'Delivered', done: false }
+                  { label: 'Ordered', done: true, current: false },
+                  { label: 'Confirmed', done: true, current: true },
+                  { label: 'Shipped', done: false, current: false },
+                  { label: 'Out for Delivery', done: false, current: false },
+                  { label: 'Delivered', done: false, current: false }
                 ].map((pt, idx) => (
                   <div key={idx} className="z-10 flex flex-col items-center gap-2">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center border text-[9px] transition-all duration-300 ${pt.done ? 'bg-fg-luxury text-bg-luxury border-fg-luxury' : 'bg-bg-luxury text-text-muted border-neutral-soft'}`}>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center border text-[9px] transition-all duration-300 ${
+                      pt.current ? 'bg-emerald-600 text-white border-emerald-600 ring-4 ring-emerald-50' : 
+                      pt.done ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 
+                      'bg-bg-luxury text-text-muted border-neutral-soft'
+                    }`}>
                       {pt.done ? <Check size={10} /> : idx + 1}
                     </div>
-                    <span className={`text-[8px] uppercase tracking-widest font-semibold ${pt.done ? 'text-fg-luxury' : 'text-text-muted'}`}>{pt.label}</span>
+                    <span className={`text-[8px] uppercase tracking-widest font-semibold ${pt.done ? 'text-fg-luxury' : 'text-text-muted'}`}>
+                      {pt.label}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Order spec summary list */}
-            <div className="border-t border-neutral-soft/30 pt-6">
-              <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-4">Summary</h4>
-              <div className="flex flex-col gap-3">
+            <div className="border border-neutral-soft/80 rounded-lg p-6 bg-bg-luxury">
+              <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-4 pb-2 border-b border-neutral-soft/30">
+                Order Summary Details
+              </h4>
+              <div className="flex flex-col gap-4">
                 {placedOrderDetails?.items.map((item: any, idx: number) => (
-                  <div key={idx} className="flex justify-between text-xs font-light text-text-muted">
-                    <span>{item.name} ({item.color} | {item.size}) x {item.qty}</span>
-                    <span className="text-fg-luxury">₹{(item.price * item.qty).toLocaleString('en-IN')}</span>
+                  <div key={idx} className="flex justify-between items-center text-xs font-light text-text-muted">
+                    <div className="flex flex-col">
+                      <span className="font-medium text-fg-luxury lowercase first-letter:uppercase">{item.name}</span>
+                      <span className="text-[9px] uppercase tracking-wider text-text-muted mt-0.5">
+                        {item.color} | {item.size} × {item.qty}
+                      </span>
+                    </div>
+                    <span className="text-fg-luxury font-medium">₹{(item.price * item.qty).toLocaleString('en-IN')}</span>
                   </div>
                 ))}
-                <div className="flex justify-between text-xs font-semibold text-fg-luxury border-t border-neutral-soft/30 pt-3 mt-1">
-                  <span>Grand Total</span>
-                  <span>₹{placedOrderDetails?.totalAmount.toLocaleString('en-IN')}</span>
+                
+                <div className="flex justify-between text-xs font-semibold text-fg-luxury border-t border-neutral-soft/30 pt-4 mt-2">
+                  <span className="uppercase tracking-widest">Total Paid (COD)</span>
+                  <span className="text-sm">₹{placedOrderDetails?.totalAmount.toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>
 
-            <button 
-              onClick={() => router.push('/dashboard')}
-              className="btn-editorial-solid w-full text-xs py-3.5 tracking-widest uppercase mt-4"
-            >
-              Go to Order History
-            </button>
+            <div className="flex flex-col sm:flex-row gap-4 mt-2">
+              <button 
+                onClick={() => router.push('/dashboard')}
+                className="btn-editorial-solid flex-1 text-xs py-3.5 tracking-widest uppercase cursor-pointer"
+              >
+                Go to Order History
+              </button>
+              <button 
+                onClick={() => router.push('/')}
+                className="btn-editorial flex-1 text-xs py-3.5 tracking-widest uppercase cursor-pointer"
+              >
+                Continue Shopping
+              </button>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-start">

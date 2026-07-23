@@ -7,7 +7,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
-import { ShieldAlert, ArrowRight, Smartphone, Mail } from 'lucide-react';
+import { ShieldAlert, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,16 +22,9 @@ export default function LoginPage() {
     });
   }, [router]);
 
-  const [loginMethod, setLoginMethod] = useState<'email' | 'otp'>('email');
-  
   // Email state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
-  // OTP state
-  const [phone, setPhone] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
   
   const [loading, setLoading] = useState(false);
 
@@ -40,45 +33,17 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (loginMethod === 'email') {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-        if (error) {
-          showToast(error.message, 'error');
-        } else if (data.user) {
-          showToast('Welcome back.', 'success');
-          const role = data.user.app_metadata?.role;
-          router.push(role === 'admin' || role === 'superadmin' ? '/admin' : '/');
-        }
-      } else {
-        // Phone OTP Flow
-        if (!otpSent) {
-          const { error } = await supabase.auth.signInWithOtp({
-            phone
-          });
-          if (error) {
-            showToast(error.message, 'error');
-          } else {
-            showToast('Verification code sent to your phone.', 'success');
-            setOtpSent(true);
-          }
-        } else {
-          // Verify code
-          const { data, error } = await supabase.auth.verifyOtp({
-            phone,
-            token: otpCode,
-            type: 'sms'
-          });
-          if (error) {
-            showToast(error.message, 'error');
-          } else if (data.user) {
-            showToast('Phone verified successfully.', 'success');
-            router.push('/dashboard');
-          }
-        }
+      if (error) {
+        showToast(error.message, 'error');
+      } else if (data.user) {
+        showToast('Welcome back.', 'success');
+        const role = data.user.app_metadata?.role;
+        router.push(role === 'admin' || role === 'superadmin' ? '/admin' : '/');
       }
     } catch (err) {
       showToast('An error occurred. Please check your connection and try again.', 'error');
@@ -123,96 +88,44 @@ export default function LoginPage() {
           {/* Form */}
           <form onSubmit={handleLogin} className="flex flex-col gap-6">
             
-            {/* Toggler */}
-            <div className="flex border border-neutral-soft/80 bg-neutral-soft/10 p-1">
-              <button 
-                type="button"
-                onClick={() => { setLoginMethod('email'); setOtpSent(false); }}
-                className={`w-1/2 text-[9px] uppercase tracking-widest py-1.5 font-light transition-all flex items-center justify-center gap-1.5 cursor-pointer ${loginMethod === 'email' ? 'bg-bg-luxury text-fg-luxury font-medium shadow-sm' : 'text-text-muted'}`}
-              >
-                <Mail size={12} /> Email Sign In
-              </button>
-              <button 
-                type="button"
-                onClick={() => setLoginMethod('otp')}
-                className={`w-1/2 text-[9px] uppercase tracking-widest py-1.5 font-light transition-all flex items-center justify-center gap-1.5 cursor-pointer ${loginMethod === 'otp' ? 'bg-bg-luxury text-fg-luxury font-medium shadow-sm' : 'text-text-muted'}`}
-              >
-                <Smartphone size={12} /> Phone OTP
-              </button>
+            <div>
+              <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">Email Address</label>
+              <input 
+                type="email" 
+                required 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="input-editorial text-xs"
+                placeholder="you@example.com"
+              />
+            </div>
+            <div>
+              <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">Password</label>
+              <input 
+                type="password" 
+                required 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="input-editorial text-xs"
+                placeholder="••••••••"
+              />
             </div>
 
-            {loginMethod === 'email' ? (
-              <>
-                <div>
-                  <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">Email Address</label>
-                  <input 
-                    type="email" 
-                    required 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="input-editorial text-xs"
-                    placeholder="you@example.com"
-                  />
-                </div>
-                <div>
-                  <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">Password</label>
-                  <input 
-                    type="password" 
-                    required 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="input-editorial text-xs"
-                    placeholder="••••••••"
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                {!otpSent ? (
-                  <div>
-                    <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">Phone Number</label>
-                    <input 
-                      type="tel" 
-                      required 
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="input-editorial text-xs"
-                      placeholder="+91 98765 43210"
-                    />
-                  </div>
-                ) : (
-                  <div>
-                    <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-2 block font-medium">OTP Code</label>
-                    <input 
-                      type="text" 
-                      required 
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value)}
-                      className="input-editorial text-xs font-mono tracking-[0.3em] text-center"
-                      placeholder="123456"
-                    />
-                  </div>
-                )}
-              </>
-            )}
-
-            {loginMethod === 'email' && (
-              <div className="flex justify-between items-center text-[10px] uppercase tracking-wider font-light mt-2">
-                <Link href="/forgot-password" className="text-text-muted hover:text-fg-luxury transition-colors">
-                  Forgot Password?
-                </Link>
-                <Link href="/signup" className="text-text-muted hover:text-fg-luxury transition-colors">
-                  Create Account
-                </Link>
-              </div>
-            )}
+            <div className="flex justify-between items-center text-[10px] uppercase tracking-wider font-light mt-2">
+              <Link href="/forgot-password" className="text-text-muted hover:text-fg-luxury transition-colors">
+                Forgot Password?
+              </Link>
+              <Link href="/signup" className="text-text-muted hover:text-fg-luxury transition-colors">
+                Create Account
+              </Link>
+            </div>
 
             <button 
               type="submit" 
               disabled={loading}
               className="btn-editorial-solid w-full flex items-center justify-center gap-2 text-xs tracking-[0.2em] font-medium py-3.5 mt-4 cursor-pointer"
             >
-              {loading ? 'Verifying...' : (loginMethod === 'otp' && !otpSent ? 'Send OTP Verification' : 'Sign In')} <ArrowRight size={14} />
+              {loading ? 'Verifying...' : 'Sign In'} <ArrowRight size={14} />
             </button>
           </form>
 

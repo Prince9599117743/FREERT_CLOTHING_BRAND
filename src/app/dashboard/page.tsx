@@ -82,7 +82,7 @@ export default function DashboardPage() {
         const data = await getOrders(user.id);
         // Map Order records to local OrderLog format
         const mapped: OrderLog[] = data.map((o: any) => ({
-          id: o.id,
+          id: o.order_number ? `FR-${o.order_number}` : (o.orderNumber ? `FR-${o.orderNumber}` : o.id),
           date: o.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0],
           totalAmount: o.totalAmount,
           status: o.status,
@@ -152,37 +152,10 @@ export default function DashboardPage() {
 
             <div className="border-t border-neutral-soft/30 pt-6 flex flex-col gap-4">
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-text-muted mb-1 font-medium">Membership Level</p>
-                <p className="text-xs uppercase tracking-widest text-fg-luxury font-semibold flex items-center gap-1.5">
-                  <Star size={12} className="text-accent-gold fill-accent-gold" /> Gold Member
+                <p className="text-[9px] uppercase tracking-widest text-text-muted mb-1 font-medium">Account Details</p>
+                <p className="text-xs uppercase tracking-widest text-fg-luxury font-medium mt-1">
+                  Registered Customer Profile
                 </p>
-              </div>
-              <div>
-                <p className="text-[9px] uppercase tracking-widest text-text-muted mb-1 font-medium">Loyalty Points</p>
-                <p className="text-xs uppercase tracking-wider text-fg-luxury font-semibold">1,240 Points</p>
-              </div>
-            </div>
-
-            {/* Invite program */}
-            <div className="border-t border-neutral-soft/30 pt-6 flex flex-col gap-3">
-              <h4 className="text-[10px] uppercase tracking-[0.2em] font-medium text-fg-luxury">Referral Program</h4>
-              <p className="text-[11px] text-text-muted font-light leading-relaxed">
-                Invite friends to join FREERT. Earn 200 Loyalty points for each referral.
-              </p>
-              <div className="flex border border-neutral-soft/80 bg-bg-luxury p-2">
-                <input 
-                  type="text" 
-                  readOnly 
-                  value={`https://freertclothing.vercel.app/signup?ref=${referralCode}`}
-                  className="bg-transparent text-[9px] font-light w-full text-fg-luxury focus:outline-none truncate"
-                />
-                <button 
-                  onClick={handleCopyReferral}
-                  className="text-text-muted hover:text-fg-luxury transition-colors cursor-pointer ml-1"
-                  aria-label="Copy Referral URL"
-                >
-                  {copied ? <Check size={14} className="text-green-700" /> : <Copy size={14} />}
-                </button>
               </div>
             </div>
           </div>

@@ -125,6 +125,7 @@ export interface Order {
   totalAmount: number;
   discountAmount: number;
   status: OrderStatus;
+  orderNumber?: number;
   createdAt: string;
   updatedAt: string;
   items?: OrderItem[];
