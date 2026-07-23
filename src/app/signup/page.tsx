@@ -23,6 +23,7 @@ export default function SignupPage() {
   }, [router]);
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -32,14 +33,14 @@ export default function SignupPage() {
 
     try {
       // Check if user already exists
-      const { data: existingUser, error: checkError } = await supabase
+      const { data: existingUser } = await supabase
         .from('users')
         .select('id')
         .eq('email', email)
         .maybeSingle();
 
       if (existingUser) {
-        showToast('User already exists. Please login.', 'error');
+        showToast('Customer already exists. Please sign in.', 'error');
         setLoading(false);
         return;
       }
@@ -47,21 +48,23 @@ export default function SignupPage() {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        phone, // Register phone number in auth.users
         options: {
           data: {
-            full_name: fullName
+            full_name: fullName,
+            phone: phone // Also write in metadata
           }
         }
       });
 
       if (error) {
         if (error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already exists')) {
-          showToast('User already exists. Please login.', 'error');
+          showToast('Customer already exists. Please sign in.', 'error');
         } else {
           showToast(error.message, 'error');
         }
       } else if (data.user) {
-        showToast('Account created. Please check your email to verify.', 'success');
+        showToast('Account created successfully. Please check your email to verify.', 'success');
         router.push('/login');
       }
     } catch (err) {
@@ -104,6 +107,18 @@ export default function SignupPage() {
                 onChange={(e) => setFullName(e.target.value)}
                 className="input-editorial text-xs transition-all duration-300 focus:border-fg-luxury focus:ring-1 focus:ring-fg-luxury"
                 placeholder="First Last"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted font-medium">Phone Number</label>
+              <input 
+                type="tel" 
+                required 
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="input-editorial text-xs transition-all duration-300 focus:border-fg-luxury focus:ring-1 focus:ring-fg-luxury"
+                placeholder="+91 98765 43210"
               />
             </div>
             

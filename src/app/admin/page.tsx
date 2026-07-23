@@ -1762,9 +1762,9 @@ function AdminCoreWorkspace() {
         const url = await uploadMedia(file, 'hero-banners');
         await updateHeroBanner(slideId, { imageUrl: url });
         setHeroBanners(prev => prev.map(b => b.id === slideId ? { ...b, image_url: url } : b));
-        showToast('Hero slide image updated.', 'success');
+        showToast('Hero slide media updated.', 'success');
       } catch {
-        showToast('Failed to upload image.', 'error');
+        showToast('Failed to upload media.', 'error');
       }
     };
 
@@ -1865,16 +1865,26 @@ function AdminCoreWorkspace() {
                   </button>
                 </div>
 
-                {/* Image Preview & Upload */}
+                {/* Image/Video Preview & Upload */}
                 <div className="flex gap-4 items-center">
-                  <div className="w-24 h-16 bg-neutral-soft/10 border border-neutral-soft overflow-hidden relative">
-                    <img src={slide.image_url || slide.imageUrl || '/assets/trench_coat.jpg'} className="w-full h-full object-cover" alt="" />
+                  <div className="w-24 h-16 bg-neutral-soft/10 border border-neutral-soft overflow-hidden relative flex items-center justify-center">
+                    {(() => {
+                      const url = slide.image_url || slide.imageUrl || '';
+                      const isVid = url.toLowerCase().endsWith('.mp4') || 
+                                    url.toLowerCase().endsWith('.webm') ||
+                                    url.toLowerCase().endsWith('.mov') ||
+                                    url.includes('video');
+                      if (isVid) {
+                        return <video src={url} className="w-full h-full object-cover" muted />;
+                      }
+                      return <img src={url || '/assets/trench_coat.jpg'} className="w-full h-full object-cover" alt="" />;
+                    })()}
                   </div>
                   <label className="btn-editorial py-1.5 px-3 text-[9px] uppercase font-semibold cursor-pointer">
-                    Change Image
+                    Change Media
                     <input 
                       type="file" 
-                      accept="image/*"
+                      accept="image/*,video/*"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) handleHeroImageChange(slide.id, file);

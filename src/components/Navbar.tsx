@@ -15,7 +15,7 @@ export const Navbar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { cart, setIsCartOpen } = useCart();
-  const { user, logout } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
   const { showToast } = useToast();
   
   const [isMegaOpen, setIsMegaOpen] = useState(false);
@@ -23,7 +23,41 @@ export const Navbar: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
 
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [modalName, setModalName] = useState('');
+  const [modalPhone, setModalPhone] = useState('');
+  const [modalSubmitting, setModalSubmitting] = useState(false);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Show modal if user is logged in but profile phone is empty
+    if (user && !user.phone) {
+      setModalName(user.fullName || '');
+      setModalPhone('');
+      setShowProfileModal(true);
+    } else {
+      setShowProfileModal(false);
+    }
+  }, [user]);
+
+  const handleProfileComplete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!modalName.trim() || !modalPhone.trim()) {
+      showToast('Please fill all required details.', 'error');
+      return;
+    }
+    setModalSubmitting(true);
+    try {
+      await updateProfile(modalName.trim(), modalPhone.trim());
+      showToast('Profile completed successfully.', 'success');
+      setShowProfileModal(false);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update profile.', 'error');
+    } finally {
+      setModalSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -121,59 +155,59 @@ export const Navbar: React.FC = () => {
               <>
                 <style>{`
                   @keyframes slideDownFade {
-                    from { transform: translateY(-8px); opacity: 0; }
+                    from { transform: translateY(-10px); opacity: 0; }
                     to { transform: translateY(0); opacity: 1; }
                   }
                 `}</style>
-                <div className="absolute right-0 mt-5 w-60 bg-bg-luxury/95 backdrop-blur-md border border-neutral-soft/80 p-5 shadow-[0_15px_40px_rgba(0,0,0,0.12)] z-50 animate-[slideDownFade_0.2s_ease-out] flex flex-col text-left">
-                  {/* Pointing Arrow */}
-                  <div className="absolute -top-[6px] right-3.5 w-2.5 h-2.5 bg-bg-luxury border-t border-l border-neutral-soft/80 transform rotate-45 z-50"></div>
+                <div className="absolute right-0 top-full mt-7 w-64 bg-bg-luxury/95 backdrop-blur-lg border border-neutral-soft/90 p-6 shadow-[0_25px_60px_rgba(0,0,0,0.15)] z-50 animate-[slideDownFade_0.25s_ease-out] flex flex-col text-left rounded-sm">
+                  {/* Pointing Arrow (Styled to bridge the gap cleanly) */}
+                  <div className="absolute -top-[5px] right-3.5 w-2.5 h-2.5 bg-bg-luxury border-t border-l border-neutral-soft/90 transform rotate-45 z-50"></div>
                   
                   {user ? (
-                    <div className="flex flex-col gap-3.5 text-[9px] uppercase tracking-widest text-text-muted font-light">
-                      <div className="pb-3.5 border-b border-neutral-soft/30 flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-neutral-soft/20 text-fg-luxury flex items-center justify-center font-semibold text-[10px]">
+                    <div className="flex flex-col gap-4 text-[9px] uppercase tracking-widest text-text-muted font-light">
+                      <div className="pb-4 border-b border-neutral-soft/30 flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-neutral-soft/20 text-fg-luxury flex items-center justify-center font-semibold text-[10px] border border-neutral-soft/30">
                           {user.fullName?.substring(0, 2).toUpperCase() || 'US'}
                         </div>
                         <div className="truncate flex-1">
-                          <p className="font-semibold text-fg-luxury truncate max-w-[130px]">{user.fullName || 'User Profile'}</p>
-                          <p className="text-[7.5px] text-text-muted lowercase truncate max-w-[130px] mt-0.5">{user.email}</p>
+                          <p className="font-semibold text-fg-luxury truncate max-w-[140px] tracking-widest">{user.fullName || 'User Profile'}</p>
+                          <p className="text-[7.5px] text-text-muted lowercase truncate max-w-[140px] mt-0.5 tracking-normal">{user.email}</p>
                         </div>
                       </div>
-                      <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2 hover:text-fg-luxury transition-transform hover:translate-x-1 duration-200">
+                      <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2.5 py-1 text-fg-luxury hover:text-accent-gold transition-all hover:translate-x-1 duration-200">
                         <User size={12} strokeWidth={1.5} /> My Profile
                       </Link>
-                      <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2 hover:text-fg-luxury transition-transform hover:translate-x-1 duration-200">
+                      <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2.5 py-1 text-fg-luxury hover:text-accent-gold transition-all hover:translate-x-1 duration-200">
                         <ClipboardList size={12} strokeWidth={1.5} /> My Orders
                       </Link>
-                      <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2 hover:text-fg-luxury transition-transform hover:translate-x-1 duration-200">
+                      <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2.5 py-1 text-fg-luxury hover:text-accent-gold transition-all hover:translate-x-1 duration-200">
                         <Heart size={12} strokeWidth={1.5} /> Wishlist
                       </Link>
-                      <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2 hover:text-fg-luxury transition-transform hover:translate-x-1 duration-200">
+                      <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2.5 py-1 text-fg-luxury hover:text-accent-gold transition-all hover:translate-x-1 duration-200">
                         <Settings size={12} strokeWidth={1.5} /> Addresses
                       </Link>
                       <button 
                         onClick={() => { handleLogoutClick(); setIsAccountDropdownOpen(false); }}
-                        className="flex items-center gap-2 hover:text-red-700 transition-colors text-left w-full mt-2 pt-3 border-t border-neutral-soft/30 cursor-pointer uppercase text-[9px] tracking-widest"
+                        className="flex items-center gap-2.5 hover:text-red-700 transition-colors text-left w-full mt-2 pt-3.5 border-t border-neutral-soft/30 cursor-pointer uppercase text-[9px] tracking-widest font-medium"
                       >
                         <LogOut size={12} strokeWidth={1.5} /> Logout
                       </button>
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-3.5 text-[9px] uppercase tracking-widest text-text-muted font-light">
-                      <Link href="/login" onClick={() => setIsAccountDropdownOpen(false)} className="btn-editorial-solid text-center py-2.5 text-[9px] font-semibold tracking-[0.2em]">
+                    <div className="flex flex-col gap-4 text-[9px] uppercase tracking-widest text-text-muted font-light">
+                      <Link href="/login" onClick={() => setIsAccountDropdownOpen(false)} className="btn-editorial-solid text-center py-3 text-[9px] font-semibold tracking-[0.25em] transition-all hover:opacity-90">
                         Sign In
                       </Link>
-                      <Link href="/signup" onClick={() => setIsAccountDropdownOpen(false)} className="btn-editorial text-center py-2.5 text-[9px] font-semibold tracking-[0.2em]">
+                      <Link href="/signup" onClick={() => setIsAccountDropdownOpen(false)} className="btn-editorial text-center py-3 text-[9px] font-semibold tracking-[0.25em] transition-all hover:bg-neutral-soft/10">
                         Create Account
                       </Link>
-                      <div className="border-t border-neutral-soft/30 pt-3 flex flex-col gap-2.5">
-                        <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center justify-between hover:text-fg-luxury hover:translate-x-1 transition-transform duration-200">
-                          <span className="flex items-center gap-2"><Heart size={12} strokeWidth={1.5} /> Wishlist</span>
+                      <div className="border-t border-neutral-soft/30 pt-4 flex flex-col gap-3">
+                        <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center justify-between text-fg-luxury hover:text-accent-gold hover:translate-x-1 transition-transform duration-200 py-1">
+                          <span className="flex items-center gap-2.5"><Heart size={12} strokeWidth={1.5} /> Wishlist</span>
                           <ChevronRight size={10} />
                         </Link>
-                        <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center justify-between hover:text-fg-luxury hover:translate-x-1 transition-transform duration-200">
-                          <span className="flex items-center gap-2"><ClipboardList size={12} strokeWidth={1.5} /> Track Order</span>
+                        <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center justify-between text-fg-luxury hover:text-accent-gold hover:translate-x-1 transition-transform duration-200 py-1">
+                          <span className="flex items-center gap-2.5"><ClipboardList size={12} strokeWidth={1.5} /> Track Order</span>
                           <ChevronRight size={10} />
                         </Link>
                       </div>
@@ -205,6 +239,54 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Sliding Navigation Drawer */}
       <MobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+
+      {/* Profile Completion Modal (Bypasses standard close options, forces completion) */}
+      {showProfileModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[9999] flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out]">
+          <div className="w-full max-w-sm bg-bg-luxury border border-neutral-soft/90 p-8 shadow-2xl flex flex-col gap-6 text-left animate-[slideDownFade_0.3s_ease-out]">
+            <div className="text-center pb-4 border-b border-neutral-soft/30">
+              <h3 className="text-xs uppercase tracking-[0.25em] font-semibold text-fg-luxury">Complete Account</h3>
+              <p className="text-[9px] text-text-muted font-light uppercase tracking-widest leading-relaxed mt-1.5">
+                Please verify your name and enter your phone number to complete your customer account.
+              </p>
+            </div>
+            
+            <form onSubmit={handleProfileComplete} className="flex flex-col gap-5">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted font-semibold">Full Name</label>
+                <input 
+                  type="text"
+                  required
+                  value={modalName}
+                  onChange={(e) => setModalName(e.target.value)}
+                  className="input-editorial text-xs transition-all focus:border-fg-luxury focus:ring-1 focus:ring-fg-luxury"
+                  placeholder="First Last"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted font-semibold">Phone Number</label>
+                <input 
+                  type="tel"
+                  required
+                  value={modalPhone}
+                  onChange={(e) => setModalPhone(e.target.value)}
+                  className="input-editorial text-xs transition-all focus:border-fg-luxury focus:ring-1 focus:ring-fg-luxury"
+                  placeholder="+91 98765 43210"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={modalSubmitting}
+                className="btn-editorial-solid w-full text-xs tracking-[0.2em] font-medium py-3.5 mt-2 cursor-pointer transition-all hover:tracking-[0.25em]"
+              >
+                {modalSubmitting ? 'Saving Profile...' : 'Complete Profile'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
-};
+}

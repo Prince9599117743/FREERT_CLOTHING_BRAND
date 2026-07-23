@@ -111,18 +111,32 @@ export const HeroSlideshow: React.FC = () => {
       {/* Slides images transitions grid stack */}
       {slides.map((slide, index) => {
         const isActive = index === currentIndex;
+        const isVideo = slide.image.toLowerCase().endsWith('.mp4') || 
+                        slide.image.toLowerCase().endsWith('.webm') ||
+                        slide.image.toLowerCase().endsWith('.mov') ||
+                        slide.image.includes('video');
         return (
           <div 
             key={slide.id}
             className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${isActive ? 'opacity-80 z-0' : 'opacity-0 -z-10'}`}
           >
-            <img 
-              src={slide.image} 
-              alt={slide.heading}
-              className="w-full h-full object-cover object-[center_15%]"
-              // Preload the first campaign image for Core Web Vitals
-              {...(index === 0 ? { fetchpriority: 'high' } : { loading: 'lazy' })}
-            />
+            {isVideo ? (
+              <video 
+                src={slide.image} 
+                autoPlay 
+                muted 
+                loop 
+                playsInline
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <img 
+                src={slide.image} 
+                alt={slide.heading}
+                className="w-full h-full object-cover object-[center_15%]"
+                {...(index === 0 ? { fetchpriority: 'high' } : { loading: 'lazy' })}
+              />
+            )}
           </div>
         );
       })}
