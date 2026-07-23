@@ -516,7 +516,7 @@ function AdminCoreWorkspace() {
     printWindow.document.write(`
       <html>
         <head>
-          <title>Invoice - ${order.id}</title>
+          <title>Invoice - #${order.orderNumber || order.id}</title>
           <style>
             body { font-family: monospace; padding: 40px; color: #111; line-height: 1.5; }
             .header { text-align: center; border-bottom: 1px dashed #ccc; padding-bottom: 20px; margin-bottom: 20px; }
@@ -535,7 +535,7 @@ function AdminCoreWorkspace() {
           </div>
           <div class="meta">
             <div>
-              <strong>Order Ref:</strong> ${order.id}<br/>
+              <strong>Order Ref:</strong> #${order.orderNumber || order.id}<br/>
               <strong>Date:</strong> ${order.date}<br/>
               <strong>Payment Mode:</strong> ${order.paymentMethod}
             </div>

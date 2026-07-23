@@ -24,6 +24,8 @@ interface OrderLog {
   totalAmount: number;
   status: string;
   items: OrderItemLog[];
+  orderNumber?: number;
+  order_number?: number;
 }
 
 export default function DashboardPage() {
@@ -82,14 +84,14 @@ export default function DashboardPage() {
         const data = await getOrders(user.id);
         // Map Order records to local OrderLog format
         const mapped: OrderLog[] = data.map((o: any) => ({
-          id: o.order_number ? `FR-${o.order_number}` : (o.orderNumber ? `FR-${o.orderNumber}` : o.id),
-          date: o.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0],
-          totalAmount: o.totalAmount,
+          id: o.order_number ? String(o.order_number) : (o.orderNumber ? String(o.orderNumber) : o.id),
+          date: (o.created_at || o.createdAt)?.split('T')[0] || new Date().toISOString().split('T')[0],
+          totalAmount: Number(o.total_amount || o.totalAmount || 0),
           status: o.status,
           items: o.items ? o.items.map((i: any) => ({
             name: i.variant?.product?.name || 'Garment Article',
             qty: i.qty,
-            price: i.unitPrice,
+            price: Number(i.unit_price || i.unitPrice || 0),
             size: i.variant?.size || 'M',
             color: i.variant?.color || 'Black'
           })) : []
@@ -187,7 +189,7 @@ export default function DashboardPage() {
                   <div key={order.id} className="border border-neutral-soft/50 p-6 flex flex-col gap-4 hover:border-neutral-400 transition-colors duration-300">
                     <div className="flex justify-between items-start gap-4">
                       <div>
-                        <span className="text-xs uppercase tracking-wider font-semibold text-fg-luxury">{order.id}</span>
+                        <span className="text-xs uppercase tracking-wider font-semibold text-fg-luxury">#{order.orderNumber || order.order_number || order.id}</span>
                         <span className="text-[10px] text-text-muted font-light ml-3">Date: {order.date}</span>
                       </div>
                       <span className={`text-[9px] uppercase tracking-widest py-1 px-3.5 font-light ${order.status === 'delivered' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>

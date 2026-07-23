@@ -256,7 +256,7 @@ export default function CheckoutPage() {
                 Order Placed Successfully
               </span>
               <h2 className="text-2xl uppercase tracking-widest font-semibold text-fg-luxury mt-2">
-                Order ID: #{placedOrderDetails?.id}
+                Order ID: #{placedOrderDetails?.orderNumber || placedOrderDetails?.order_number || placedOrderDetails?.id}
               </h2>
               <p className="text-[11px] text-text-muted max-w-sm leading-relaxed mt-1">
                 Thank you for choosing FREERT. Your bespoke order has been registered and is being prepared by our master craftsmen.
