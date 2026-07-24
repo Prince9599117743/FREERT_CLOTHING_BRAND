@@ -59,7 +59,7 @@ export default function SupportPage() {
             <div>
               <h4 className="text-xs uppercase tracking-wider font-semibold text-amber-700 mb-1">Service Under Maintenance</h4>
               <p className="text-xs font-light text-amber-700/80 leading-relaxed">
-                Our messaging service is temporarily offline. Please contact us directly at concierge@freert.net or try again later.
+                Our messaging service is temporarily offline. Please contact us directly at {storeEmail} or try again later.
               </p>
             </div>
           </div>

@@ -24,6 +24,7 @@ export default function ShopPage() {
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [priceRange, setPriceRange] = useState<number>(20000);
   const [dbError, setDbError] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   // Category variables derived from slug parameters
   const parentParam = slug?.[0] || '';
@@ -31,6 +32,7 @@ export default function ShopPage() {
 
   useEffect(() => {
     const loadData = async () => {
+      setLoading(true);
       try {
         const [list, cats] = await Promise.all([getProducts(), getCategories()]);
         setAllProducts(list);
@@ -38,6 +40,8 @@ export default function ShopPage() {
         setFilteredProducts(list);
       } catch (e: any) {
         setDbError(true);
+      } finally {
+        setLoading(false);
       }
     };
     loadData();
@@ -332,7 +336,17 @@ export default function ShopPage() {
             </div>
 
             {/* Products grid */}
-            {filteredProducts.length === 0 ? (
+            {loading ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-10">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="flex flex-col gap-4 animate-[fadeIn_0.5s_ease-out_infinite_alternate]">
+                    <div className="bg-neutral-soft/30 aspect-[3/4] w-full rounded-sm" />
+                    <div className="bg-neutral-soft/30 h-3 w-3/4" />
+                    <div className="bg-neutral-soft/30 h-3 w-1/4" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredProducts.length === 0 ? (
               <div className="py-24 text-center border border-dashed border-neutral-soft/60 flex flex-col justify-center items-center gap-4">
                 <p className="text-xs uppercase tracking-[0.25em] text-text-muted font-light">No articles match your parameters</p>
                 <button 

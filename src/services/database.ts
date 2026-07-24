@@ -736,6 +736,10 @@ export const saveHeroBanner = async (banner: any): Promise<any> => {
     image_click_redirect: banner.imageClickRedirect ?? banner.image_click_redirect ?? true,
     video_click_redirect: banner.videoClickRedirect ?? banner.video_click_redirect ?? false,
     order: banner.order ?? 0,
+    description: banner.description ?? '',
+    show_description: banner.showDescription ?? banner.show_description ?? true,
+    desktop_focal_point: banner.desktopFocalPoint ?? banner.desktop_focal_point ?? 'center',
+    mobile_focal_point: banner.mobileFocalPoint ?? banner.mobile_focal_point ?? 'center',
   };
   const { data, error } = await supabase.from('hero_banners').insert(payload).select().single();
   if (error) throw error;
@@ -778,6 +782,10 @@ export const updateHeroBanner = async (id: string, updates: any): Promise<any> =
   if (updates.imageClickRedirect !== undefined) payload.image_click_redirect = updates.imageClickRedirect;
   if (updates.videoClickRedirect !== undefined) payload.video_click_redirect = updates.videoClickRedirect;
   if (updates.order !== undefined) payload.order = updates.order;
+  if (updates.description !== undefined) payload.description = updates.description;
+  if (updates.showDescription !== undefined) payload.show_description = updates.showDescription;
+  if (updates.desktopFocalPoint !== undefined) payload.desktop_focal_point = updates.desktopFocalPoint;
+  if (updates.mobileFocalPoint !== undefined) payload.mobile_focal_point = updates.mobileFocalPoint;
   
   // Support direct snake_case values passed as properties
   if (updates.image_url !== undefined) payload.image_url = updates.image_url;
@@ -795,6 +803,9 @@ export const updateHeroBanner = async (id: string, updates: any): Promise<any> =
   if (updates.image_click_redirect !== undefined) payload.image_click_redirect = updates.image_click_redirect;
   if (updates.video_click_redirect !== undefined) payload.video_click_redirect = updates.video_click_redirect;
   if (updates.order !== undefined) payload.order = updates.order;
+  if (updates.show_description !== undefined) payload.show_description = updates.show_description;
+  if (updates.desktop_focal_point !== undefined) payload.desktop_focal_point = updates.desktop_focal_point;
+  if (updates.mobile_focal_point !== undefined) payload.mobile_focal_point = updates.mobile_focal_point;
 
   const { data, error } = await supabase.from('hero_banners').update(payload).eq('id', id).select().single();
   if (error) throw error;

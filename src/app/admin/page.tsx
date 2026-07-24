@@ -472,6 +472,10 @@ function AdminCoreWorkspace() {
             imageClickRedirect: b.image_click_redirect ?? b.imageClickRedirect ?? true,
             videoClickRedirect: b.video_click_redirect ?? b.videoClickRedirect ?? false,
             order: b.order ?? 0,
+            description: b.description ?? '',
+            showDescription: b.show_description ?? b.showDescription ?? true,
+            desktopFocalPoint: b.desktop_focal_point ?? b.desktopFocalPoint ?? 'center',
+            mobileFocalPoint: b.mobile_focal_point ?? b.mobileFocalPoint ?? 'center',
           });
 
           if (heroList.value.length === 0) {
@@ -2611,6 +2615,10 @@ function AdminCoreWorkspace() {
           imageClickRedirect: draft.imageClickRedirect !== undefined ? draft.imageClickRedirect : (slide.imageClickRedirect ?? true),
           videoClickRedirect: draft.videoClickRedirect !== undefined ? draft.videoClickRedirect : (slide.videoClickRedirect ?? false),
           order: draft.order !== undefined ? parseInt(String(draft.order), 10) : (slide.order ?? 0),
+          description: draft.description !== undefined ? draft.description : (slide.description ?? ''),
+          showDescription: draft.showDescription !== undefined ? draft.showDescription : (slide.showDescription ?? true),
+          desktopFocalPoint: draft.desktopFocalPoint !== undefined ? draft.desktopFocalPoint : (slide.desktopFocalPoint ?? 'center'),
+          mobileFocalPoint: draft.mobileFocalPoint !== undefined ? draft.mobileFocalPoint : (slide.mobileFocalPoint ?? 'center'),
         };
 
         await updateHeroBanner(slideId, payload);
@@ -2632,6 +2640,10 @@ function AdminCoreWorkspace() {
           imageClickRedirect: b.image_click_redirect ?? b.imageClickRedirect ?? true,
           videoClickRedirect: b.video_click_redirect ?? b.videoClickRedirect ?? false,
           order: b.order ?? 0,
+          description: b.description ?? '',
+          showDescription: b.show_description ?? b.showDescription ?? true,
+          desktopFocalPoint: b.desktop_focal_point ?? b.desktopFocalPoint ?? 'center',
+          mobileFocalPoint: b.mobile_focal_point ?? b.mobileFocalPoint ?? 'center',
         }));
         setHeroBanners(mapped);
 
@@ -2669,7 +2681,11 @@ function AdminCoreWorkspace() {
           enabled: true,
           imageClickRedirect: true,
           videoClickRedirect: false,
-          order: heroBanners.length
+          order: heroBanners.length,
+          description: '',
+          showDescription: true,
+          desktopFocalPoint: 'center',
+          mobileFocalPoint: 'center',
         });
         const mapped = {
           ...newBanner,
@@ -2686,11 +2702,70 @@ function AdminCoreWorkspace() {
           imageClickRedirect: newBanner.image_click_redirect ?? newBanner.imageClickRedirect ?? true,
           videoClickRedirect: newBanner.video_click_redirect ?? newBanner.videoClickRedirect ?? false,
           order: newBanner.order ?? 0,
+          description: newBanner.description ?? '',
+          showDescription: newBanner.show_description ?? newBanner.showDescription ?? true,
+          desktopFocalPoint: newBanner.desktop_focal_point ?? newBanner.desktopFocalPoint ?? 'center',
+          mobileFocalPoint: newBanner.mobile_focal_point ?? newBanner.mobileFocalPoint ?? 'center',
         };
         setHeroBanners(prev => [...prev, mapped]);
         showToast('New hero slide created.', 'success');
       } catch {
         showToast('Failed to create hero slide.', 'error');
+      }
+    };
+
+    const handleDuplicateHeroSlide = async (slide: any) => {
+      try {
+        const draft = heroDrafts[slide.id] || {};
+        const duplicatedBanner = await saveHeroBanner({
+          imageUrl: draft.imageUrl ?? slide.imageUrl ?? '/assets/trench_coat.jpg',
+          heading: `${draft.heading ?? slide.heading ?? ''} (Copy)`,
+          subtitle: draft.subtitle ?? slide.subtitle ?? '',
+          ctaText: draft.ctaText ?? slide.ctaText ?? 'Shop Now',
+          ctaLink: draft.ctaLink ?? slide.ctaLink ?? '/shop',
+          showTitle: draft.showTitle ?? slide.showTitle ?? true,
+          showSubtitle: draft.showSubtitle ?? slide.showSubtitle ?? true,
+          showButton: draft.showButton ?? slide.showButton ?? true,
+          mediaType: draft.mediaType ?? slide.mediaType ?? 'image',
+          videoUrl: draft.videoUrl ?? slide.videoUrl ?? '',
+          posterUrl: draft.posterUrl ?? slide.posterUrl ?? '',
+          focalPoint: draft.focalPoint ?? slide.focalPoint ?? 'center',
+          isPrimary: false,
+          enabled: draft.enabled ?? slide.enabled ?? true,
+          imageClickRedirect: draft.imageClickRedirect ?? slide.imageClickRedirect ?? true,
+          videoClickRedirect: draft.videoClickRedirect ?? slide.videoClickRedirect ?? false,
+          order: heroBanners.length,
+          description: draft.description ?? slide.description ?? '',
+          showDescription: draft.showDescription ?? slide.showDescription ?? true,
+          desktopFocalPoint: draft.desktopFocalPoint ?? slide.desktopFocalPoint ?? 'center',
+          mobileFocalPoint: draft.mobileFocalPoint ?? slide.mobileFocalPoint ?? 'center',
+        });
+        
+        const mapped = {
+          ...duplicatedBanner,
+          imageUrl: duplicatedBanner.image_url || duplicatedBanner.imageUrl || '',
+          showTitle: duplicatedBanner.show_title ?? duplicatedBanner.showTitle ?? true,
+          showSubtitle: duplicatedBanner.show_subtitle ?? duplicatedBanner.showSubtitle ?? true,
+          showButton: duplicatedBanner.show_button ?? duplicatedBanner.showButton ?? true,
+          mediaType: duplicatedBanner.media_type || duplicatedBanner.mediaType || 'image',
+          videoUrl: duplicatedBanner.video_url || duplicatedBanner.videoUrl || '',
+          posterUrl: duplicatedBanner.poster_url || duplicatedBanner.posterUrl || '',
+          focalPoint: duplicatedBanner.focal_point || duplicatedBanner.focalPoint || 'center',
+          isPrimary: duplicatedBanner.is_primary ?? duplicatedBanner.isPrimary ?? false,
+          enabled: duplicatedBanner.enabled ?? true,
+          imageClickRedirect: duplicatedBanner.image_click_redirect ?? duplicatedBanner.imageClickRedirect ?? true,
+          videoClickRedirect: duplicatedBanner.video_click_redirect ?? duplicatedBanner.videoClickRedirect ?? false,
+          order: duplicatedBanner.order ?? 0,
+          description: duplicatedBanner.description ?? '',
+          showDescription: duplicatedBanner.show_description ?? duplicatedBanner.showDescription ?? true,
+          desktopFocalPoint: duplicatedBanner.desktop_focal_point ?? duplicatedBanner.desktopFocalPoint ?? 'center',
+          mobileFocalPoint: duplicatedBanner.mobile_focal_point ?? duplicatedBanner.mobileFocalPoint ?? 'center',
+        };
+        
+        setHeroBanners(prev => [...prev, mapped]);
+        showToast('Hero slide duplicated successfully.', 'success');
+      } catch (err) {
+        showToast('Failed to duplicate hero slide.', 'error');
       }
     };
 
@@ -2869,6 +2944,10 @@ function AdminCoreWorkspace() {
               const imageClickRedirect = draft?.imageClickRedirect ?? slide.imageClickRedirect ?? true;
               const videoClickRedirect = draft?.videoClickRedirect ?? slide.videoClickRedirect ?? false;
               const order = draft?.order ?? slide.order ?? 0;
+              const desktopFocalPoint = draft?.desktopFocalPoint ?? slide.desktopFocalPoint ?? 'center';
+              const mobileFocalPoint = draft?.mobileFocalPoint ?? slide.mobileFocalPoint ?? 'center';
+              const description = draft?.description ?? slide.description ?? '';
+              const showDescription = draft?.showDescription ?? slide.showDescription ?? true;
 
               const isSaving = savingHeroId === slide.id;
 
@@ -2897,13 +2976,23 @@ function AdminCoreWorkspace() {
                         <span className="text-[7.5px] uppercase tracking-widest font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-sm animate-pulse">Unsaved changes</span>
                       )}
                     </div>
-                    <button 
-                      type="button"
-                      onClick={() => handleDeleteHeroSlide(slide.id)}
-                      className="text-red-700 hover:text-red-800 text-[8px] uppercase tracking-widest font-semibold cursor-pointer"
-                    >
-                      Delete Slide
-                    </button>
+                    <div className="flex gap-2.5 items-center">
+                      <button 
+                        type="button"
+                        onClick={() => handleDuplicateHeroSlide(slide)}
+                        className="text-accent-gold hover:text-fg-luxury text-[8px] uppercase tracking-widest font-semibold cursor-pointer"
+                      >
+                        Duplicate
+                      </button>
+                      <span className="text-neutral-300">|</span>
+                      <button 
+                        type="button"
+                        onClick={() => handleDeleteHeroSlide(slide.id)}
+                        className="text-red-700 hover:text-red-800 text-[8px] uppercase tracking-widest font-semibold cursor-pointer"
+                      >
+                        Delete Slide
+                      </button>
+                    </div>
                   </div>
 
                   {/* Primary & Focal point settings */}
@@ -2931,15 +3020,24 @@ function AdminCoreWorkspace() {
                       <span className="text-[8px] uppercase tracking-widest font-semibold text-fg-luxury">Primary Slide</span>
                     </label>
 
-                    <div>
+                    <div className="flex gap-2">
                       <select 
-                        value={focalPoint} 
-                        onChange={(e) => handleHeroDraftChange(slide.id, { focalPoint: e.target.value })}
-                        className="input-editorial py-1 px-1.5 text-[9px] bg-bg-luxury font-light uppercase tracking-wider w-full"
+                        value={desktopFocalPoint} 
+                        onChange={(e) => handleHeroDraftChange(slide.id, { desktopFocalPoint: e.target.value })}
+                        className="input-editorial py-1 px-1 text-[8px] bg-bg-luxury font-light uppercase tracking-wider w-1/2"
                       >
-                        <option value="top">Focal Point: Top</option>
-                        <option value="center">Focal Point: Center</option>
-                        <option value="bottom">Focal Point: Bottom</option>
+                        <option value="top">Desktop Focal: Top</option>
+                        <option value="center">Desktop Focal: Center</option>
+                        <option value="bottom">Desktop Focal: Bottom</option>
+                      </select>
+                      <select 
+                        value={mobileFocalPoint} 
+                        onChange={(e) => handleHeroDraftChange(slide.id, { mobileFocalPoint: e.target.value })}
+                        className="input-editorial py-1 px-1 text-[8px] bg-bg-luxury font-light uppercase tracking-wider w-1/2"
+                      >
+                        <option value="top">Mobile Focal: Top</option>
+                        <option value="center">Mobile Focal: Center</option>
+                        <option value="bottom">Mobile Focal: Bottom</option>
                       </select>
                     </div>
                   </div>
@@ -3017,6 +3115,15 @@ function AdminCoreWorkspace() {
                             Remove Video
                           </button>
                         )}
+                        {mediaType === 'image' && imageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => handleHeroDraftChange(slide.id, { imageUrl: '' })}
+                            className="text-red-700 hover:text-red-800 text-[8px] uppercase tracking-widest font-semibold border border-red-200/50 py-1"
+                          >
+                            Remove Image
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -3057,7 +3164,7 @@ function AdminCoreWorkspace() {
                     </div>
                   )}
 
-                  {/* Heading & Subtitle */}
+                   {/* Heading, Subtitle & Description */}
                   <div className="grid grid-cols-1 gap-3 border-t border-neutral-soft/10 pt-3">
                     <div>
                       <label className="text-[8px] uppercase tracking-widest mb-1 block">Slide Heading</label>
@@ -3074,6 +3181,15 @@ function AdminCoreWorkspace() {
                         type="text" 
                         value={subtitle} 
                         onChange={(e) => handleHeroDraftChange(slide.id, { subtitle: e.target.value })}
+                        className="input-editorial py-1 px-2 text-xs" 
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[8px] uppercase tracking-widest mb-1 block">Description</label>
+                      <input 
+                        type="text" 
+                        value={description} 
+                        onChange={(e) => handleHeroDraftChange(slide.id, { description: e.target.value })}
                         className="input-editorial py-1 px-2 text-xs" 
                       />
                     </div>
@@ -3098,6 +3214,15 @@ function AdminCoreWorkspace() {
                         className="accent-fg-luxury cursor-pointer"
                       />
                       Show Subtitle
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[8px] uppercase tracking-widest cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={showDescription} 
+                        onChange={(e) => handleHeroDraftChange(slide.id, { showDescription: e.target.checked })}
+                        className="accent-fg-luxury cursor-pointer"
+                      />
+                      Show Description
                     </label>
                     <label className="flex items-center gap-1.5 text-[8px] uppercase tracking-widest cursor-pointer">
                       <input 

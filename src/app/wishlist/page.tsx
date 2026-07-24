@@ -55,9 +55,14 @@ export default function WishlistPage() {
 
         {/* Loading Spinner */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-6 h-6 border border-neutral-soft border-t-fg-luxury rounded-full animate-spin mb-4" />
-            <p className="text-[10px] uppercase tracking-widest text-text-muted font-medium">Loading Editorial Wishlist...</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex flex-col gap-4 animate-[fadeIn_0.5s_ease-out_infinite_alternate]">
+                <div className="bg-neutral-soft/30 aspect-[3/4] w-full rounded-sm" />
+                <div className="bg-neutral-soft/30 h-3 w-3/4" />
+                <div className="bg-neutral-soft/30 h-3 w-1/4" />
+              </div>
+            ))}
           </div>
         ) : wishlistProducts.length === 0 ? (
           /* Sleek Luxury Empty State */

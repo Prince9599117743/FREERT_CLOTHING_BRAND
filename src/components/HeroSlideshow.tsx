@@ -24,6 +24,10 @@ export interface HeroSlide {
   imageClickRedirect?: boolean;
   videoClickRedirect?: boolean;
   order?: number;
+  description?: string;
+  showDescription?: boolean;
+  desktopFocalPoint?: string;
+  mobileFocalPoint?: string;
 }
 
 const DEFAULT_SLIDES: HeroSlide[] = [
@@ -40,8 +44,8 @@ const HeroVideo: React.FC<{
   src: string;
   isActive: boolean;
   poster?: string;
-  focalPoint?: string;
-}> = ({ src, isActive, poster, focalPoint }) => {
+  className?: string;
+}> = ({ src, isActive, poster, className = '' }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -60,9 +64,6 @@ const HeroVideo: React.FC<{
     }
   }, [isActive, src]);
 
-  // Translate focal point to object-position CSS values
-  const objectPosition = focalPoint || 'center';
-
   return (
     <video
       ref={videoRef}
@@ -71,8 +72,7 @@ const HeroVideo: React.FC<{
       muted
       playsInline
       loop
-      className="w-full h-full object-cover animate-[fadeIn_0.5s_ease-out]"
-      style={{ objectPosition }}
+      className={`w-full h-full object-cover animate-[fadeIn_0.5s_ease-out] ${className}`}
     />
   );
 };
@@ -110,6 +110,10 @@ export const HeroSlideshow: React.FC = () => {
             imageClickRedirect: b.image_click_redirect ?? b.imageClickRedirect ?? true,
             videoClickRedirect: b.video_click_redirect ?? b.videoClickRedirect ?? false,
             order: b.order ?? 0,
+            description: b.description ?? '',
+            showDescription: b.show_description ?? b.showDescription ?? true,
+            desktopFocalPoint: b.desktop_focal_point ?? b.desktopFocalPoint ?? 'center',
+            mobileFocalPoint: b.mobile_focal_point ?? b.mobileFocalPoint ?? 'center',
           }));
           // Sort by enabled, order, and isPrimary
           const activeSlides = mapped
@@ -193,20 +197,43 @@ export const HeroSlideshow: React.FC = () => {
             onClick={canRedirect && isActive ? () => router.push(slide.ctaLink) : undefined}
           >
             {isVideo ? (
-              <HeroVideo 
-                src={slide.videoUrl || slide.image} 
-                isActive={isActive} 
-                poster={slide.posterUrl} 
-                focalPoint={slide.focalPoint}
-              />
+              <>
+                <style dangerouslySetInnerHTML={{__html: `
+                  .hero-media-${slide.id} {
+                    object-position: ${slide.mobileFocalPoint || slide.focalPoint || 'center'} !important;
+                  }
+                  @media (min-width: 768px) {
+                    .hero-media-${slide.id} {
+                      object-position: ${slide.desktopFocalPoint || slide.focalPoint || 'center'} !important;
+                    }
+                  }
+                `}} />
+                <HeroVideo 
+                  src={slide.videoUrl || slide.image} 
+                  isActive={isActive} 
+                  poster={slide.posterUrl} 
+                  className={`hero-media-${slide.id}`}
+                />
+              </>
             ) : (
-              <img 
-                src={slide.image} 
-                alt={slide.heading}
-                className="w-full h-full object-cover animate-[fadeIn_0.5s_ease-out]"
-                style={{ objectPosition: slide.focalPoint || 'center 15%' }}
-                {...(index === 0 ? { fetchpriority: 'high' } : { loading: 'lazy' })}
-              />
+              <>
+                <style dangerouslySetInnerHTML={{__html: `
+                  .hero-media-${slide.id} {
+                    object-position: ${slide.mobileFocalPoint || slide.focalPoint || 'center'} !important;
+                  }
+                  @media (min-width: 768px) {
+                    .hero-media-${slide.id} {
+                      object-position: ${slide.desktopFocalPoint || slide.focalPoint || 'center'} !important;
+                    }
+                  }
+                `}} />
+                <img 
+                  src={slide.image} 
+                  alt={slide.heading}
+                  className={`w-full h-full object-cover animate-[fadeIn_0.5s_ease-out] hero-media-${slide.id}`}
+                  {...(index === 0 ? { fetchpriority: 'high' } : { loading: 'lazy' })}
+                />
+              </>
             )}
           </div>
         );
@@ -227,6 +254,11 @@ export const HeroSlideshow: React.FC = () => {
             <h1 className="text-5xl md:text-7xl font-light tracking-[0.15em] uppercase leading-tight text-white drop-shadow-sm">
               {currentSlide.heading}
             </h1>
+          )}
+          {(currentSlide.showDescription ?? true) && currentSlide.description && (
+            <p className="text-xs text-neutral-300 font-light max-w-lg mt-1 tracking-wide leading-relaxed">
+              {currentSlide.description}
+            </p>
           )}
           {(currentSlide.showButton ?? true) && currentSlide.ctaText && (
             <button 

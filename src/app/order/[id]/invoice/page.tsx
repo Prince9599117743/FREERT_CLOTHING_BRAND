@@ -5,11 +5,16 @@ import { useParams, useRouter } from 'next/navigation';
 import { getOrderById } from '@/services/database';
 import { Printer, ArrowLeft, ShieldCheck, Mail, Phone, MapPin } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
+import { useSettings } from '@/contexts/SettingsContext';
 
 export default function InvoicePage() {
   const params = useParams();
   const router = useRouter();
   const { showToast } = useToast();
+  const { getSetting } = useSettings();
+  const brandName = getSetting('brand_name', 'FREERT');
+  const storeEmail = getSetting('store_email', 'contact@freert.com');
+  const storeAddress = getSetting('store_address', 'New Delhi');
   const orderId = params?.id as string;
   
   const [order, setOrder] = useState<any>(null);
@@ -134,9 +139,9 @@ export default function InvoicePage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 border-b border-neutral-300 pb-8">
           <div className="flex flex-col gap-1">
             <h1 className="text-xl font-semibold tracking-[0.2em] uppercase text-neutral-900">
-              FREERT
+              {brandName}
             </h1>
-            <span className="text-[7.5px] uppercase tracking-[0.25em] text-neutral-500 font-medium">Concierge Division &bull; New Delhi</span>
+            <span className="text-[7.5px] uppercase tracking-[0.25em] text-neutral-500 font-medium">Concierge Division &bull; {storeAddress}</span>
           </div>
           <div className="text-right sm:text-right flex flex-col gap-0.5 text-xs">
             <span className="text-[11px] uppercase tracking-widest text-neutral-400">Tax Invoice Receipt</span>
@@ -250,7 +255,7 @@ export default function InvoicePage() {
 
         {/* Printable Footer block */}
         <div className="text-center text-[8.5px] uppercase tracking-widest text-neutral-400 mt-12 pt-6 border-t border-neutral-200">
-          Thank you for curating your wardrobe with FREERT &bull; support@freert.com
+          Thank you for curating your wardrobe with {brandName} &bull; {storeEmail}
         </div>
       </div>
     </div>
