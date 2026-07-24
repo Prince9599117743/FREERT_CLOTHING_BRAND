@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
-import { ShoppingBag, User, Search, Menu, Heart, ClipboardList, Settings, LogOut, ChevronRight } from 'lucide-react';
+import { ShoppingBag, User, Search, Menu, Heart, ClipboardList, Settings, LogOut, ChevronRight, X } from 'lucide-react';
 import { MegaMenu } from './MegaMenu';
 import { SearchOverlay } from './SearchOverlay';
 import { MobileMenu } from './MobileMenu';
@@ -28,6 +28,19 @@ export const Navbar: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
+  const [isPromoOpen, setIsPromoOpen] = useState(true);
+
+  useEffect(() => {
+    const dismissed = localStorage.getItem('freert_promo_dismissed') === 'true';
+    if (dismissed) {
+      setIsPromoOpen(false);
+    }
+  }, []);
+
+  const handleDismissPromo = () => {
+    setIsPromoOpen(false);
+    localStorage.setItem('freert_promo_dismissed', 'true');
+  };
 
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [modalName, setModalName] = useState('');
@@ -111,6 +124,21 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
+      {isPromoOpen && (
+        <div className="bg-stone-950 text-bg-luxury py-2 px-6 flex justify-between items-center text-[8.5px] uppercase tracking-[0.25em] z-50 relative border-b border-stone-900 transition-all duration-500 ease-in-out font-medium animate-[fadeIn_0.4s_ease-out] w-full">
+          <div className="flex-1 text-center font-semibold">
+            Use Promo Code <span className="text-accent-gold font-bold">FREERT20</span> for 20% off • Free Delivery Above ₹499
+          </div>
+          <button 
+            onClick={handleDismissPromo}
+            className="text-stone-400 hover:text-white transition-colors cursor-pointer p-0.5 ml-2"
+            aria-label="Dismiss Promo Code Alert"
+          >
+            <X size={10} strokeWidth={2} />
+          </button>
+        </div>
+      )}
+
       <header className="sticky top-0 z-50 w-full bg-bg-luxury/90 backdrop-blur-md border-b border-neutral-soft/40 py-5 px-6 md:px-12 flex justify-between items-center transition-all duration-300">
         
         {/* Mobile Hamburger & Logo Container */}

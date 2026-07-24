@@ -6,6 +6,7 @@ import { ToastProvider } from '@/contexts/ToastContext';
 import { WishlistProvider } from '@/contexts/WishlistContext';
 import { ToastContainer } from '@/components/ui/ToastContainer';
 import { SettingsProvider } from '@/contexts/SettingsContext';
+import { SocialProofPopup } from '@/components/SocialProofPopup';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://freert.net'),
@@ -62,6 +63,7 @@ export default function RootLayout({
                 <WishlistProvider>
                   {children}
                   <ToastContainer />
+                  <SocialProofPopup />
                 </WishlistProvider>
               </CartProvider>
             </SettingsProvider>
