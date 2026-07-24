@@ -684,9 +684,9 @@ export default function ProductDetailPage() {
                   <div className="flex gap-3">
                     {sizes.map((s) => {
                       const sizeVariant = product.variants?.find(v => v.size === s && v.color === (selectedColor || colors[0]));
-                      const isSizeOutOfStock = sizeVariant 
-                        ? (product.trackQuantity !== false && sizeVariant.stockQty === 0) 
-                        : true;
+                      const isSizeOutOfStock = (product.variants && product.variants.length > 0)
+                        ? (sizeVariant ? (product.trackQuantity !== false && sizeVariant.stockQty === 0) : true)
+                        : (product.status === 'out-of-stock' || (product.trackQuantity !== false && (product.stockQty ?? 0) === 0));
                       return (
                         <button
                           key={s}

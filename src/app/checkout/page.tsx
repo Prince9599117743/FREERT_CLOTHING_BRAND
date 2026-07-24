@@ -46,7 +46,7 @@ export default function CheckoutPage() {
   const redirectTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const isSubmittingRef = React.useRef(false);
 
-  const shippingCost = cartSubtotal >= 499 ? 0 : 60;
+  const shippingCost = cartSubtotal > 499 ? 0 : 80;
 
   useEffect(() => {
     if (cart.length === 0 && !processing && currentStep !== 4) {

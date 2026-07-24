@@ -21,8 +21,8 @@ export default function CartPage() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
 
-  const shippingThreshold = 15000;
-  const shippingCost = cartSubtotal >= shippingThreshold || cartSubtotal === 0 ? 0 : 500;
+  const shippingThreshold = 499;
+  const shippingCost = cartSubtotal > shippingThreshold || cartSubtotal === 0 ? 0 : 80;
 
   // Restore coupon if saved in sessionStorage
   useEffect(() => {
