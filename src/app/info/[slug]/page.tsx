@@ -230,7 +230,7 @@ export default function InfoPage() {
                 </li>
                 <li className="flex items-start gap-3">
                   <Mail size={16} className="text-accent-gold mt-0.5 flex-shrink-0" />
-                  <span>comms@freert.net</span>
+                  <span>comms@freert.in</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Phone size={16} className="text-accent-gold mt-0.5 flex-shrink-0" />

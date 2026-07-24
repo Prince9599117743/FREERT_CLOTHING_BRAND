@@ -687,19 +687,37 @@ export default function ProductDetailPage() {
 
   const schemaProduct = {
     name: product.name,
-    image: [product.images[0]],
-    description: product.description,
+    image: product.images || [],
+    description: product.description || 'Premium minimalist apparel collection by FREERT.',
     sku: product.variants?.[0]?.sku || product.slug,
+    mpn: product.id,
     brand: {
       '@type': 'Brand',
       name: 'FREERT'
     },
     offers: {
       '@type': 'Offer',
-      price: product.basePrice,
+      url: `https://freert.in/product/${product.slug}`,
       priceCurrency: 'INR',
-      availability: 'https://schema.org/InStock'
-    }
+      price: activePrice,
+      priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      itemCondition: 'https://schema.org/NewCondition',
+      availability: isOutOfStock ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+      seller: {
+        '@type': 'Organization',
+        name: 'FREERT',
+        url: 'https://freert.in'
+      }
+    },
+    ...(totalReviews > 0 ? {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: averageRating,
+        reviewCount: totalReviews,
+        bestRating: '5',
+        worstRating: '1'
+      }
+    } : {})
   };
 
   /* Premium details sections helper styles */

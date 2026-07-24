@@ -9,7 +9,7 @@ import { SettingsProvider } from '@/contexts/SettingsContext';
 import { SocialProofPopup } from '@/components/SocialProofPopup';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://freert.net'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://freert.in'),
   title: 'FREERT | Luxury Minimalist Fashion eCommerce',
   description: 'BE YOU. BE BOLD. BE FREERT. Explore premium minimalist linens, structured outerwear, and contemporary streetwear curated for editorial fashion standards.',
   keywords: 'FREERT, luxury fashion, minimalist clothing, premium ecommerce, editorial design, contemporary streetwear, linen',
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     title: 'FREERT | Luxury Minimalist Fashion eCommerce',
     description: 'BE YOU. BE BOLD. BE FREERT. Explore premium minimalist linens, structured outerwear, and contemporary streetwear curated for editorial fashion standards.',
     type: 'website',
-    url: 'https://freert.net',
+    url: 'https://freert.in',
     siteName: 'FREERT',
     locale: 'en_IN',
     images: [
