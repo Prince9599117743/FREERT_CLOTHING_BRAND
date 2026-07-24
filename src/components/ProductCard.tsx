@@ -42,7 +42,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     e.stopPropagation();
     if (isOutOfStock) return;
     
-    const variant = product.variants?.find(v => v.size === size);
+    let variant = product.variants?.find(v => v.size === size);
+    if (!variant && (!product.variants || product.variants.length === 0)) {
+      variant = {
+        id: `virtual-${product.id}`,
+        productId: product.id,
+        size: size || 'One Size',
+        color: 'Default',
+        stockQty: product.stockQty || 10,
+        additionalPrice: 0,
+        sku: `SKU-${product.slug}-default`
+      } as any;
+    }
     if (variant) {
       await addToCart({ ...variant, product });
       showToast(`Equipped ${product.name} (${size}) to bag.`, 'success');
@@ -56,8 +67,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     if (isOutOfStock) return;
     
     const targetSize = activeSize || sizes[0] || 'One Size';
-    const variant = product.variants?.find(v => v.size === targetSize) || product.variants?.[0];
-    
+    let variant = product.variants?.find(v => v.size === targetSize) || product.variants?.[0];
+    if (!variant && (!product.variants || product.variants.length === 0)) {
+      variant = {
+        id: `virtual-${product.id}`,
+        productId: product.id,
+        size: targetSize || 'One Size',
+        color: 'Default',
+        stockQty: product.stockQty || 10,
+        additionalPrice: 0,
+        sku: `SKU-${product.slug}-default`
+      } as any;
+    }
     if (variant) {
       await addToCart({ ...variant, product });
       router.push('/checkout');

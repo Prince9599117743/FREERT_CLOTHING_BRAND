@@ -307,12 +307,23 @@ export default function ProductDetailPage() {
 
 
   const handleAddToBag = async () => {
-    const variant = product.variants?.find(v => v.size === selectedSize && v.color === selectedColor);
+    let variant = product.variants?.find(v => v.size === selectedSize && v.color === selectedColor);
+    if (!variant && (!product.variants || product.variants.length === 0)) {
+      variant = {
+        id: `virtual-${product.id}`,
+        productId: product.id,
+        size: selectedSize || 'One Size',
+        color: selectedColor || 'Default',
+        stockQty: product.stockQty || 10,
+        additionalPrice: 0,
+        sku: `SKU-${product.slug}-default`
+      } as any;
+    }
     
     if (variant) {
       await addToCart({ ...variant, product });
       setAdded(true);
-      showToast(`Equipped ${product.name} (${selectedSize}) to shopping bag.`, 'success');
+      showToast(`Equipped ${product.name} (${selectedSize || 'One Size'}) to shopping bag.`, 'success');
       setTimeout(() => setAdded(false), 2000);
       setIsCartOpen(true);
     }
