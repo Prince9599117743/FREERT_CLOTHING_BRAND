@@ -222,8 +222,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </div>
         )}
 
-        {/* Hover Slider Actions */}
-        <div className="absolute bottom-0 left-0 right-0 bg-fg-luxury/90 backdrop-blur-[2px] p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-in-out flex flex-col gap-3 z-10">
+        {/* Hover Slider Actions (Premium Glassmorphic overlay) */}
+        <div className="absolute bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-white/20 p-3.5 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 flex flex-col gap-2.5 z-10">
           
           {isOutOfStock ? (
             <button 
@@ -232,7 +232,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 e.stopPropagation();
                 showToast(`We will notify you when ${product.name} restocks.`, 'success');
               }}
-              className="w-full bg-accent-gold text-bg-luxury hover:bg-bg-luxury hover:text-fg-luxury text-[8px] uppercase tracking-wider font-semibold py-2.5 transition-all text-center flex items-center justify-center gap-1 cursor-pointer"
+              className="w-full bg-neutral-900 text-white hover:bg-accent-gold hover:text-neutral-900 text-[8px] uppercase tracking-wider font-semibold py-2.5 transition-all text-center flex items-center justify-center gap-1 cursor-pointer rounded-sm"
             >
               <Bell size={10} /> Notify Me
             </button>
@@ -240,14 +240,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             <>
               {/* Sizing selection trigger */}
               {sizes.length > 0 && (
-                <div className="flex flex-col gap-1.5 text-left">
-                  <span className="text-[8px] uppercase tracking-widest text-neutral-300 font-light">Quick Equip Size</span>
-                  <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-col gap-1 text-left">
+                  <span className="text-[7.5px] uppercase tracking-widest text-neutral-500 font-medium">Quick Select Size</span>
+                  <div className="flex flex-wrap gap-1.5 mt-0.5">
                     {sizes.map(size => (
                       <button
                         key={size}
                         onClick={(e) => handleQuickAdd(e, size)}
-                        className="text-[8px] font-semibold bg-bg-luxury hover:bg-accent-gold hover:text-bg-luxury text-fg-luxury py-1 px-2 border border-neutral-soft/30 transition-all cursor-pointer"
+                        className="text-[8px] font-semibold bg-white hover:bg-neutral-950 hover:text-white text-neutral-800 py-1 px-2.5 border border-neutral-200 hover:border-neutral-950 transition-all cursor-pointer rounded-sm"
                       >
                         {size}
                       </button>
@@ -257,16 +257,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               )}
 
               {/* Quick Buy actions */}
-              <div className="flex gap-2">
+              <div className="flex gap-1.5 mt-0.5">
                 <button 
                   onClick={(e) => handleQuickAdd(e, activeSize || sizes[0] || 'One Size')}
-                  className="flex-1 bg-bg-luxury text-fg-luxury hover:bg-accent-gold hover:text-bg-luxury text-[8px] uppercase tracking-wider font-semibold py-2 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                  className="flex-1 bg-white text-neutral-900 hover:bg-neutral-950 hover:text-white text-[8px] uppercase tracking-widest font-semibold py-2 border border-neutral-300 hover:border-neutral-950 transition-all flex items-center justify-center gap-1 cursor-pointer rounded-sm"
                 >
                   <ShoppingBag size={10} /> Add Bag
                 </button>
                 <button 
                   onClick={handleBuyNow}
-                  className="flex-1 bg-accent-gold text-bg-luxury hover:bg-bg-luxury hover:text-fg-luxury text-[8px] uppercase tracking-wider font-semibold py-2 transition-all cursor-pointer"
+                  className="flex-1 bg-neutral-950 text-white hover:bg-accent-gold hover:text-neutral-950 text-[8px] uppercase tracking-widest font-semibold py-2 transition-all cursor-pointer rounded-sm"
                 >
                   Buy Now
                 </button>

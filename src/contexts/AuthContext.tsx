@@ -20,12 +20,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (sessionUser: any) => {
     try {
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', sessionUser.id)
-        .single();
+        .maybeSingle();
       
+      if (!profile) {
+        // Self-healing: Insert profile record
+        const newProfile = {
+          id: sessionUser.id,
+          email: sessionUser.email || '',
+          full_name: sessionUser.user_metadata?.full_name || 'Customer Profile',
+          role: 'customer'
+        };
+        await supabase.from('users').insert(newProfile);
+        return {
+          id: sessionUser.id,
+          email: sessionUser.email || '',
+          fullName: newProfile.full_name,
+          phone: '',
+          role: 'customer' as UserRole,
+          createdAt: sessionUser.created_at,
+          updatedAt: sessionUser.created_at
+        };
+      }
+
       return {
         id: sessionUser.id,
         email: sessionUser.email || '',

@@ -206,6 +206,7 @@ export default function CheckoutPage() {
 
       const placedOrder = {
         id: dbOrder.orderNumber ? String(dbOrder.orderNumber) : dbOrder.id,
+        rawId: dbOrder.id,
         order_number: dbOrder.orderNumber,
         date: new Date().toISOString().split('T')[0],
         totalAmount: total,

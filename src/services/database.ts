@@ -378,7 +378,25 @@ export const createOrder = async (order: Omit<Order, 'id' | 'createdAt' | 'updat
     courier_name: 'Blue Dart',
     expected_delivery_date: expectedDate.toISOString(),
   };
-  if (order.userId) payload.user_id = order.userId;
+  if (order.userId) {
+    try {
+      const { data: userExists } = await supabase.from('users').select('id').eq('id', order.userId).maybeSingle();
+      if (!userExists) {
+        const { data: authSession } = await supabase.auth.getSession();
+        const email = authSession?.session?.user?.email || 'customer@freert.com';
+        const name = authSession?.session?.user?.user_metadata?.full_name || 'Customer Profile';
+        await supabase.from('users').insert({
+          id: order.userId,
+          email,
+          full_name: name,
+          role: 'customer'
+        });
+      }
+      payload.user_id = order.userId;
+    } catch (e) {
+      console.warn('Silent user fkey self-healing failed:', e);
+    }
+  }
   if (order.shippingAddressId) payload.shipping_address_id = order.shippingAddressId;
   if (order.couponId) payload.coupon_id = order.couponId;
 
