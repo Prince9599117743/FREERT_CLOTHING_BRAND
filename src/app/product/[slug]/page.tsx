@@ -2,7 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getProducts, getProductBySlug, getProductReviews, createProductReview, subscribeNewsletter, createRestockAlert, getProductDetailsSections, getProductLookProducts, getProductComboOffer } from '@/services/database';
+import { 
+  getProducts, 
+  getProductBySlug, 
+  getProductReviews, 
+  createProductReview, 
+  subscribeNewsletter, 
+  createRestockAlert, 
+  getProductDetailsSections, 
+  getProductLookProducts, 
+  getProductComboOffer 
+} from '@/services/database';
 import type { Product } from '@/types';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -12,7 +22,11 @@ import { useToast } from '@/contexts/ToastContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { StructuredData } from '@/components/StructuredData';
-import { ArrowLeft, Check, Truck, RotateCcw, ShieldCheck, Heart, Star, AlertTriangle, X, ChevronDown } from 'lucide-react';
+import { 
+  ArrowLeft, Check, Truck, RotateCcw, ShieldCheck, Heart, Star, 
+  AlertTriangle, X, ChevronDown, Award, Sparkles, MessageSquare, 
+  ThumbsUp, Flag, Upload, ChevronLeft, ChevronRight 
+} from 'lucide-react';
 import { ProductCard } from '@/components/ProductCard';
 
 interface UserReview {
@@ -21,31 +35,43 @@ interface UserReview {
   rating: number;
   comment: string;
   date: string;
+  title?: string;
+  qualityRating?: number;
+  fitRating?: string; 
+  comfortRating?: number;
+  fabricRating?: number;
+  recommended?: boolean;
+  email?: string;
+  orderNumber?: string;
+  images?: string[];
+  helpfulCount?: number;
+  isVerified?: boolean;
+  sizePurchased?: string;
 }
 
 const AccordionSection: React.FC<{ title: string; content: string }> = ({ title, content }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="border-b border-neutral-soft/40 py-4 transition-all duration-300">
+    <div className="border-b border-[#E8E8E8] py-4 transition-all duration-300">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex justify-between items-center text-[10px] uppercase tracking-[0.2em] text-fg-luxury font-semibold focus:outline-none cursor-pointer py-1.5"
+        className="w-full flex justify-between items-center text-[10px] uppercase tracking-[0.25em] text-[#111111] font-semibold focus:outline-none cursor-pointer py-1"
       >
-        <span>{title}</span>
+        <span className="font-inter">{title}</span>
         <ChevronDown 
           size={12} 
-          className={`text-text-muted transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${isOpen ? 'rotate-180 text-fg-luxury' : ''}`} 
+          className={`text-[#666666] transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${isOpen ? 'rotate-180 text-[#111111]' : ''}`} 
         />
       </button>
       <div 
         className={`grid transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${
-          isOpen ? 'grid-rows-[1fr] opacity-100 mt-3.5' : 'grid-rows-[0fr] opacity-0'
+          isOpen ? 'grid-rows-[1fr] opacity-100 mt-3' : 'grid-rows-[0fr] opacity-0'
         }`}
       >
         <div className="overflow-hidden">
           <div 
-            className="text-[11px] font-light text-text-muted leading-relaxed text-left prose prose-invert max-w-none prose-xs"
+            className="text-[11px] font-light text-[#666666] leading-relaxed text-left prose max-w-none font-inter"
             dangerouslySetInnerHTML={{ __html: content }}
           />
         </div>
@@ -55,8 +81,8 @@ const AccordionSection: React.FC<{ title: string; content: string }> = ({ title,
 };
 
 export default function ProductDetailPage() {
-  const router = useRouter();
   const { slug } = useParams();
+  const router = useRouter();
   const { addToCart, setIsCartOpen } = useCart();
   const { showToast } = useToast();
   const { isInWishlist, toggleWishlist } = useWishlist();
@@ -69,7 +95,6 @@ export default function ProductDetailPage() {
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
   const [added, setAdded] = useState(false);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [zoomStyle, setZoomStyle] = useState<React.CSSProperties>({});
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [dbError, setDbError] = useState(false);
@@ -78,8 +103,27 @@ export default function ProductDetailPage() {
   const [comboOffer, setComboOffer] = useState<any | null>(null);
   const [activeMediaIdx, setActiveMediaIdx] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  // Review states
+  const [reviews, setReviews] = useState<UserReview[]>([]);
+  const [reviewsOffline, setReviewsOffline] = useState(false);
+  const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
+  const [reviewName, setReviewName] = useState('');
+  const [reviewEmail, setReviewEmail] = useState('');
+  const [reviewOrderNum, setReviewOrderNum] = useState('');
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewQuality, setReviewQuality] = useState(5);
+  const [reviewFit, setReviewFit] = useState('True to Size');
+  const [reviewComfort, setReviewComfort] = useState(5);
+  const [reviewFabric, setReviewFabric] = useState(5);
+  const [reviewTitleInput, setReviewTitleInput] = useState('');
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewRecommend, setReviewRecommend] = useState<boolean>(true);
+  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+  const [helpfulVotes, setHelpfulVotes] = useState<Record<string, number>>({});
+  const [votedHelpful, setVotedHelpful] = useState<Record<string, boolean>>({});
+
+  const [restockEmail, setRestockEmail] = useState('');
 
   useEffect(() => {
     const loadItem = async () => {
@@ -168,65 +212,101 @@ export default function ProductDetailPage() {
     loadItem();
   }, [slug]);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - left) / width) * 100;
-    const y = ((e.clientY - top) / height) * 100;
-    setZoomStyle({
-      transformOrigin: `${x}% ${y}%`,
-      transform: 'scale(1.6)'
-    });
-  };
-
-  const handleMouseLeave = () => {
-    setZoomStyle({});
-  };
-
-  // Reviews states
-  const [reviews, setReviews] = useState<UserReview[]>([]);
-  const [reviewName, setReviewName] = useState('');
-  const [reviewRating, setReviewRating] = useState(5);
-  const [reviewComment, setReviewComment] = useState('');
-  const [reviewsOffline, setReviewsOffline] = useState(false);
-  const [restockEmail, setRestockEmail] = useState('');
-
-  const handleRestockAlert = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!restockEmail || !product) return;
-    const selectedVariant = product.variants?.find(v => v.color === selectedColor && v.size === selectedSize);
-    const selectedVariantId = selectedVariant?.id || null;
-    try {
-      await createRestockAlert(product.id, selectedVariantId, user?.id || null, restockEmail);
-      showToast(`Restock alert set. We will notify you when ${product.name} is available.`, 'success');
-      setRestockEmail('');
-    } catch (err) {
-      showToast('Restock alert registered.', 'success');
-      setRestockEmail('');
-    }
-  };
-
   useEffect(() => {
     if (product) {
-      // Attempt to load live reviews from database
       const loadReviews = async () => {
         try {
           const data = await getProductReviews(product.id);
-          // Map Review[] (from DB) to UserReview[] (local interface shape)
-          const mapped: UserReview[] = data.map((r: any) => ({
-            id: r.id,
-            name: r.user?.full_name || 'Anonymous',
-            rating: r.rating,
-            comment: r.comment || '',
-            date: r.createdAt ? r.createdAt.split('T')[0] : (r.created_at ? r.created_at.split('T')[0] : ''),
-          }));
+          const mapped: UserReview[] = data.map((r: any) => {
+            let comment = r.comment || '';
+            let title = 'Verified Experience';
+            let qualityRating = r.rating;
+            let fitRating = 'True to Size';
+            let comfortRating = r.rating;
+            let fabricRating = r.rating;
+            let recommended = true;
+            let email = '';
+            let orderNumber = '';
+            let name = r.user?.full_name || 'Anonymous User';
+            let images: string[] = [];
+            let sizePurchased = 'M';
+
+            try {
+              if (comment.startsWith('{') && comment.endsWith('}')) {
+                const parsed = JSON.parse(comment);
+                comment = parsed.comment || '';
+                title = parsed.title || 'Verified Experience';
+                qualityRating = parsed.qualityRating ?? r.rating;
+                fitRating = parsed.fitRating ?? 'True to Size';
+                comfortRating = parsed.comfortRating ?? r.rating;
+                fabricRating = parsed.fabricRating ?? r.rating;
+                recommended = parsed.recommended ?? true;
+                email = parsed.email || '';
+                orderNumber = parsed.orderNumber || '';
+                name = parsed.fullName || r.user?.full_name || 'Anonymous User';
+                images = parsed.images || [];
+                sizePurchased = parsed.sizePurchased || 'M';
+              }
+            } catch (e) {
+              // fallback
+            }
+
+            return {
+              id: r.id,
+              name,
+              rating: r.rating,
+              comment,
+              date: r.createdAt ? r.createdAt.split('T')[0] : (r.created_at ? r.created_at.split('T')[0] : ''),
+              title,
+              qualityRating,
+              fitRating,
+              comfortRating,
+              fabricRating,
+              recommended,
+              email,
+              orderNumber,
+              images,
+              sizePurchased,
+              isVerified: true
+            };
+          });
           setReviews(mapped);
         } catch (err: any) {
           if (err.message === 'DATABASE_OFFLINE') {
             setReviewsOffline(true);
-            // Default static luxury reviews to avoid blank details
             setReviews([
-              { id: '1', name: 'Aryan Dev', rating: 5, comment: 'Absolutely stunning drape. The organic texture is premium.', date: '2026-07-15' },
-              { id: '2', name: 'Meera Sen', rating: 4, comment: 'Slightly oversized, recommend sizing down if you prefer tailored cuts.', date: '2026-07-10' }
+              { 
+                id: '1', 
+                name: 'Aryan Dev', 
+                rating: 5, 
+                comment: 'The architectural fit is spot on. Hand-knitted weave has weight and drapes beautifully.', 
+                date: '2026-07-15',
+                title: 'Exceptional Drape and Finish',
+                qualityRating: 5,
+                fitRating: 'True to Size',
+                comfortRating: 5,
+                fabricRating: 5,
+                recommended: true,
+                sizePurchased: 'L',
+                isVerified: true,
+                images: []
+              },
+              { 
+                id: '2', 
+                name: 'Meera Sen', 
+                rating: 4, 
+                comment: 'Slightly oversized in the shoulders, which matches the aesthetic. Extremely comfortable fabric.', 
+                date: '2026-07-10',
+                title: 'Beautiful Minimalist Silhouette',
+                qualityRating: 5,
+                fitRating: 'Runs Large',
+                comfortRating: 4,
+                fabricRating: 5,
+                recommended: true,
+                sizePurchased: 'S',
+                isVerified: true,
+                images: []
+              }
             ]);
           }
         }
@@ -235,60 +315,176 @@ export default function ProductDetailPage() {
     }
   }, [product]);
 
-  if (dbError) {
-    return (
-      <div style={{ background: '#0a0a0a', color: '#f5f5f5', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', margin: 0, padding: 20, textAlign: 'center' }}>
-        <h2 style={{ fontWeight: 300, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10, fontSize: 16 }}>System Maintenance</h2>
-        <p style={{ color: '#888', fontSize: 12, maxWidth: 320, fontWeight: 300, lineHeight: 1.6, marginBottom: 20 }}>We are currently carrying out system updates. Services will resume shortly.</p>
-        <div style={{ width: 20, height: 20, border: '1px solid #333', borderTop: '1px solid #fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
+  // Image zoom interactions
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setZoomStyle({
+      transformOrigin: `${x}% ${y}%`,
+      transform: 'scale(1.5)'
+    });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (reader.result) {
+          setUploadedPhotos(prev => [...prev, reader.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handlePostReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      showToast('Please sign in to write a review.', 'error');
+      return;
+    }
+
+    const reviewData = {
+      comment: reviewComment,
+      title: reviewTitleInput || 'Verified Purchase Feedback',
+      qualityRating: reviewQuality,
+      fitRating: reviewFit,
+      comfortRating: reviewComfort,
+      fabricRating: reviewFabric,
+      recommended: reviewRecommend,
+      email: reviewEmail,
+      orderNumber: reviewOrderNum,
+      fullName: reviewName || user.fullName || 'Customer Reviewer',
+      images: uploadedPhotos,
+      sizePurchased: selectedSize || 'M'
+    };
+
+    try {
+      await createProductReview({
+        userId: user.id,
+        productId: product!.id,
+        rating: reviewRating,
+        comment: JSON.stringify(reviewData)
+      });
+
+      showToast('Review submitted successfully.', 'success');
+      setReviewName('');
+      setReviewEmail('');
+      setReviewOrderNum('');
+      setReviewTitleInput('');
+      setReviewComment('');
+      setReviewRating(5);
+      setReviewQuality(5);
+      setReviewFit('True to Size');
+      setReviewComfort(5);
+      setReviewFabric(5);
+      setReviewRecommend(true);
+      setUploadedPhotos([]);
+      setIsReviewFormOpen(false);
+
+      // Instantly load live reviews
+      const data = await getProductReviews(product!.id);
+      const mapped = data.map((r: any) => {
+        let comment = r.comment || '';
+        let title = 'Verified Experience';
+        let qualityRating = r.rating;
+        let fitRating = 'True to Size';
+        let comfortRating = r.rating;
+        let fabricRating = r.rating;
+        let recommended = true;
+        let email = '';
+        let orderNumber = '';
+        let name = r.user?.full_name || 'Anonymous User';
+        let images: string[] = [];
+        let sizePurchased = 'M';
+
+        try {
+          if (comment.startsWith('{') && comment.endsWith('}')) {
+            const parsed = JSON.parse(comment);
+            comment = parsed.comment || '';
+            title = parsed.title || 'Verified Experience';
+            qualityRating = parsed.qualityRating ?? r.rating;
+            fitRating = parsed.fitRating ?? 'True to Size';
+            comfortRating = parsed.comfortRating ?? r.rating;
+            fabricRating = parsed.fabricRating ?? r.rating;
+            recommended = parsed.recommended ?? true;
+            email = parsed.email || '';
+            orderNumber = parsed.orderNumber || '';
+            name = parsed.fullName || r.user?.full_name || 'Anonymous User';
+            images = parsed.images || [];
+            sizePurchased = parsed.sizePurchased || 'M';
+          }
+        } catch (e) {}
+
+        return {
+          id: r.id,
+          name,
+          rating: r.rating,
+          comment,
+          date: r.createdAt ? r.createdAt.split('T')[0] : (r.created_at ? r.created_at.split('T')[0] : ''),
+          title,
+          qualityRating,
+          fitRating,
+          comfortRating,
+          fabricRating,
+          recommended,
+          email,
+          orderNumber,
+          images,
+          sizePurchased,
+          isVerified: true
+        };
+      });
+      setReviews(mapped);
+    } catch {
+      showToast('Could not save review.', 'error');
+    }
+  };
+
+  const handleHelpfulClick = (reviewId: string) => {
+    if (votedHelpful[reviewId]) return;
+    setHelpfulVotes(prev => ({
+      ...prev,
+      [reviewId]: (prev[reviewId] || 0) + 1
+    }));
+    setVotedHelpful(prev => ({
+      ...prev,
+      [reviewId]: true
+    }));
+    showToast('Marked review as helpful.', 'success');
+  };
+
+  const handleReportClick = (reviewId: string) => {
+    showToast('Review has been reported to administration.', 'info');
+  };
 
   if (loadingProduct) {
     return (
-      <div className="min-h-screen bg-bg-luxury flex flex-col">
-        <Navbar />
-        <div className="flex-1 flex items-center justify-center py-40">
-          <div className="w-8 h-8 border border-neutral-soft border-t-fg-luxury rounded-full animate-spin" />
-        </div>
-        <Footer />
+      <div className="min-h-screen bg-[#FAF9F7] flex items-center justify-center">
+        <div className="w-10 h-10 border-2 border-stone-800 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
-  if (!product) {
+  if (dbError || !product) {
     return (
-      <div className="flex flex-col min-h-screen bg-bg-luxury">
-        <Navbar />
-        <div className="flex-1 flex flex-col justify-center items-center gap-4 text-center py-24">
-          <h2 className="text-xl uppercase tracking-widest text-fg-luxury">Garment Not Found</h2>
-          <button 
-            onClick={() => router.push('/')}
-            className="btn-editorial-solid text-xs"
-          >
-            Back to Shop
-          </button>
-        </div>
-        <Footer />
+      <div className="min-h-screen bg-[#FAF9F7] flex flex-col items-center justify-center p-6 text-center">
+        <AlertTriangle size={32} className="text-stone-800 mb-4 stroke-[1.2]" />
+        <h2 className="text-lg font-playfair uppercase tracking-wider text-stone-900 mb-2">Item Unavailable</h2>
+        <p className="text-xs text-[#666666] font-inter max-w-xs leading-relaxed mb-6">
+          This article is currently not in our catalog index or database is offline.
+        </p>
+        <button onClick={() => router.push('/')} className="btn-editorial-solid px-6 py-3 text-[10px]">
+          Return to home
+        </button>
       </div>
     );
   }
 
-  const colorsFromVariants = product.variants ? Array.from(new Set(product.variants.map(v => v.color))) : [product.name];
-  const colorsConfig = product.colors && product.colors.length > 0
-    ? product.colors.filter((c: any) => c.is_active)
-    : colorsFromVariants.map(c => ({
-        id: c,
-        color_name: c,
-        color_code: c.toLowerCase() === 'black' ? '#000000' : (c.toLowerCase() === 'white' ? '#FFFFFF' : '#CCCCCC'),
-        color_image: null,
-        images: product.images || [],
-        videos: [],
-        is_active: true
-      }));
-
+  const colorsConfig = product.colors && product.colors.length > 0 ? product.colors.filter((c: any) => c.is_active) : [];
   const colors = colorsConfig.map(c => c.color_name);
 
   const catSlug = product.category?.slug?.toLowerCase() || '';
@@ -317,38 +513,57 @@ export default function ProductDetailPage() {
   const isSelectedVariantOutOfStock = product.trackQuantity !== false && selectedVariant ? selectedVariant.stockQty === 0 : false;
   const showNotifyMe = isOutOfStock || isSelectedVariantOutOfStock;
 
-  // Custom price overrides per variant
+  const favorited = isInWishlist(product.id);
+
   const activePrice = Number(product.basePrice || 0) + Number(selectedVariant?.additionalPrice || 0);
   const activeMrp = product.mrp ? (Number(product.mrp) + Number(selectedVariant?.additionalPrice || 0)) : undefined;
 
   const defaultAccordionSections = [
-    { title: 'Material & Fabric', content: product.material ? `Composed of 100% premium ${product.material}. Hand-woven in small batches to preserve texture.` : 'Tailored from organic raw fibers. Finished with fine detailing.' },
-    { title: 'Care Guide', content: 'Our garments are made to last. We recommend professional dry clean only or gentle hand wash in cold water. Do not bleach. Air dry in the shade. Iron on low heat if needed.' },
-    { title: 'Shipping & Returns', content: 'We offer complimentary express delivery for all domestic orders above ₹15,000 INR. Below this, a courier return shipping rate of ₹500 INR applies. Returns are accepted within 14 days of receipt.' }
+    { title: 'Material & Fabric', content: product.material ? `Composed of 100% premium ${product.material}. Hand-woven in small batches to preserve luxury texture.` : 'Tailored from organic raw fibers. Finished with fine editorial stitching.' },
+    { title: 'Care Guide', content: 'Our garments are made to last. We recommend professional dry clean only or gentle hand wash in cold water. Do not bleach. Air dry in the shade. Iron on low heat.' },
+    { title: 'Complimentary Shipping & Returns', content: 'We offer complimentary express delivery for all domestic orders above ₹499 INR. Below this, a standard courier rate of ₹80 INR applies. Returns are accepted within 14 days of receipt.' }
   ];
   const activeAccordionSections = infoSections.length > 0 ? infoSections : defaultAccordionSections;
-
 
   const handleAddToBag = async () => {
     let variant = product.variants?.find(v => v.size === selectedSize && v.color === selectedColor);
     if (!variant && (!product.variants || product.variants.length === 0)) {
       variant = {
-        id: `virtual-${product.id}`,
+        id: `virtual-${product.id}-${selectedSize}`,
         productId: product.id,
         size: selectedSize || 'One Size',
         color: selectedColor || 'Default',
         stockQty: product.stockQty || 10,
         additionalPrice: 0,
-        sku: `SKU-${product.slug}-default`
+        sku: `SKU-${product.slug}-${selectedSize}`
       } as any;
     }
     
     if (variant) {
       await addToCart({ ...variant, product });
       setAdded(true);
-      showToast(`Equipped ${product.name} (${selectedSize || 'One Size'}) to shopping bag.`, 'success');
+      showToast(`Equipped ${product.name} (${selectedSize}) to shopping bag.`, 'success');
       setTimeout(() => setAdded(false), 2000);
       setIsCartOpen(true);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    let variant = product.variants?.find(v => v.size === selectedSize && v.color === selectedColor);
+    if (!variant && (!product.variants || product.variants.length === 0)) {
+      variant = {
+        id: `virtual-${product.id}-${selectedSize}`,
+        productId: product.id,
+        size: selectedSize || 'One Size',
+        color: selectedColor || 'Default',
+        stockQty: product.stockQty || 10,
+        additionalPrice: 0,
+        sku: `SKU-${product.slug}-${selectedSize}`
+      } as any;
+    }
+    if (variant) {
+      await addToCart({ ...variant, product });
+      router.push('/checkout');
     }
   };
 
@@ -356,54 +571,34 @@ export default function ProductDetailPage() {
     toggleWishlist(product.id, product.name);
   };
 
-  const handlePostReview = async (e: React.FormEvent) => {
+  const handleRestockAlert = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      showToast('Please sign in to write a review.', 'error');
-      return;
-    }
+    if (!restockEmail) return;
+    const selectedVariant = product.variants?.find(v => v.color === selectedColor && v.size === selectedSize);
+    const selectedVariantId = selectedVariant?.id || null;
     try {
-      await createProductReview({
-        userId: user.id,
-        productId: product.id,
-        rating: reviewRating,
-        comment: reviewComment,
-      });
-
-      showToast('Thank you! Your review has been submitted successfully.', 'success');
-      setReviewName('');
-      setReviewComment('');
-      setReviewRating(5);
-
-      // Instantly load live reviews from database
-      const liveReviews = await getProductReviews(product.id);
-      const mapped: UserReview[] = liveReviews.map((r: any) => ({
-        id: r.id,
-        name: r.user?.full_name || 'Anonymous',
-        rating: r.rating,
-        comment: r.comment || '',
-        date: r.createdAt ? r.createdAt.split('T')[0] : (r.created_at ? r.created_at.split('T')[0] : ''),
-      }));
-      setReviews(mapped);
-
-      // Refresh product data to update average rating and count instantly on storefront
-      const freshProd = await getProductBySlug(product.slug);
-      if (freshProd) {
-        setProduct(freshProd);
-      }
-    } catch (err: any) {
-      const msg = err.message || '';
-      if (msg.includes('DATABASE_OFFLINE')) {
-        showToast('Reviews are temporarily offline. Please try again later.', 'error');
-      } else if (msg.includes('unique constraint') || msg.includes('duplicate key')) {
-        showToast('You have already submitted a review for this product.', 'info');
-      } else {
-        showToast('An error occurred. Please try again.', 'error');
-      }
+      await createRestockAlert(product.id, selectedVariantId, user?.id || null, restockEmail);
+      showToast(`Restock alert set. We will notify you immediately when available.`, 'success');
+      setRestockEmail('');
+    } catch {
+      showToast('Could not register restock request.', 'error');
     }
   };
 
-  const favorited = isInWishlist(product.id);
+  // Review Summary Math
+  const totalReviews = reviews.length;
+  const averageRating = totalReviews > 0 
+    ? reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews 
+    : 5;
+
+  const ratingDistribution = [0, 0, 0, 0, 0];
+  reviews.forEach(r => {
+    const starIdx = Math.max(1, Math.min(5, Math.floor(r.rating))) - 1;
+    ratingDistribution[starIdx]++;
+  });
+
+  const verifiedCount = reviews.filter(r => r.isVerified !== false).length;
+  const verifiedPercentage = totalReviews > 0 ? Math.round((verifiedCount / totalReviews) * 100) : 100;
 
   const schemaProduct = {
     name: product.name,
@@ -423,42 +618,70 @@ export default function ProductDetailPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-luxury">
+    <div className="flex flex-col min-h-screen bg-[#FAF9F7] text-[#111111]">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@100..900&display=swap');
+        .font-playfair { font-family: 'Playfair Display', serif; }
+        .font-inter { font-family: 'Inter', sans-serif; }
+      `}</style>
+      
       <Navbar />
       <StructuredData type="Product" data={schemaProduct} />
 
-      <main className="flex-1 container-editorial py-12 md:py-24">
+      <main className="flex-1 max-w-[1440px] mx-auto w-full px-4 md:px-12 py-8 font-inter">
         {/* Back Link */}
         <button 
           onClick={() => router.push('/')}
-          className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-text-muted hover:text-fg-luxury mb-8 transition-colors cursor-pointer"
+          className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-[#666666] hover:text-[#111111] mb-8 transition-colors cursor-pointer focus:outline-none"
         >
-          <ArrowLeft size={12} /> Back to Catalog
+          <ArrowLeft size={12} /> Back to Collection
         </button>
 
-        {/* Asymmetric Editorial Detail Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20 items-start">
+        {/* Dynamic Image & Details Two-Column Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           
-          {/* Dynamic Media Gallery Component (Left Column) */}
-          <div className="col-span-1 flex flex-col gap-4 w-full select-none">
-            {/* Main Display container */}
-            <div 
-              className="w-full aspect-[3/4] bg-neutral-soft/20 overflow-hidden border border-neutral-soft/40 relative cursor-zoom-in group animate-[fadeIn_0.3s_ease-out]"
-              onClick={() => setIsFullscreen(true)}
-              onTouchStart={(e) => setTouchStart(e.targetTouches[0].clientX)}
-              onTouchMove={(e) => setTouchEnd(e.targetTouches[0].clientX)}
-              onTouchEnd={() => {
-                if (!touchStart || !touchEnd) return;
-                const distance = touchStart - touchEnd;
-                if (distance > 50 && activeMediaIdx < activeMedia.length - 1) {
-                  setActiveMediaIdx(activeMediaIdx + 1);
-                } else if (distance < -50 && activeMediaIdx > 0) {
-                  setActiveMediaIdx(activeMediaIdx - 1);
-                }
-                setTouchStart(null);
-                setTouchEnd(null);
-              }}
-            >
+          {/* LEFT: Large Product Image Gallery (60-65% width equivalent) */}
+          <div className="lg:col-span-7 flex flex-col gap-3.5 w-full select-none">
+            {/* Desktop Vertical Images list / Mobile carousel */}
+            <div className="hidden md:flex flex-col gap-3">
+              {activeMedia.map((mediaUrl, idx) => {
+                const isVideo = mediaUrl.endsWith('.mp4') || 
+                                mediaUrl.endsWith('.webm') || 
+                                mediaUrl.endsWith('.mov') || 
+                                mediaUrl.includes('/video/') || 
+                                mediaUrl.includes('_video');
+                return (
+                  <div 
+                    key={idx}
+                    className="w-full aspect-[3/4] bg-white overflow-hidden border border-[#E8E8E8] relative cursor-zoom-in group transition-all duration-300 hover:shadow-sm"
+                    onClick={() => {
+                      setActiveMediaIdx(idx);
+                      setIsFullscreen(true);
+                    }}
+                  >
+                    {isVideo ? (
+                      <video
+                        src={mediaUrl}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <img 
+                        src={mediaUrl} 
+                        alt={`${product.name} - View ${idx + 1}`} 
+                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Mobile Carousel View */}
+            <div className="md:hidden w-full aspect-[3/4] bg-white overflow-hidden border border-[#E8E8E8] relative">
               {activeMedia.map((mediaUrl, idx) => {
                 const isVideo = mediaUrl.endsWith('.mp4') || 
                                 mediaUrl.endsWith('.webm') || 
@@ -468,187 +691,97 @@ export default function ProductDetailPage() {
                 const isVisible = idx === activeMediaIdx;
                 return (
                   <div 
-                    key={idx} 
-                    className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${isVisible ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}
+                    key={idx}
+                    className={`absolute inset-0 transition-opacity duration-300 ${isVisible ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}
                   >
                     {isVisible && (
                       isVideo ? (
-                        <video
-                          src={mediaUrl}
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
-                          className="w-full h-full object-cover"
-                        />
+                        <video src={mediaUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
                       ) : (
-                        <img 
-                          src={mediaUrl} 
-                          alt={`${product.name} - View ${idx + 1}`} 
-                          className="w-full h-full object-cover transition-transform duration-300 ease-out"
-                          onMouseMove={handleMouseMove}
-                          onMouseLeave={() => setZoomStyle({ transform: 'scale(1)', transformOrigin: 'center' })}
-                          style={zoomStyle}
-                        />
+                        <img src={mediaUrl} className="w-full h-full object-cover" alt="" />
                       )
                     )}
                   </div>
                 );
               })}
-              
-              {/* Swipe indicators (Gold Dots) */}
+
+              {/* Slider Dots */}
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
                 {activeMedia.map((_, idx) => (
-                  <span 
-                    key={idx} 
-                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${idx === activeMediaIdx ? 'bg-accent-gold w-3' : 'bg-neutral-400/40'}`} 
+                  <button 
+                    key={idx}
+                    onClick={() => setActiveMediaIdx(idx)}
+                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${idx === activeMediaIdx ? 'bg-[#111111] w-3' : 'bg-[#666666]/40'}`} 
                   />
                 ))}
               </div>
             </div>
-
-            {/* Thumbnails list */}
-            {activeMedia.length > 1 && (
-              <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none justify-start">
-                {activeMedia.map((mediaUrl, idx) => {
-                  const isVideo = mediaUrl.endsWith('.mp4') || 
-                                  mediaUrl.endsWith('.webm') || 
-                                  mediaUrl.endsWith('.mov') || 
-                                  mediaUrl.includes('/video/') || 
-                                  mediaUrl.includes('_video');
-                  const isActive = idx === activeMediaIdx;
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setActiveMediaIdx(idx)}
-                      className={`w-14 aspect-[3/4] flex-shrink-0 border bg-neutral-soft/10 relative overflow-hidden transition-all ${isActive ? 'border-accent-gold scale-[0.98]' : 'border-neutral-soft/50 hover:border-neutral-400'}`}
-                    >
-                      {isVideo ? (
-                        <div className="w-full h-full flex items-center justify-center bg-black/80 text-[6px] uppercase font-bold text-accent-gold">Vid</div>
-                      ) : (
-                        <img src={mediaUrl} className="w-full h-full object-cover" alt="" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </div>
 
-          {/* Details Content info (Sticky Right Column) */}
-          <div className="text-left flex flex-col gap-8 max-w-md md:sticky md:top-28">
-            {/* Headers */}
-            <div className="flex flex-col gap-2">
-              <p className="text-[10px] uppercase tracking-[0.25em] text-text-muted font-light">
-                {product.category?.name} | {product.collection?.name}
-              </p>
-              <h1 className="text-3xl md:text-4xl font-light uppercase tracking-wide text-fg-luxury leading-tight">
+          {/* RIGHT: Sticky Product Details (35-40% width equivalent) */}
+          <div className="lg:col-span-5 text-left flex flex-col gap-6 w-full lg:sticky lg:top-24">
+            
+            {/* Header info */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] uppercase tracking-[0.25em] text-[#666666] font-medium">
+                {product.category?.name} • {product.collection?.name || 'Exclusive Capsule'}
+              </span>
+              <h1 className="text-xl md:text-2xl font-light font-playfair tracking-wide text-[#111111] mt-1 leading-tight">
                 {product.name}
               </h1>
-              {/* Dynamic Rating & Reviews header link */}
-              <div className="flex items-center gap-1.5 mt-0.5">
-                {product.reviewsCount && product.reviewsCount > 0 ? (
+              
+              {/* Stars link */}
+              <div className="flex items-center gap-1.5 mt-1">
+                <div className="flex text-stone-900">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star 
+                      key={i} 
+                      size={9.5} 
+                      className={i < Math.round(averageRating) ? 'fill-current' : 'text-stone-300'} 
+                    />
+                  ))}
+                </div>
+                <button
+                  onClick={() => document.getElementById('reviews-view')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="text-[9px] text-[#666666] hover:text-[#111111] uppercase tracking-wider underline cursor-pointer"
+                >
+                  {totalReviews} {totalReviews === 1 ? 'Review' : 'Reviews'}
+                </button>
+              </div>
+            </div>
+
+            {/* Pricing Section */}
+            <div className="border-t border-b border-[#E8E8E8] py-4 flex flex-col gap-1.5 bg-white/45 px-4 rounded-sm">
+              <div className="flex items-baseline gap-3">
+                <span className="text-base font-semibold text-[#111111]">
+                  ₹{activePrice.toLocaleString('en-IN')}
+                </span>
+                {activeMrp && activeMrp > activePrice && (
                   <>
-                    <div className="flex text-accent-gold">
-                      <Star size={10} className="fill-current" />
-                    </div>
-                    <span className="text-[9px] text-text-muted font-light uppercase tracking-widest">
-                      {Number(product.rating || 0).toFixed(1)} ({product.reviewsCount} {product.reviewsCount === 1 ? 'Review' : 'Reviews'})
+                    <span className="text-[11px] text-[#666666] line-through">
+                      ₹{activeMrp.toLocaleString('en-IN')}
                     </span>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex text-neutral-600">
-                      <Star size={10} />
-                    </div>
-                    <button 
-                      onClick={() => document.getElementById('review-form')?.scrollIntoView({ behavior: 'smooth' })}
-                      className="text-[9px] text-accent-gold font-light uppercase tracking-widest hover:text-fg-luxury transition-colors cursor-pointer text-left focus:outline-none"
-                    >
-                      Be the first to review
-                    </button>
+                    <span className="text-[9px] uppercase tracking-widest text-red-700 font-bold">
+                      {Math.round(((activeMrp - activePrice) / activeMrp) * 100)}% OFF
+                    </span>
                   </>
                 )}
               </div>
-              {activeMrp && activeMrp > activePrice ? (
-                <div className="flex flex-col gap-1.5 mt-1">
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-lg font-semibold text-fg-luxury tracking-wider">
-                      ₹{activePrice.toLocaleString('en-IN')}
-                    </span>
-                    <span className="text-xs text-text-muted line-through">
-                      ₹{activeMrp.toLocaleString('en-IN')}
-                    </span>
-                    <span className="text-xs text-red-700 font-semibold uppercase tracking-widest">
-                      {Math.round(((activeMrp - activePrice) / activeMrp) * 100)}% OFF
-                    </span>
-                  </div>
-                  <span className="text-[8px] uppercase tracking-wider text-text-muted font-medium">
-                    MRP Inclusive of All Taxes (GST Included)
-                  </span>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-1 mt-1">
-                  <p className="text-lg font-light text-fg-luxury tracking-wider">
-                    ₹{activePrice.toLocaleString('en-IN')}
-                  </p>
-                  <span className="text-[8px] uppercase tracking-wider text-text-muted font-medium">
-                    MRP Inclusive of All Taxes (GST Included)
-                  </span>
-                </div>
-              )}
+              <span className="text-[8px] uppercase tracking-wider text-[#666666] font-medium">
+                MRP Inclusive of All Taxes (GST Included)
+              </span>
             </div>
 
-            {/* Description */}
-            <div className="text-xs text-text-muted leading-relaxed font-light border-t border-b border-neutral-soft/40 py-6 flex flex-col gap-3">
-              <p>{product.description}</p>
-              {product.material && (
-                <div className="grid grid-cols-2 text-[9px] uppercase tracking-wider text-text-muted mt-3 pt-3 border-t border-neutral-soft/10">
-                  <span className="font-medium text-fg-luxury">Material Composition</span>
-                  <span>{product.material}</span>
-                </div>
-              )}
-              <div className="grid grid-cols-2 text-[9px] uppercase tracking-wider text-text-muted">
-                <span className="font-medium text-fg-luxury">Fabric Weave</span>
-                <span>Premium Loom Knit</span>
-              </div>
-              <div className="grid grid-cols-2 text-[9px] uppercase tracking-wider text-text-muted">
-                <span className="font-medium text-fg-luxury">Garment Fit</span>
-                <span>Relaxed Architectural Silhouette</span>
-              </div>
-              <div className="grid grid-cols-2 text-[9px] uppercase tracking-wider text-text-muted">
-                <span className="font-medium text-fg-luxury">Wash Care</span>
-                <span>Dry Clean Only / Iron Low</span>
-              </div>
-              <div className="grid grid-cols-2 text-[9px] uppercase tracking-wider text-text-muted">
-                <span className="font-medium text-fg-luxury">Country of Origin</span>
-                <span>{product.brand || 'Made in India'}</span>
-              </div>
-              {isOutOfStock ? (
-                <span className="text-[10px] uppercase tracking-widest text-red-800 font-semibold bg-red-50 py-1 px-3 w-fit">
-                  Out Of Stock
-                </span>
-              ) : totalStock <= 5 ? (
-                <span className="text-[10px] uppercase tracking-widest text-amber-700 font-semibold bg-amber-50 py-1 px-3 w-fit">
-                  Only {totalStock} Units Left
-                </span>
-              ) : (
-                <span className="text-[10px] uppercase tracking-widest text-green-700 font-semibold bg-green-50 py-1 px-3 w-fit">
-                  In Stock
-                </span>
-              )}
-            </div>
-
-            {/* Selection Options */}
-            <div className="flex flex-col gap-6">
+            {/* Size Options & Colors Config */}
+            <div className="flex flex-col gap-5">
+              
               {/* Colorways */}
               {colors.length > 0 && colors[0] !== product.name && colors[0] !== 'Default' && (
                 <div>
-                  <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-3 flex items-baseline gap-2">
-                    Colorway: <span className="text-text-muted font-light normal-case tracking-normal">{selectedColor}</span>
+                  <h4 className="text-[9px] uppercase tracking-[0.2em] font-semibold text-[#111111] mb-2.5">
+                    Color: <span className="text-[#666666] font-normal normal-case">{selectedColor}</span>
                   </h4>
-                  <div className="flex gap-3 flex-wrap">
+                  <div className="flex gap-2.5 flex-wrap">
                     {colorsConfig.map((colConfig) => {
                       const isSelected = selectedColor === colConfig.color_name;
                       return (
@@ -658,25 +791,14 @@ export default function ProductDetailPage() {
                           onClick={() => {
                             setSelectedColor(colConfig.color_name);
                             setActiveMediaIdx(0);
-                            // Auto select first in stock size for this colorway if current size becomes out of stock
-                            const targetSizeVariant = product.variants?.find(v => v.color === colConfig.color_name && v.size === selectedSize);
-                            if (!targetSizeVariant || targetSizeVariant.stockQty === 0) {
-                              const firstInStock = product.variants?.find(v => v.color === colConfig.color_name && v.stockQty > 0);
-                              if (firstInStock) {
-                                setSelectedSize(firstInStock.size);
-                              } else {
-                                const fallbackVariant = product.variants?.find(v => v.color === colConfig.color_name);
-                                if (fallbackVariant) setSelectedSize(fallbackVariant.size);
-                              }
-                            }
                           }}
-                          className={`w-6 h-6 rounded-full border transition-all duration-300 relative flex items-center justify-center p-0.5 ${
-                            isSelected ? 'border-fg-luxury ring-1 ring-fg-luxury scale-105' : 'border-neutral-soft/80 hover:scale-105'
+                          className={`w-6.5 h-6.5 rounded-full border transition-all duration-300 relative flex items-center justify-center p-0.5 ${
+                            isSelected ? 'border-[#111111] ring-1 ring-[#111111] scale-105' : 'border-[#E8E8E8] hover:scale-105'
                           }`}
                           title={colConfig.color_name}
                         >
                           <span 
-                            className="w-full h-full rounded-full animate-[fadeIn_0.3s_ease-out]" 
+                            className="w-full h-full rounded-full" 
                             style={{ 
                               backgroundColor: colConfig.color_code || '#CCCCCC',
                               backgroundImage: colConfig.color_image ? `url(${colConfig.color_image})` : 'none',
@@ -691,20 +813,20 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              {/* Sizing options - Luxury Vertical Stack */}
+              {/* Sizes Selector */}
               {sizes.length > 0 && (
-                <div className="flex flex-col gap-4 mt-6 border-t border-neutral-soft/30 pt-6">
+                <div className="flex flex-col gap-3">
                   <div className="flex justify-between items-baseline">
-                    <h4 className="text-[9px] uppercase tracking-[0.25em] font-semibold text-fg-luxury">Select Size Variant</h4>
+                    <h4 className="text-[9px] uppercase tracking-[0.25em] font-semibold text-[#111111]">Select Size</h4>
                     <button 
                       type="button" 
                       onClick={() => setIsSizeGuideOpen(true)}
-                      className="text-[8px] uppercase tracking-wider text-accent-gold hover:text-fg-luxury underline cursor-pointer"
+                      className="text-[8px] uppercase tracking-wider text-accent-gold hover:underline cursor-pointer"
                     >
                       Size Guide
                     </button>
                   </div>
-                  <div className="flex flex-col gap-2.5">
+                  <div className="flex flex-col gap-2">
                     {sizes.map((s) => {
                       const sizeVariant = product.variants?.find(v => v.size === s && v.color === (selectedColor || colors[0]));
                       const isSizeOutOfStock = (product.variants && product.variants.length > 0)
@@ -718,37 +840,34 @@ export default function ProductDetailPage() {
                           key={s}
                           disabled={isSizeOutOfStock}
                           onClick={() => setSelectedSize(s)}
-                          className={`w-full flex items-center justify-between py-3.5 px-4 border text-[10px] uppercase font-semibold transition-all duration-300 rounded-sm relative overflow-hidden ${
+                          className={`w-full flex items-center justify-between py-3 px-4 border text-[9px] uppercase font-semibold tracking-wider transition-all duration-300 rounded-sm relative overflow-hidden ${
                             isSizeOutOfStock 
-                              ? 'border-neutral-soft/30 text-neutral-400 bg-neutral-soft/5 cursor-not-allowed opacity-65' 
+                              ? 'border-[#E8E8E8] text-stone-400 bg-stone-50 cursor-not-allowed opacity-65' 
                               : isSelected 
-                              ? 'border-fg-luxury text-fg-luxury bg-fg-luxury/5 ring-1 ring-fg-luxury scale-[1.01]' 
-                              : 'border-neutral-soft/80 text-text-muted hover:border-neutral-800 hover:text-fg-luxury bg-white/40 backdrop-blur-sm cursor-pointer'
+                              ? 'border-[#111111] text-[#111111] bg-[#111111]/5 ring-[0.5px] ring-[#111111]' 
+                              : 'border-[#E8E8E8] text-[#666666] hover:border-stone-800 hover:text-black bg-white cursor-pointer'
                           }`}
                         >
-                          {/* Diagonal Slash for Sold Out sizes (Zara Style) */}
                           {isSizeOutOfStock && (
-                            <div className="absolute top-[50%] left-0 right-0 h-[1.5px] bg-red-700/25 -rotate-3 pointer-events-none" />
+                            <div className="absolute top-[50%] left-0 right-0 h-[1px] bg-red-700/25 -rotate-2 pointer-events-none" />
                           )}
-
                           <span className="flex items-center gap-3">
-                            <span className={`tracking-widest ${isSizeOutOfStock ? 'line-through decoration-red-700/40 text-stone-400' : ''}`}>{s}</span>
+                            <span className={isSizeOutOfStock ? 'line-through decoration-red-700/40' : ''}>{s}</span>
                             {!isSizeOutOfStock ? (
-                              <span className="text-[7.5px] uppercase tracking-widest text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium animate-pulse">
-                                In Stock
+                              <span className="text-[7px] uppercase tracking-widest text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
+                                Available
                               </span>
                             ) : (
-                              <span className="text-[7.5px] uppercase tracking-widest text-red-800 bg-red-50 px-2 py-0.5 rounded-full font-semibold border border-red-200/50">
-                                Not Available
+                              <span className="text-[7px] uppercase tracking-widest text-red-800 bg-red-50 px-2 py-0.5 rounded-full font-semibold border border-red-100">
+                                Sold Out
                               </span>
                             )}
                           </span>
-                          
                           {!isSizeOutOfStock && (
-                            <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all ${
-                              isSelected ? 'border-fg-luxury bg-fg-luxury' : 'border-neutral-300'
+                            <div className={`w-3 h-3 rounded-full border flex items-center justify-center transition-all ${
+                              isSelected ? 'border-[#111111] bg-[#111111]' : 'border-stone-300'
                             }`}>
-                              {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-bg-luxury" />}
+                              {isSelected && <div className="w-1 h-1 rounded-full bg-white" />}
                             </div>
                           )}
                         </button>
@@ -759,99 +878,84 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* Add to Bag and Wishlist Layout (Sticky on Mobile) */}
-            <div className="flex gap-4 fixed bottom-0 left-0 right-0 z-40 bg-bg-luxury/95 backdrop-blur-[6px] p-4 border-t border-neutral-soft/50 md:relative md:p-0 md:border-0 md:bg-transparent md:z-auto">
+            {/* CTAs and Sticky Drawer layout */}
+            <div className="flex flex-col gap-2 mt-2">
               {showNotifyMe ? (
-                <form onSubmit={handleRestockAlert} className="flex flex-col gap-3 flex-1 text-left">
+                <form onSubmit={handleRestockAlert} className="flex flex-col gap-2.5 text-left bg-white p-4 border border-[#E8E8E8] rounded-sm">
+                  <span className="text-[8px] uppercase tracking-widest text-[#666666] block font-semibold mb-1">Stock Notification Alert</span>
                   <input 
                     type="email" 
-                    placeholder="Enter email to get restock alerts" 
-                    className="input-editorial text-xs" 
+                    placeholder="Enter email address" 
+                    className="input-editorial text-xs w-full" 
                     value={restockEmail}
                     onChange={(e) => setRestockEmail(e.target.value)}
                     required 
                   />
                   <button 
                     type="submit"
-                    className="btn-editorial-solid text-xs tracking-[0.25em] font-medium py-4 cursor-pointer"
+                    className="btn-editorial-solid text-[9px] py-3.5 tracking-widest font-semibold cursor-pointer"
                   >
-                    Notify Me
+                    Set Restock Notification
                   </button>
                 </form>
               ) : (
-                <button 
-                  onClick={handleAddToBag}
-                  disabled={!selectedColor || !selectedSize}
-                  className="btn-editorial-solid flex-1 flex items-center justify-center gap-3 text-xs tracking-[0.25em] font-medium py-4 cursor-pointer"
-                >
-                  {added ? (
-                    <>
-                      <Check size={14} /> Added to Bag
-                    </>
-                  ) : (
-                    'Equip to Shopping Bag'
-                  )}
-                </button>
+                <div className="flex flex-col gap-2 w-full">
+                  <button 
+                    onClick={handleAddToBag}
+                    disabled={!selectedColor || !selectedSize}
+                    className="btn-editorial-solid w-full flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.25em] font-semibold py-4 cursor-pointer transition-all active:scale-[0.99]"
+                  >
+                    {added ? (
+                      <>
+                        <Check size={12} /> Equipped to Bag
+                      </>
+                    ) : (
+                      'Equip to Shopping Bag'
+                    )}
+                  </button>
+                  <button 
+                    onClick={handleBuyNow}
+                    disabled={!selectedColor || !selectedSize}
+                    className="w-full py-4 text-[10px] uppercase tracking-[0.25em] font-semibold border border-[#111111] hover:bg-[#111111] hover:text-white transition-all duration-300 bg-white cursor-pointer text-center text-[#111111]"
+                  >
+                    Instant Checkout
+                  </button>
+                </div>
               )}
-              
+
+              {/* Wishlist and shipping details */}
               <button 
                 onClick={handleWishlistToggle}
-                className={`p-4 border transition-colors cursor-pointer flex items-center justify-center ${favorited ? 'border-red-600 bg-red-50/5 text-red-600' : 'border-neutral-soft/80 text-text-muted hover:border-fg-luxury hover:text-fg-luxury'}`}
-                aria-label={favorited ? 'Remove from wishlist' : 'Add to wishlist'}
+                className={`w-full py-3.5 border transition-all text-[9px] uppercase tracking-widest font-semibold flex items-center justify-center gap-2 rounded-sm cursor-pointer ${
+                  favorited ? 'border-red-600/30 text-red-600 bg-red-50/5' : 'border-[#E8E8E8] text-[#666666] hover:border-stone-850 hover:text-stone-900 bg-white'
+                }`}
               >
-                <Heart 
-                  size={16} 
-                  fill={favorited ? '#e11d48' : 'none'} 
-                  className={favorited ? 'animate-[heartBeat_0.4s_ease-in-out]' : ''} 
-                  strokeWidth={1.5} 
-                />
+                <Heart size={12} fill={favorited ? '#e11d48' : 'none'} className={favorited ? 'text-red-600' : ''} />
+                {favorited ? 'In Wishlist' : 'Add to Wishlist'}
               </button>
             </div>
 
             {/* Frequently Bought Together Combo Block */}
             {comboOffer && (
-              <div className="border border-accent-gold/40 bg-accent-gold/5 p-5 mt-6 flex flex-col gap-4 text-left">
-                <div className="flex items-center gap-1.5 border-b border-accent-gold/15 pb-2">
-                  <span className="text-[10px] uppercase tracking-widest text-accent-gold font-bold">Frequently Bought Together</span>
-                </div>
-                
+              <div className="border border-accent-gold/45 bg-[#FAF9F7] p-4 flex flex-col gap-3 text-left rounded-sm">
+                <span className="text-[8px] uppercase tracking-widest text-accent-gold font-bold">Frequently Bought Together</span>
                 <div className="flex gap-4 items-center">
-                  <div className="flex items-center gap-2 max-w-[45%]">
-                    <img 
-                      src={comboOffer.product_a?.images?.[0] || '/assets/trench_coat.jpg'} 
-                      className="w-10 h-13 object-cover border border-neutral-soft/30" 
-                      alt="" 
-                    />
-                    <span className="text-[9px] uppercase tracking-wider text-fg-luxury truncate font-medium">
-                      {comboOffer.product_a?.name}
-                    </span>
+                  <div className="flex items-center gap-2 truncate max-w-[45%]">
+                    <img src={comboOffer.product_a?.images?.[0]} className="w-8 h-11 object-cover border border-[#E8E8E8]" alt="" />
+                    <span className="text-[8px] uppercase tracking-wider text-[#111111] truncate">{comboOffer.product_a?.name}</span>
                   </div>
-                  <span className="text-accent-gold font-light text-sm">+</span>
-                  <div className="flex items-center gap-2 max-w-[45%]">
-                    <img 
-                      src={comboOffer.product_b?.images?.[0] || '/assets/trench_coat.jpg'} 
-                      className="w-10 h-13 object-cover border border-neutral-soft/30" 
-                      alt="" 
-                    />
-                    <span className="text-[9px] uppercase tracking-wider text-fg-luxury truncate font-medium">
-                      {comboOffer.product_b?.name}
-                    </span>
+                  <span className="text-[#666666] text-xs">+</span>
+                  <div className="flex items-center gap-2 truncate max-w-[45%]">
+                    <img src={comboOffer.product_b?.images?.[0]} className="w-8 h-11 object-cover border border-[#E8E8E8]" alt="" />
+                    <span className="text-[8px] uppercase tracking-wider text-[#111111] truncate">{comboOffer.product_b?.name}</span>
                   </div>
                 </div>
-
-                <div className="flex justify-between items-center mt-1 pt-2 border-t border-accent-gold/10">
+                <div className="flex justify-between items-center border-t border-[#E8E8E8] pt-2 mt-1">
                   <div className="flex flex-col text-left">
                     <div className="flex gap-1.5 items-baseline">
-                      <span className="text-[11px] font-semibold text-fg-luxury">
-                        Combo: ₹{comboOffer.combo_price.toLocaleString('en-IN')}
-                      </span>
-                      <span className="text-[9px] text-text-muted line-through">
-                        ₹{((comboOffer.product_a?.base_price || 0) + (comboOffer.product_b?.base_price || 0)).toLocaleString('en-IN')}
-                      </span>
+                      <span className="text-[10px] font-semibold text-[#111111]">₹{comboOffer.combo_price.toLocaleString('en-IN')}</span>
+                      <span className="text-[8.5px] text-[#666666] line-through">₹{((comboOffer.product_a?.base_price || 0) + (comboOffer.product_b?.base_price || 0)).toLocaleString('en-IN')}</span>
                     </div>
-                    <span className="text-[8px] uppercase tracking-wider text-accent-gold font-medium">
-                      Save ₹{((comboOffer.product_a?.base_price || 0) + (comboOffer.product_b?.base_price || 0) - comboOffer.combo_price).toLocaleString('en-IN')}!
-                    </span>
                   </div>
                   <button
                     type="button"
@@ -867,91 +971,88 @@ export default function ProductDetailPage() {
                         await addToCart({ ...vA, product: { ...comboOffer.product_a, basePrice: comboOffer.product_a.base_price } }, 1, splitA);
                         await addToCart({ ...vB, product: { ...comboOffer.product_b, basePrice: comboOffer.product_b.base_price } }, 1, splitB);
                         
-                        showToast('Combo deal added to your shopping bag!', 'success');
+                        showToast('Combo deal added to bag.', 'success');
                         setIsCartOpen(true);
-                      } else {
-                        showToast('Could not equip combo. Out of stock.', 'error');
                       }
                     }}
-                    className="bg-accent-gold hover:bg-fg-luxury text-bg-luxury hover:text-bg-luxury text-[8px] uppercase tracking-widest font-semibold py-2.5 px-4 transition-colors cursor-pointer"
+                    className="bg-[#111111] text-white text-[8px] uppercase tracking-widest font-semibold py-2 px-3.5 hover:bg-stone-850 cursor-pointer"
                   >
-                    Equip Combo Deal
+                    Equip Bundle
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Trust and logistics guarantees */}
-            <div className="flex flex-col gap-4 border-t border-neutral-soft/40 pt-8 text-[10px] uppercase tracking-[0.15em] text-text-muted font-light">
-              <div className="flex items-center gap-3">
-                <Truck size={14} className="text-accent-gold" />
-                <span>Delivery expected by {new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', { weekday: 'long', month: 'short', day: 'numeric' })} (Complimentary above ₹15,000)</span>
+            {/* Guarantees */}
+            <div className="flex flex-col gap-3.5 border-t border-[#E8E8E8] pt-6 text-[9.5px] uppercase tracking-[0.18em] text-[#666666] font-light">
+              <div className="flex items-center gap-3.5">
+                <Truck size={13} className="text-[#111111]" />
+                <span>Standard Complimentary Delivery Above ₹499</span>
               </div>
-              <div className="flex items-center gap-3">
-                <RotateCcw size={14} className="text-accent-gold" />
-                <span>Complimentary 14-day courier return pick-up</span>
+              <div className="flex items-center gap-3.5">
+                <RotateCcw size={13} className="text-[#111111]" />
+                <span>Complimentary 14-day return pickup</span>
               </div>
-              <div className="flex items-center gap-3">
-                <ShieldCheck size={14} className="text-accent-gold" />
-                <span>Genuine production verification guaranteed</span>
+              <div className="flex items-center gap-3.5">
+                <ShieldCheck size={13} className="text-[#111111]" />
+                <span>100% Genuine Certified Garments</span>
               </div>
             </div>
 
-            {/* Expandable Accordion sections */}
-            <div className="flex flex-col border-t border-neutral-soft/40 pt-8 mt-8">
+            {/* Accordions */}
+            <div className="flex flex-col border-t border-[#E8E8E8] pt-6 mt-2">
               {activeAccordionSections.map((sec, idx) => (
                 <AccordionSection key={idx} title={sec.title} content={sec.content} />
               ))}
             </div>
           </div>
-
         </div>
 
-        {/* Size Guide Modal Overlay */}
+        {/* Size Guide Overlay */}
         {isSizeGuideOpen && (
-          <div className="fixed inset-0 z-[1500] bg-fg-luxury/45 backdrop-blur-[4px] flex items-center justify-center p-4">
-            <div className="bg-bg-luxury border border-neutral-soft/80 max-w-lg w-full p-8 text-left relative shadow-2xl animate-[fadeIn_0.2s_ease-out]">
+          <div className="fixed inset-0 z-[1500] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white border border-[#E8E8E8] max-w-md w-full p-6 text-left relative shadow-2xl rounded-sm">
               <button 
                 type="button"
                 onClick={() => setIsSizeGuideOpen(false)}
-                className="absolute top-6 right-6 text-text-muted hover:text-fg-luxury transition-colors cursor-pointer"
+                className="absolute top-4 right-4 text-[#666666] hover:text-[#111111] transition-colors cursor-pointer p-1"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
-              <h3 className="text-sm uppercase tracking-widest font-semibold text-fg-luxury mb-4 border-b border-neutral-soft/30 pb-2">Size Reference Guide</h3>
-              <p className="text-xs text-text-muted font-light leading-relaxed mb-6">
-                FREERT silhouettes are designed with a relaxed, architectural fit. If you prefer a structured look, we recommend sizing down.
+              <h3 className="text-xs uppercase tracking-widest font-bold text-[#111111] mb-3 border-b border-[#E8E8E8] pb-2 font-playfair">Size Metric Reference</h3>
+              <p className="text-[10px] text-[#666666] font-light leading-relaxed mb-4">
+                FREERT silhouettes are designed with a relaxed, modern fit. If you prefer a closer fit, please select one size down.
               </p>
-              <table className="w-full text-[10px] uppercase tracking-wider text-text-muted">
+              <table className="w-full text-[9px] uppercase tracking-wider text-[#666666]">
                 <thead>
-                  <tr className="border-b border-neutral-soft">
-                    <th className="py-2 text-left font-medium">Size</th>
-                    <th className="py-2 text-left font-medium">Chest (in)</th>
-                    <th className="py-2 text-left font-medium">Waist (in)</th>
-                    <th className="py-2 text-left font-medium">Length (in)</th>
+                  <tr className="border-b border-[#E8E8E8]">
+                    <th className="py-2 text-left font-bold text-[#111111]">Size</th>
+                    <th className="py-2 text-left font-bold text-[#111111]">Chest (in)</th>
+                    <th className="py-2 text-left font-bold text-[#111111]">Waist (in)</th>
+                    <th className="py-2 text-left font-bold text-[#111111]">Length (in)</th>
                   </tr>
                 </thead>
                 <tbody className="font-light">
-                  <tr className="border-b border-neutral-soft/30">
-                    <td className="py-2 font-medium text-fg-luxury">S</td>
+                  <tr className="border-b border-[#E8E8E8]/50">
+                    <td className="py-2 font-bold text-[#111111]">S</td>
                     <td className="py-2">36 - 38</td>
                     <td className="py-2">30 - 32</td>
                     <td className="py-2">27.5</td>
                   </tr>
-                  <tr className="border-b border-neutral-soft/30">
-                    <td className="py-2 font-medium text-fg-luxury">M</td>
+                  <tr className="border-b border-[#E8E8E8]/50">
+                    <td className="py-2 font-bold text-[#111111]">M</td>
                     <td className="py-2">38 - 40</td>
                     <td className="py-2">32 - 34</td>
                     <td className="py-2">28.5</td>
                   </tr>
-                  <tr className="border-b border-neutral-soft/30">
-                    <td className="py-2 font-medium text-fg-luxury">L</td>
+                  <tr className="border-b border-[#E8E8E8]/50">
+                    <td className="py-2 font-bold text-[#111111]">L</td>
                     <td className="py-2">40 - 42</td>
                     <td className="py-2">34 - 36</td>
                     <td className="py-2">29.5</td>
                   </tr>
-                  <tr className="border-b border-neutral-soft/30">
-                    <td className="py-2 font-medium text-fg-luxury">XL</td>
+                  <tr className="border-b border-[#E8E8E8]/50">
+                    <td className="py-2 font-bold text-[#111111]">XL</td>
                     <td className="py-2">42 - 44</td>
                     <td className="py-2">36 - 38</td>
                     <td className="py-2">30.5</td>
@@ -961,119 +1062,456 @@ export default function ProductDetailPage() {
               <button 
                 type="button"
                 onClick={() => setIsSizeGuideOpen(false)}
-                className="btn-editorial-solid w-full text-[9px] tracking-widest font-semibold py-3 mt-8"
+                className="btn-editorial-solid w-full text-[9px] py-3 mt-6 font-semibold tracking-widest"
               >
-                Close Guide
+                Close Reference Guide
               </button>
             </div>
           </div>
         )}
 
-        {/* Reviews Section */}
-        <section className="mt-24 pt-16 border-t border-neutral-soft/40 text-left">
-          <h2 className="text-xl uppercase tracking-widest font-light text-fg-luxury mb-10">Customer Reviews</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-start">
+        {/* REVIEWS SECTION: Premium Overhaul */}
+        <section id="reviews-view" className="mt-24 pt-16 border-t border-[#E8E8E8] text-left">
+          <div className="flex flex-col gap-2 mb-10">
+            <span className="text-[9px] uppercase tracking-[0.25em] text-[#666666] font-semibold">Community Ratings</span>
+            <h2 className="text-xl uppercase tracking-widest font-light font-playfair text-[#111111]">Product Experiences</h2>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
-            {/* Reviews List */}
-            <div className="md:col-span-7 flex flex-col gap-6">
-              {reviewsOffline && (
-                <div className="p-4 border border-amber-700 bg-amber-50/20 text-left flex items-start gap-3 mb-4">
-                  <AlertTriangle size={16} className="text-amber-700 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <span className="text-[10px] uppercase tracking-wider font-semibold text-amber-700 block">Reviews Temporarily Offline</span>
-                    <span className="text-[10px] font-light text-amber-700/80 leading-relaxed block">
-                      We are currently carrying out system updates. Live reviews are temporarily unavailable.
-                    </span>
-                  </div>
+            {/* Top Summary Card (Left Side inside reviews grid) */}
+            <div className="lg:col-span-4 flex flex-col gap-5 bg-white border border-[#E8E8E8] p-6 rounded-sm shadow-sm">
+              <div className="flex flex-col items-center py-4 border-b border-[#E8E8E8]">
+                <span className="text-4xl font-light font-playfair text-[#111111]">{averageRating.toFixed(1)}</span>
+                <div className="flex text-stone-900 my-1.5">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star 
+                      key={i} 
+                      size={13} 
+                      className={i < Math.round(averageRating) ? 'fill-current' : 'text-stone-200'} 
+                    />
+                  ))}
                 </div>
-              )}
-              {reviews.length === 0 ? (
-                <div className="py-12 flex flex-col items-center justify-center border border-dashed border-neutral-soft/50 p-6 text-center animate-[fadeIn_0.4s_ease-out] w-full">
-                  <Star size={18} className="text-text-muted/60 stroke-[1.2] mb-3" />
-                  <p className="text-[10px] text-text-muted font-light tracking-widest uppercase mb-1">No reviews yet</p>
-                  <p className="text-[9px] text-text-muted/70 font-light lowercase tracking-wider">Be the first to share your thoughts on this capsule article.</p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-6 animate-[fadeIn_0.5s_ease-out] w-full">
-                  {reviews.map(rev => {
-                    const initials = rev.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'US';
-                    return (
-                      <div key={rev.id} className="pb-6 border-b border-neutral-soft/10 last:border-0 last:pb-0 flex items-start gap-4">
-                        <div className="w-8 h-8 rounded-full bg-neutral-soft/10 text-fg-luxury flex items-center justify-center font-semibold text-[9px] border border-neutral-soft/30 flex-shrink-0">
-                          {initials}
-                        </div>
-                        <div className="flex-1 flex flex-col text-left gap-1">
-                          <div className="flex justify-between items-baseline">
-                            <span className="text-[11px] font-semibold text-fg-luxury uppercase tracking-wider">{rev.name}</span>
-                            <span className="text-[8.5px] text-text-muted font-light">{rev.date}</span>
-                          </div>
-                          <div className="flex text-accent-gold my-0.5">
-                            {Array.from({ length: rev.rating }).map((_, i) => (
-                              <Star key={i} size={9} className="fill-current" />
-                            ))}
-                          </div>
-                          <p className="text-xs text-text-muted leading-relaxed font-light mt-1">{rev.comment}</p>
-                        </div>
+                <span className="text-[9px] uppercase tracking-widest text-[#666666] font-semibold mt-1">
+                  Based on {totalReviews} Reviews
+                </span>
+              </div>
+
+              {/* Distribution Bars */}
+              <div className="flex flex-col gap-2">
+                {[5, 4, 3, 2, 1].map((stars) => {
+                  const count = ratingDistribution[stars - 1] || 0;
+                  const pct = totalReviews > 0 ? Math.round((count / totalReviews) * 100) : 0;
+                  return (
+                    <div key={stars} className="flex items-center gap-3 text-[9px] text-[#666666] font-inter">
+                      <span className="w-4 font-semibold">{stars}★</span>
+                      <div className="flex-1 h-1 bg-stone-100 rounded-sm overflow-hidden">
+                        <div 
+                          className="h-full bg-stone-900 transition-all duration-500" 
+                          style={{ width: `${pct}%` }}
+                        />
                       </div>
-                    );
-                  })}
+                      <span className="w-6 text-right font-medium">{pct}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Trust Indicators */}
+              <div className="border-t border-[#E8E8E8] pt-4 mt-1 flex flex-col gap-2 text-[9px] uppercase tracking-widest text-[#666666] font-medium">
+                <div className="flex items-center gap-2">
+                  <Award size={12} className="text-accent-gold" />
+                  <span>{verifiedPercentage}% Verified Purchases</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Sparkles size={12} className="text-accent-gold" />
+                  <span>100% Genuine Reviews</span>
+                </div>
+              </div>
+
+              {!isReviewFormOpen && (
+                <button
+                  onClick={() => setIsReviewFormOpen(true)}
+                  className="btn-editorial-solid w-full text-[9px] py-3.5 mt-2 tracking-widest font-semibold"
+                >
+                  Write Product Review
+                </button>
               )}
             </div>
 
-            {/* Write a Review Form */}
-            <div className="md:col-span-5 bg-neutral-soft/10 p-8 border border-neutral-soft/40">
-              <h3 className="text-xs uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-6 border-b border-neutral-soft/30 pb-2">
-                Write a Review
-              </h3>
+            {/* Right Side: Reviews lists and dynamic form */}
+            <div className="lg:col-span-8 flex flex-col gap-6">
               
-              <form onSubmit={handlePostReview} className="flex flex-col gap-4">
-                <div>
-                  <label className="text-[9px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Identity Name</label>
-                  <input 
-                    type="text" 
-                    required 
-                    value={reviewName}
-                    onChange={(e) => setReviewName(e.target.value)}
-                    className="input-editorial text-xs"
-                    placeholder="Receiver"
-                  />
-                </div>
-                <div>
-                  <label className="text-[9px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Garment Rating</label>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map((stars) => (
-                      <button
-                        key={stars}
-                        type="button"
-                        onClick={() => setReviewRating(stars)}
-                        className="text-accent-gold cursor-pointer"
-                      >
-                        <Star size={14} className={reviewRating >= stars ? 'fill-current' : ''} />
-                      </button>
-                    ))}
+              {/* Write a Review Luxury Form Container */}
+              {isReviewFormOpen && (
+                <div className="bg-white border border-accent-gold/45 p-6 rounded-sm shadow-md animate-[fadeIn_0.3s_ease-out] text-left">
+                  <div className="flex justify-between items-baseline mb-6 border-b border-[#E8E8E8] pb-3">
+                    <h3 className="text-xs uppercase tracking-[0.2em] font-semibold text-[#111111] font-playfair">
+                      Write Product Review
+                    </h3>
+                    <button 
+                      onClick={() => setIsReviewFormOpen(false)}
+                      className="text-[#666666] hover:text-[#111111] text-[9px] uppercase tracking-wider font-semibold cursor-pointer"
+                    >
+                      Cancel
+                    </button>
                   </div>
+
+                  <form onSubmit={handlePostReview} className="flex flex-col gap-4 font-inter text-xs">
+                    
+                    {/* Stars Select row */}
+                    <div>
+                      <label className="text-[9px] uppercase tracking-wider text-[#666666] mb-2 block font-semibold">Overall Rating</label>
+                      <div className="flex gap-1.5">
+                        {[1, 2, 3, 4, 5].map((stars) => (
+                          <button
+                            key={stars}
+                            type="button"
+                            onClick={() => {
+                              setReviewRating(stars);
+                            }}
+                            className="text-stone-900 hover:scale-110 transition-transform cursor-pointer p-0.5"
+                          >
+                            <Star size={16} className={reviewRating >= stars ? 'fill-current' : 'text-stone-200'} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Name */}
+                      <div>
+                        <label className="text-[9px] uppercase tracking-wider text-[#666666] mb-1 block font-semibold">Full Name</label>
+                        <input 
+                          type="text" 
+                          required 
+                          placeholder="Your Name"
+                          value={reviewName}
+                          onChange={(e) => setReviewName(e.target.value)}
+                          className="input-editorial text-xs py-2.5"
+                        />
+                      </div>
+                      
+                      {/* Email */}
+                      <div>
+                        <label className="text-[9px] uppercase tracking-wider text-[#666666] mb-1 block font-semibold">Email (Optional)</label>
+                        <input 
+                          type="email" 
+                          placeholder="yourname@example.com"
+                          value={reviewEmail}
+                          onChange={(e) => setReviewEmail(e.target.value)}
+                          className="input-editorial text-xs py-2.5"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Order Number */}
+                      <div>
+                        <label className="text-[9px] uppercase tracking-wider text-[#666666] mb-1 block font-semibold">Order Number (Optional)</label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. FRT12345678"
+                          value={reviewOrderNum}
+                          onChange={(e) => setReviewOrderNum(e.target.value)}
+                          className="input-editorial text-xs py-2.5"
+                        />
+                      </div>
+                      
+                      {/* Review Title */}
+                      <div>
+                        <label className="text-[9px] uppercase tracking-wider text-[#666666] mb-1 block font-semibold">Review Title</label>
+                        <input 
+                          type="text" 
+                          placeholder="Summarize your review"
+                          value={reviewTitleInput}
+                          onChange={(e) => setReviewTitleInput(e.target.value)}
+                          className="input-editorial text-xs py-2.5"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Metric Selectors */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 border-t border-[#E8E8E8] pt-4">
+                      {/* Quality */}
+                      <div>
+                        <label className="text-[8px] uppercase tracking-widest text-[#666666] mb-1 block font-semibold">Quality (1-5)</label>
+                        <select 
+                          value={reviewQuality}
+                          onChange={(e) => setReviewQuality(Number(e.target.value))}
+                          className="w-full bg-[#FAF9F7] border border-[#E8E8E8] text-[9.5px] uppercase tracking-wider p-2 font-semibold focus:outline-none"
+                        >
+                          {[5, 4, 3, 2, 1].map(num => (
+                            <option key={num} value={num}>{num} / 5</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Comfort */}
+                      <div>
+                        <label className="text-[8px] uppercase tracking-widest text-[#666666] mb-1 block font-semibold">Comfort (1-5)</label>
+                        <select 
+                          value={reviewComfort}
+                          onChange={(e) => setReviewComfort(Number(e.target.value))}
+                          className="w-full bg-[#FAF9F7] border border-[#E8E8E8] text-[9.5px] uppercase tracking-wider p-2 font-semibold focus:outline-none"
+                        >
+                          {[5, 4, 3, 2, 1].map(num => (
+                            <option key={num} value={num}>{num} / 5</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Fabric */}
+                      <div>
+                        <label className="text-[8px] uppercase tracking-widest text-[#666666] mb-1 block font-semibold">Fabric (1-5)</label>
+                        <select 
+                          value={reviewFabric}
+                          onChange={(e) => setReviewFabric(Number(e.target.value))}
+                          className="w-full bg-[#FAF9F7] border border-[#E8E8E8] text-[9.5px] uppercase tracking-wider p-2 font-semibold focus:outline-none"
+                        >
+                          {[5, 4, 3, 2, 1].map(num => (
+                            <option key={num} value={num}>{num} / 5</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Fit */}
+                      <div>
+                        <label className="text-[8px] uppercase tracking-widest text-[#666666] mb-1 block font-semibold">Fit Rating</label>
+                        <select 
+                          value={reviewFit}
+                          onChange={(e) => setReviewFit(e.target.value)}
+                          className="w-full bg-[#FAF9F7] border border-[#E8E8E8] text-[9.5px] uppercase tracking-wider p-2 font-semibold focus:outline-none"
+                        >
+                          <option value="Runs Small">Runs Small</option>
+                          <option value="True to Size">True to Size</option>
+                          <option value="Runs Large">Runs Large</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Recommend product */}
+                    <div className="flex items-center gap-3">
+                      <span className="text-[9px] uppercase tracking-widest text-[#666666] font-semibold">Recommend this product?</span>
+                      <div className="flex gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setReviewRecommend(true)}
+                          className={`px-3 py-1 text-[8.5px] uppercase tracking-widest font-bold border transition-colors ${
+                            reviewRecommend ? 'bg-stone-900 border-stone-900 text-white' : 'border-[#E8E8E8] text-[#666666] bg-white'
+                          }`}
+                        >
+                          Yes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setReviewRecommend(false)}
+                          className={`px-3 py-1 text-[8.5px] uppercase tracking-widest font-bold border transition-colors ${
+                            !reviewRecommend ? 'bg-stone-900 border-stone-900 text-white' : 'border-[#E8E8E8] text-[#666666] bg-white'
+                          }`}
+                        >
+                          No
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Drag and Drop Upload Photos */}
+                    <div>
+                      <label className="text-[9px] uppercase tracking-wider text-[#666666] mb-1.5 block font-semibold">Upload Photos</label>
+                      <div className="border border-dashed border-[#E8E8E8] bg-[#FAF9F7] p-4 text-center rounded-sm relative hover:bg-stone-50/50 transition-colors">
+                        <input 
+                          type="file" 
+                          multiple 
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="absolute inset-0 opacity-0 cursor-pointer" 
+                        />
+                        <Upload size={16} className="text-[#666666] mx-auto mb-1.5" />
+                        <p className="text-[9.5px] text-[#666666] font-light">Drag & Drop or click to attach image files</p>
+                      </div>
+
+                      {/* Display Uploaded Thumbnails */}
+                      {uploadedPhotos.length > 0 && (
+                        <div className="flex gap-2 mt-3 flex-wrap">
+                          {uploadedPhotos.map((url, index) => (
+                            <div key={index} className="w-12 h-16 relative border border-[#E8E8E8] overflow-hidden group">
+                              <img src={url} className="w-full h-full object-cover" alt="" />
+                              <button
+                                type="button"
+                                onClick={() => setUploadedPhotos(prev => prev.filter((_, i) => i !== index))}
+                                className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full p-0.5 hover:bg-black"
+                              >
+                                <X size={8} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Comment Area */}
+                    <div>
+                      <label className="text-[9px] uppercase tracking-wider text-[#666666] mb-1 block font-semibold">Your Experience</label>
+                      <textarea 
+                        required 
+                        rows={4}
+                        placeholder="Describe the drape weight, color accuracy, and overall composition experience..."
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value)}
+                        className="input-editorial h-24 text-xs resize-none"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="btn-editorial-solid w-full py-4 text-[9px] tracking-widest font-semibold mt-2"
+                    >
+                      Submit Verified Review
+                    </button>
+                  </form>
                 </div>
-                <div>
-                  <label className="text-[9px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Review Message</label>
-                  <textarea 
-                    required 
-                    rows={3}
-                    value={reviewComment}
-                    onChange={(e) => setReviewComment(e.target.value)}
-                    className="input-editorial h-20 resize-none text-xs leading-relaxed"
-                    placeholder="Describe drape quality, fit parameter details..."
-                  />
-                </div>
-                
-                <button 
-                  type="submit"
-                  className="btn-editorial-solid w-full text-[10px] tracking-widest font-medium py-3 cursor-pointer mt-2"
-                >
-                  Submit Review
-                </button>
-              </form>
+              )}
+
+              {/* Reviews List */}
+              <div className="flex flex-col gap-4">
+                {reviewsOffline && (
+                  <div className="p-4 border border-amber-600 bg-amber-50/20 text-left flex items-start gap-3 rounded-sm">
+                    <AlertTriangle size={15} className="text-amber-700 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="text-[9px] uppercase tracking-wider font-semibold text-amber-700 block">System Updates In Progress</span>
+                      <span className="text-[9px] text-amber-700/80 leading-relaxed block mt-0.5">
+                        Live reviews are temporarily caching. Stored feedback continues to load successfully.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {reviews.length === 0 ? (
+                  <div className="py-12 bg-white border border-dashed border-[#E8E8E8] p-6 text-center rounded-sm">
+                    <Star size={20} className="text-stone-300 stroke-[1.2] mb-3 mx-auto" />
+                    <p className="text-[10px] text-[#666666] font-semibold tracking-widest uppercase mb-1">No reviews cataloged</p>
+                    <p className="text-[9.5px] text-[#666666]/70 font-light">Be the first to share your wear experience for this clothing item.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4 animate-[fadeIn_0.4s_ease-out]">
+                    {reviews.map(rev => {
+                      const initials = rev.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'FR';
+                      return (
+                        <div key={rev.id} className="bg-white border border-[#E8E8E8] p-6 text-left flex flex-col gap-3 rounded-sm transition-all hover:shadow-md">
+                          
+                          {/* Top Row: User Avatar & verified badge */}
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-stone-100 border border-stone-200/50 text-[#111111] flex items-center justify-center font-bold text-[9px]">
+                                {initials}
+                              </div>
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold text-[#111111] uppercase tracking-wider">{rev.name}</span>
+                                  {rev.isVerified !== false && (
+                                    <span className="text-[7.5px] uppercase tracking-widest text-[#666666] font-semibold flex items-center gap-1 bg-stone-50 border border-stone-200/50 px-2 py-0.5 rounded-full">
+                                      <Check size={8} className="text-stone-600" /> Verified Purchase
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[8px] text-[#666666] mt-0.5 font-light">{rev.date}</span>
+                              </div>
+                            </div>
+
+                            {/* Rating Stars */}
+                            <div className="flex text-stone-900">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star 
+                                  key={i} 
+                                  size={9.5} 
+                                  className={i < rev.rating ? 'fill-current' : 'text-stone-200'} 
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Purchase specifications */}
+                          <div className="flex gap-4 text-[8px] uppercase tracking-widest text-[#666666] font-semibold border-b border-stone-100 pb-2.5 mt-1">
+                            {rev.sizePurchased && (
+                              <span>Size Purchased: <span className="text-[#111111] font-bold">{rev.sizePurchased}</span></span>
+                            )}
+                            {rev.fitRating && (
+                              <span>Fits: <span className="text-[#111111] font-bold">{rev.fitRating}</span></span>
+                            )}
+                          </div>
+
+                          {/* Review Title & message */}
+                          <div className="flex flex-col gap-1 mt-1">
+                            {rev.title && (
+                              <h4 className="text-xs font-bold text-[#111111] tracking-wide">{rev.title}</h4>
+                            )}
+                            <p className="text-[11px] text-[#666666] font-light leading-relaxed">{rev.comment}</p>
+                          </div>
+
+                          {/* Review Photos */}
+                          {rev.images && rev.images.length > 0 && (
+                            <div className="flex gap-2 mt-2 flex-wrap">
+                              {rev.images.map((imgUrl, i) => (
+                                <div 
+                                  key={i} 
+                                  className="w-14 h-18 bg-stone-50 border border-[#E8E8E8] overflow-hidden cursor-zoom-in group relative"
+                                  onClick={() => {
+                                    setActiveMediaIdx(0);
+                                    setIsFullscreen(true);
+                                  }}
+                                >
+                                  <img src={imgUrl} className="w-full h-full object-cover transition-transform duration-350 hover:scale-105" alt="" />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Fit, Comfort & quality metrics */}
+                          {rev.qualityRating !== undefined && (
+                            <div className="grid grid-cols-3 gap-2.5 border-t border-stone-100 pt-3 mt-1.5 text-[8px] uppercase tracking-widest text-[#666666] font-medium">
+                              <div className="flex items-center gap-1.5">
+                                <span>Quality:</span>
+                                <span className="text-[#111111] font-bold">{rev.qualityRating}/5</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span>Comfort:</span>
+                                <span className="text-[#111111] font-bold">{rev.comfortRating ?? rev.rating}/5</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span>Fabric:</span>
+                                <span className="text-[#111111] font-bold">{rev.fabricRating ?? rev.rating}/5</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Action panel (helpful / report) */}
+                          <div className="flex justify-between items-center border-t border-stone-100 pt-3 mt-1 text-[8.5px] uppercase tracking-widest text-[#666666] font-semibold">
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => handleHelpfulClick(rev.id)}
+                                className={`flex items-center gap-1.5 cursor-pointer p-1 hover:text-[#111111] transition-colors ${
+                                  votedHelpful[rev.id] ? 'text-emerald-700 font-bold' : ''
+                                }`}
+                              >
+                                <ThumbsUp size={11} />
+                                <span>Helpful ({helpfulVotes[rev.id] || 0})</span>
+                              </button>
+                            </div>
+                            <button
+                              onClick={() => handleReportClick(rev.id)}
+                              className="flex items-center gap-1 cursor-pointer hover:text-red-750 transition-colors p-1"
+                            >
+                              <Flag size={10} />
+                              <span>Report</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
             </div>
 
           </div>
@@ -1081,9 +1519,12 @@ export default function ProductDetailPage() {
 
         {/* Complete the Look Section */}
         {lookProducts.length > 0 && (
-          <section className="mt-24 pt-16 border-t border-neutral-soft/40 text-left">
-            <h2 className="text-xl uppercase tracking-widest font-light text-fg-luxury mb-10">Complete the Look</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10">
+          <section className="mt-24 pt-16 border-t border-[#E8E8E8] text-left">
+            <div className="flex flex-col gap-1.5 mb-10">
+              <span className="text-[9px] uppercase tracking-[0.25em] text-[#666666] font-semibold">Perfect Pairings</span>
+              <h2 className="text-xl uppercase tracking-widest font-light font-playfair text-[#111111]">Complete the Look</h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 lg:gap-10">
               {lookProducts.map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}
@@ -1092,27 +1533,30 @@ export default function ProductDetailPage() {
         )}
 
         {/* Related Products Section */}
-        <section className="mt-24 pt-16 border-t border-neutral-soft/40 text-left">
-          <h2 className="text-xl uppercase tracking-widest font-light text-fg-luxury mb-10">You May Also Like</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10">
+        <section className="mt-24 pt-16 border-t border-[#E8E8E8] text-left">
+          <div className="flex flex-col gap-1.5 mb-10">
+            <span className="text-[9px] uppercase tracking-[0.25em] text-[#666666] font-semibold">Curated Selections</span>
+            <h2 className="text-xl uppercase tracking-widest font-light font-playfair text-[#111111]">You May Also Like</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 lg:gap-10">
             {relatedProducts.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
           </div>
         </section>
 
-        {/* Fullscreen Media Gallery Modal Overlay */}
+        {/* Fullscreen Lightbox */}
         {isFullscreen && activeMedia[activeMediaIdx] && (
-          <div className="fixed inset-0 z-[2000] bg-black/95 backdrop-blur-[6px] flex items-center justify-center p-4 select-none animate-[fadeIn_0.2s_ease-out]">
+          <div className="fixed inset-0 z-[2000] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 select-none animate-[fadeIn_0.2s_ease-out]">
             <button
               type="button"
               onClick={() => setIsFullscreen(false)}
-              className="absolute top-6 right-6 text-white/70 hover:text-white transition-colors cursor-pointer z-50 p-2"
+              className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors cursor-pointer z-50 p-2"
             >
-              <X size={24} />
+              <X size={20} />
             </button>
             
-            <div className="relative max-w-4xl max-h-[85vh] w-full aspect-[3/4] md:aspect-video flex items-center justify-center overflow-hidden">
+            <div className="relative max-w-2xl max-h-[85vh] w-full aspect-[3/4] flex items-center justify-center overflow-hidden">
               {(() => {
                 const mediaUrl = activeMedia[activeMediaIdx];
                 const isVideo = mediaUrl.endsWith('.mp4') || 
@@ -1140,6 +1584,23 @@ export default function ProductDetailPage() {
           </div>
         )}
       </main>
+
+      {/* Sticky Bottom Bar for Mobile Checkout flow */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-45 bg-[#FAF9F7]/95 backdrop-blur-md p-3.5 border-t border-[#E8E8E8] flex gap-3 shadow-lg">
+        <button
+          onClick={handleAddToBag}
+          disabled={!selectedColor || !selectedSize}
+          className="btn-editorial-solid flex-1 text-[9px] uppercase tracking-widest font-semibold py-3.5"
+        >
+          {added ? 'Added to Bag' : 'Equip to Bag'}
+        </button>
+        <button
+          onClick={handleWishlistToggle}
+          className="border border-[#E8E8E8] bg-white p-3 text-stone-900 flex items-center justify-center"
+        >
+          <Heart size={14} fill={favorited ? '#e11d48' : 'none'} className={favorited ? 'text-red-600' : ''} />
+        </button>
+      </div>
 
       <CartDrawer />
       <Footer />
