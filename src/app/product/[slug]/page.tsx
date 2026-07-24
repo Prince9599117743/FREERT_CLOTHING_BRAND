@@ -718,27 +718,39 @@ export default function ProductDetailPage() {
                           key={s}
                           disabled={isSizeOutOfStock}
                           onClick={() => setSelectedSize(s)}
-                          className={`w-full flex items-center justify-between py-3.5 px-4 border text-[10px] uppercase font-semibold transition-all duration-300 rounded-sm ${
+                          className={`w-full flex items-center justify-between py-3.5 px-4 border text-[10px] uppercase font-semibold transition-all duration-300 rounded-sm relative overflow-hidden ${
                             isSizeOutOfStock 
-                              ? 'border-neutral-soft/20 text-neutral-300 line-through cursor-not-allowed opacity-40 bg-neutral-soft/5' 
+                              ? 'border-neutral-soft/30 text-neutral-400 bg-neutral-soft/5 cursor-not-allowed opacity-65' 
                               : isSelected 
                               ? 'border-fg-luxury text-fg-luxury bg-fg-luxury/5 ring-1 ring-fg-luxury scale-[1.01]' 
                               : 'border-neutral-soft/80 text-text-muted hover:border-neutral-800 hover:text-fg-luxury bg-white/40 backdrop-blur-sm cursor-pointer'
                           }`}
                         >
+                          {/* Diagonal Slash for Sold Out sizes (Zara Style) */}
+                          {isSizeOutOfStock && (
+                            <div className="absolute top-[50%] left-0 right-0 h-[1.5px] bg-red-700/25 -rotate-3 pointer-events-none" />
+                          )}
+
                           <span className="flex items-center gap-3">
-                            <span className="tracking-widest">{s}</span>
-                            {!isSizeOutOfStock && (
+                            <span className={`tracking-widest ${isSizeOutOfStock ? 'line-through decoration-red-700/40 text-stone-400' : ''}`}>{s}</span>
+                            {!isSizeOutOfStock ? (
                               <span className="text-[7.5px] uppercase tracking-widest text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium animate-pulse">
                                 In Stock
                               </span>
+                            ) : (
+                              <span className="text-[7.5px] uppercase tracking-widest text-red-800 bg-red-50 px-2 py-0.5 rounded-full font-semibold border border-red-200/50">
+                                Not Available
+                              </span>
                             )}
                           </span>
-                          <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all ${
-                            isSelected ? 'border-fg-luxury bg-fg-luxury' : 'border-neutral-300'
-                          }`}>
-                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-bg-luxury" />}
-                          </div>
+                          
+                          {!isSizeOutOfStock && (
+                            <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all ${
+                              isSelected ? 'border-fg-luxury bg-fg-luxury' : 'border-neutral-300'
+                            }`}>
+                              {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-bg-luxury" />}
+                            </div>
+                          )}
                         </button>
                       );
                     })}
