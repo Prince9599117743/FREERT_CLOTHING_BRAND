@@ -650,7 +650,7 @@ export default function CheckoutPage() {
             </div>
 
             {/* Right side order summary panel */}
-            <div className="lg:col-span-5 bg-neutral-soft/10 p-8 border border-neutral-soft/50 text-left flex flex-col gap-6">
+            <div className="lg:col-span-5 bg-neutral-soft/10 p-5 md:p-8 border border-neutral-soft/50 text-left flex flex-col gap-6">
               <h3 className="text-xs uppercase tracking-[0.2em] font-semibold text-fg-luxury border-b border-neutral-soft/30 pb-2">
                 Order Specs
               </h3>
@@ -705,19 +705,18 @@ export default function CheckoutPage() {
               </div>
 
               {/* Real Coupon code input box */}
-              {currentStep <= 3 && (
+              {currentStep <= 3 && !appliedCoupon && (
                 <form onSubmit={handleApplyCoupon} className="flex gap-2 pt-2 border-t border-neutral-soft/10 mt-2">
                   <input 
                     type="text"
                     placeholder="ENTER COUPON CODE"
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value)}
-                    disabled={!!appliedCoupon}
-                    className="bg-transparent text-[10px] font-medium border border-neutral-soft/80 py-2 px-3 focus:outline-none w-full text-fg-luxury uppercase tracking-wider placeholder-neutral-400 disabled:opacity-50"
+                    className="bg-transparent text-[10px] font-medium border border-neutral-soft/80 py-2 px-3 focus:outline-none w-full text-fg-luxury uppercase tracking-wider placeholder-neutral-400"
                   />
                   <button 
                     type="submit" 
-                    disabled={!!appliedCoupon || !couponCode.trim()}
+                    disabled={!couponCode.trim()}
                     className="btn-editorial-solid text-[9px] py-2 px-4 uppercase tracking-widest cursor-pointer font-semibold whitespace-nowrap disabled:opacity-50"
                   >
                     Apply

@@ -1060,8 +1060,8 @@ export default function ProductDetailPage() {
                     </button>
                   </div>
                   
-                  {/* Grid Layout of sizes */}
-                  <div className="grid grid-cols-4 gap-2">
+                  {/* Vertical list layout of sizes */}
+                  <div className="flex flex-col gap-2">
                     {sizes.map((s) => {
                       const sizeVariant = product.variants?.find(v => v.size === s && v.color === (selectedColor || colors[0]));
                       const isSizeOutOfStock = (product.variants && product.variants.length > 0)
@@ -1076,12 +1076,25 @@ export default function ProductDetailPage() {
                           key={s}
                           type="button"
                           onClick={() => handleSizeClick(s, !isSizeOutOfStock)}
-                          className={`size-btn rounded ${
-                            isSizeOutOfStock ? 'unavailable' : 'available'
-                          } ${isSelected ? 'selected' : ''} ${isShaking ? 'shake-anim' : ''}`}
+                          className={`size-btn w-full rounded flex justify-between items-center px-4 py-3 border text-[10px] font-semibold tracking-wider transition-all duration-300 relative overflow-hidden ${
+                            isSizeOutOfStock 
+                              ? 'unavailable border-[#E5E5E0] text-stone-400 bg-stone-50/50 cursor-pointer font-light' 
+                              : isSelected 
+                              ? 'border-[#1a1a1a] text-[#1a1a1a] bg-[#1a1a1a]/5 ring-[0.5px] ring-[#1a1a1a]' 
+                              : 'border-[#E5E5E0] text-[#666666] hover:border-stone-800 hover:text-black bg-white cursor-pointer'
+                          } ${isShaking ? 'shake-anim' : ''}`}
                         >
                           {isSizeOutOfStock && <div className="size-strike" />}
-                          <span>{s}</span>
+                          <span className={isSizeOutOfStock ? 'line-through decoration-stone-400' : ''}>{s}</span>
+                          {!isSizeOutOfStock ? (
+                            <span className="text-[7.5px] uppercase tracking-widest text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
+                              Available
+                            </span>
+                          ) : (
+                            <span className="text-[7.5px] uppercase tracking-widest text-[#888888] bg-stone-100 px-2 py-0.5 rounded-full font-medium border border-[#E5E5E0]">
+                              Sold Out
+                            </span>
+                          )}
                         </button>
                       );
                     })}
@@ -1125,21 +1138,19 @@ export default function ProductDetailPage() {
                 <div className="flex flex-col gap-2.5 w-full">
                   <button 
                     onClick={handleAddToBag}
-                    disabled={!selectedColor || !selectedSize}
                     className="btn-luxury rounded"
                   >
                     {added ? (
-                      <><Check size={13} /> Equipped to bag</>
+                      <><Check size={13} /> Added to Bag</>
                     ) : (
-                      'Equip to capsule bag'
+                      'Add to Bag'
                     )}
                   </button>
                   <button 
                     onClick={handleBuyNow}
-                    disabled={!selectedColor || !selectedSize}
                     className="btn-luxury-outline rounded uppercase text-center"
                   >
-                    Proceed to secure checkout
+                    Proceed to Checkout
                   </button>
                 </div>
               )}
@@ -1152,7 +1163,7 @@ export default function ProductDetailPage() {
                 }`}
               >
                 <Heart size={12} fill={favorited ? '#dc2626' : 'none'} className={favorited ? 'text-red-600' : ''} />
-                {favorited ? 'In Wishlist capsule' : 'Add to Wishlist capsule'}
+                {favorited ? 'In Wishlist' : 'Add to Wishlist'}
               </button>
             </div>
 
@@ -1795,10 +1806,9 @@ export default function ProductDetailPage() {
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-45 bg-[#ffffff]/90 backdrop-blur-md p-3.5 border-t border-[#E5E5E0] flex gap-3 shadow-lg">
         <button
           onClick={handleAddToBag}
-          disabled={!selectedColor || !selectedSize}
           className="btn-luxury flex-1 text-[10px] py-3.5 rounded"
         >
-          {added ? 'Equipped' : 'Equip to Bag'}
+          {added ? 'Added' : 'Add to Bag'}
         </button>
         <button
           onClick={handleWishlistToggle}

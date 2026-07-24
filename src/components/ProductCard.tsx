@@ -151,13 +151,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         {/* Floating Quick Add Button */}
         {!isOutOfStock && (
           <button 
+            type="button"
             onClick={async (e) => {
               e.preventDefault();
               e.stopPropagation();
               if (sizes.length > 1) {
                 setIsQuickAddOpen(true);
               } else {
-                const defaultVariant = product.variants?.[0];
+                let defaultVariant = product.variants?.[0];
+                if (!defaultVariant && (!product.variants || product.variants.length === 0)) {
+                  defaultVariant = {
+                    id: `virtual-${product.id}-default`,
+                    productId: product.id,
+                    size: sizes[0] || 'One Size',
+                    color: 'Default',
+                    stockQty: product.stockQty || 10,
+                    additionalPrice: 0,
+                    sku: `SKU-${product.slug}-default`
+                  } as any;
+                }
                 if (defaultVariant) {
                   await addToCart({ ...defaultVariant, product });
                   showToast(`Equipped ${product.name} to bag.`, 'success');
@@ -178,6 +190,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             <div className="flex justify-between items-center border-b border-neutral-soft/20 pb-2">
               <span className="text-[8px] uppercase tracking-[0.2em] font-semibold text-fg-luxury">Select Size</span>
               <button 
+                type="button"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsQuickAddOpen(false); }}
                 className="text-text-muted hover:text-fg-luxury text-[8px] font-bold"
               >
@@ -194,6 +207,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                       return (
                         <button
                           key={size}
+                          type="button"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -215,11 +229,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </div>
 
             <button
+              type="button"
               onClick={async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 const sizeToSelect = activeSize || sizes[0] || 'One Size';
-                const variant = product.variants?.find(v => v.size === sizeToSelect);
+                let variant = product.variants?.find(v => v.size === sizeToSelect);
+                if (!variant && (!product.variants || product.variants.length === 0)) {
+                  variant = {
+                    id: `virtual-${product.id}-${sizeToSelect}`,
+                    productId: product.id,
+                    size: sizeToSelect,
+                    color: 'Default',
+                    stockQty: product.stockQty || 10,
+                    additionalPrice: 0,
+                    sku: `SKU-${product.slug}-${sizeToSelect}`
+                  } as any;
+                }
                 if (variant) {
                   await addToCart({ ...variant, product });
                   showToast(`Equipped ${product.name} (${sizeToSelect}) to bag.`, 'success');

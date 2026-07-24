@@ -112,6 +112,7 @@ export default function InvoicePage() {
   };
 
   const itemsSubtotal = order.items?.reduce((sum: number, item: any) => sum + (item.unit_price * item.qty), 0) || 0;
+  const shippingCost = Math.max(0, order.total_amount - itemsSubtotal + (order.discount_amount || 0));
   const gstAmount = Math.round(order.total_amount * 0.05); // 5% GST included
   const totalItemsCount = order.items?.reduce((sum: number, item: any) => sum + item.qty, 0) || 0;
 
@@ -239,7 +240,7 @@ export default function InvoicePage() {
             <div className="flex justify-between text-neutral-500 uppercase tracking-wider text-[9px]">
               <span>Consignment Shipping</span>
               <span className="text-neutral-900 font-medium">
-                {order.total_amount >= 15000 ? 'FREE' : '₹500'}
+                {shippingCost === 0 ? 'FREE' : `₹${shippingCost.toLocaleString('en-IN')}`}
               </span>
             </div>
             <div className="flex justify-between text-neutral-500 uppercase tracking-wider text-[9px] border-b border-neutral-200 pb-2">

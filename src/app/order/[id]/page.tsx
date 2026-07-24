@@ -192,6 +192,8 @@ export default function OrderDetailsPage() {
 
   const creationDate = order.created_at?.split('T')[0] || '—';
   const displayId = order.order_number ? `#${order.order_number}` : order.id.slice(0, 8).toUpperCase();
+  const itemsSubtotal = order.items?.reduce((sum: number, item: any) => sum + (item.unit_price * item.qty), 0) || 0;
+  const shippingCost = Math.max(0, order.total_amount - itemsSubtotal + (order.discount_amount || 0));
   const expectedDateText = order.expected_delivery_date ? new Date(order.expected_delivery_date).toDateString() : '3-5 Business Days';
 
   return (
@@ -365,7 +367,7 @@ export default function OrderDetailsPage() {
               <div className="flex flex-col gap-2.5 text-xs text-text-muted">
                 <div className="flex justify-between uppercase tracking-wider text-[9px]">
                   <span>Subtotal</span>
-                  <span className="text-fg-luxury font-medium">₹{(order.total_amount + (order.discount_amount || 0) - (order.status === 'cancelled' ? 0 : (order.tracking_number ? 0 : 60))).toLocaleString('en-IN')}</span>
+                  <span className="text-fg-luxury font-medium">₹{itemsSubtotal.toLocaleString('en-IN')}</span>
                 </div>
                 {order.discount_amount > 0 && (
                   <div className="flex justify-between uppercase tracking-wider text-[9px] text-green-700 font-medium">
@@ -376,7 +378,7 @@ export default function OrderDetailsPage() {
                 <div className="flex justify-between uppercase tracking-wider text-[9px]">
                   <span>Logistics Charges</span>
                   <span className="text-fg-luxury font-medium">
-                    {order.total_amount >= 15000 ? 'FREE' : '₹500'}
+                    {shippingCost === 0 ? 'FREE' : `₹${shippingCost.toLocaleString('en-IN')}`}
                   </span>
                 </div>
                 <div className="flex justify-between text-fg-luxury font-semibold uppercase tracking-[0.1em] text-sm pt-4 border-t border-neutral-soft/20 mt-2">

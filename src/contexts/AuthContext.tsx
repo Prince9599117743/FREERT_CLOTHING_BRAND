@@ -31,7 +31,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const newProfile = {
           id: sessionUser.id,
           email: sessionUser.email || '',
-          full_name: sessionUser.user_metadata?.full_name || 'Customer Profile',
+          full_name: sessionUser.user_metadata?.full_name || '',
+          phone: sessionUser.user_metadata?.phone || '',
           role: 'customer'
         };
         await supabase.from('users').insert(newProfile);
@@ -39,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: sessionUser.id,
           email: sessionUser.email || '',
           fullName: newProfile.full_name,
-          phone: '',
+          phone: newProfile.phone,
           role: 'customer' as UserRole,
           createdAt: sessionUser.created_at,
           updatedAt: sessionUser.created_at
