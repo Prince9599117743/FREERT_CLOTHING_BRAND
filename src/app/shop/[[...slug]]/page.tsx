@@ -155,6 +155,40 @@ export default function ShopPage() {
           </p>
         </div>
 
+        {/* Horizontal scrollbar subcategory index filter bar */}
+        {parentParam && activeSubcategories.length > 0 && (
+          <div className="mb-8 border-b border-neutral-soft/20 pb-4 overflow-x-auto whitespace-nowrap scrollbar-none">
+            <div className="flex gap-3 text-[9px] uppercase tracking-widest">
+              <button
+                onClick={() => router.push(`/shop/${parentParam}`)}
+                className={`px-4 py-2 border transition-all cursor-pointer ${
+                  !subParam 
+                    ? 'border-fg-luxury bg-fg-luxury text-bg-luxury font-medium' 
+                    : 'border-neutral-soft/40 text-text-muted hover:border-fg-luxury hover:text-fg-luxury bg-transparent'
+                }`}
+              >
+                All {parentParam}
+              </button>
+              {activeSubcategories.map((sub) => {
+                const isActive = subParam === sub.slug;
+                return (
+                  <button
+                    key={sub.slug}
+                    onClick={() => router.push(`/shop/${parentParam}/${sub.slug}`)}
+                    className={`px-4 py-2 border transition-all cursor-pointer ${
+                      isActive 
+                        ? 'border-accent-gold bg-accent-gold/10 text-accent-gold font-medium' 
+                        : 'border-neutral-soft/40 text-text-muted hover:border-fg-luxury hover:text-fg-luxury bg-transparent'
+                    }`}
+                  >
+                    {sub.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Sidebar & Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           

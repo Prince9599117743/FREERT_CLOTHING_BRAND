@@ -5,11 +5,16 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/CartDrawer';
 import { useToast } from '@/contexts/ToastContext';
+import { useSettings } from '@/contexts/SettingsContext';
 import { createSupportTicket } from '@/services/database';
 import { Mail, Compass, HelpCircle, AlertTriangle } from 'lucide-react';
 
 export default function SupportPage() {
   const { showToast } = useToast();
+  const { getSetting } = useSettings();
+  const storeEmail = getSetting('store_email', 'concierge@freert.net');
+  const storePhone = getSetting('store_phone', '+91 95991 17743');
+  const storeAddress = getSetting('store_address', 'Sector-7, Shibuya District, Tokyo, Japan 150-0002');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -136,22 +141,23 @@ export default function SupportPage() {
 
           {/* Right panel: locations & coordinates */}
           <div className="lg:col-span-5 text-left flex flex-col gap-8">
-            <div className="p-6 border border-neutral-soft/50 flex items-start gap-4">
+            <div className="p-6 border border-neutral-soft/50 flex items-start gap-4 animate-[fadeIn_0.4s_ease-out]">
               <Compass size={18} className="text-accent-gold mt-0.5 flex-shrink-0" />
               <div>
                 <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-2">Headquarters</h4>
-                <p className="text-xs font-light text-text-muted leading-relaxed">
-                  Sector-7, Shibuya District,<br />Tokyo, Japan 150-0002
+                <p className="text-xs font-light text-text-muted leading-relaxed whitespace-pre-line">
+                  {storeAddress}
                 </p>
               </div>
             </div>
 
-            <div className="p-6 border border-neutral-soft/50 flex items-start gap-4">
+            <div className="p-6 border border-neutral-soft/50 flex items-start gap-4 animate-[fadeIn_0.5s_ease-out]">
               <Mail size={18} className="text-accent-gold mt-0.5 flex-shrink-0" />
               <div>
                 <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-2">Contact Information</h4>
-                <p className="text-xs font-light text-text-muted leading-relaxed">
-                  concierge@freert.net<br />+91 95991 17743
+                <p className="text-xs font-light text-text-muted leading-relaxed whitespace-pre-line">
+                  {storeEmail}
+                  {"\n"}{storePhone}
                 </p>
               </div>
             </div>

@@ -21,6 +21,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const [activeSize, setActiveSize] = useState<string>('');
   const [isHovered, setIsHovered] = useState(false);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   
   const favorited = isInWishlist(product.id);
   const sizes = product.variants ? Array.from(new Set(product.variants.map(v => v.size))) : [];
@@ -113,11 +114,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             onClick={async (e) => {
               e.preventDefault();
               e.stopPropagation();
-              const defaultVariant = product.variants?.[0];
-              if (defaultVariant) {
-                await addToCart({ ...defaultVariant, product });
-                showToast(`Equipped ${product.name} to bag.`, 'success');
-                setIsCartOpen(true);
+              if (sizes.length > 1) {
+                setIsQuickAddOpen(true);
+              } else {
+                const defaultVariant = product.variants?.[0];
+                if (defaultVariant) {
+                  await addToCart({ ...defaultVariant, product });
+                  showToast(`Equipped ${product.name} to bag.`, 'success');
+                  setIsCartOpen(true);
+                }
               }
             }}
             className="absolute bottom-4 right-4 w-7 h-7 bg-bg-luxury/95 rounded-full text-fg-luxury hover:text-accent-gold hover:bg-bg-luxury shadow-md transition-all duration-300 cursor-pointer z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 flex items-center justify-center border border-neutral-soft/40"
@@ -125,6 +130,68 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           >
             <span className="text-[14px] font-light leading-none">+</span>
           </button>
+        )}
+
+        {/* Quick Add Options Selector Overlay */}
+        {isQuickAddOpen && (
+          <div className="absolute inset-0 bg-bg-luxury/95 backdrop-blur-[2px] z-20 p-4 flex flex-col justify-between animate-[fadeIn_0.2s_ease-out]">
+            <div className="flex justify-between items-center border-b border-neutral-soft/20 pb-2">
+              <span className="text-[8px] uppercase tracking-[0.2em] font-semibold text-fg-luxury">Select Size</span>
+              <button 
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsQuickAddOpen(false); }}
+                className="text-text-muted hover:text-fg-luxury text-[8px] font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 flex flex-col justify-center gap-3 py-2">
+              {sizes.length > 0 && (
+                <div className="flex flex-col gap-1.5 text-left">
+                  <div className="flex flex-wrap gap-1.5">
+                    {sizes.map(size => {
+                      const isSelected = activeSize === size;
+                      return (
+                        <button
+                          key={size}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setActiveSize(size);
+                          }}
+                          className={`text-[8px] font-semibold py-1.5 px-2.5 border transition-all cursor-pointer ${
+                            isSelected 
+                              ? 'bg-fg-luxury text-bg-luxury border-fg-luxury' 
+                              : 'bg-transparent text-fg-luxury border-neutral-soft/30 hover:border-fg-luxury'
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const sizeToSelect = activeSize || sizes[0] || 'One Size';
+                const variant = product.variants?.find(v => v.size === sizeToSelect);
+                if (variant) {
+                  await addToCart({ ...variant, product });
+                  showToast(`Equipped ${product.name} (${sizeToSelect}) to bag.`, 'success');
+                  setIsCartOpen(true);
+                  setIsQuickAddOpen(false);
+                }
+              }}
+              className="w-full bg-fg-luxury text-bg-luxury hover:bg-accent-gold hover:text-bg-luxury transition-all text-[8px] uppercase tracking-wider font-semibold py-2 text-center cursor-pointer"
+            >
+              Confirm Option
+            </button>
+          </div>
         )}
 
         {/* Hover Slider Actions */}

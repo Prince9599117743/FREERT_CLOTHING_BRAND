@@ -21,6 +21,9 @@ export interface HeroSlide {
   posterUrl?: string;
   focalPoint?: string;
   isPrimary?: boolean;
+  imageClickRedirect?: boolean;
+  videoClickRedirect?: boolean;
+  order?: number;
 }
 
 const DEFAULT_SLIDES: HeroSlide[] = [
@@ -104,10 +107,18 @@ export const HeroSlideshow: React.FC = () => {
             posterUrl: b.poster_url || b.posterUrl || '',
             focalPoint: b.focal_point || b.focalPoint || 'center',
             isPrimary: b.is_primary ?? b.isPrimary ?? false,
+            imageClickRedirect: b.image_click_redirect ?? b.imageClickRedirect ?? true,
+            videoClickRedirect: b.video_click_redirect ?? b.videoClickRedirect ?? false,
+            order: b.order ?? 0,
           }));
-          // In-memory sort fallback to guarantee primary slide is always index 0
-          mapped.sort((a: any, b: any) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0));
-          setSlides(mapped);
+          // Sort by enabled, order, and isPrimary
+          const activeSlides = mapped
+            .filter((s: any) => s.enabled !== false)
+            .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
+          
+          if (activeSlides.length > 0) {
+            setSlides(activeSlides);
+          }
         }
       } catch (e) {
         // Fallback to DEFAULT_SLIDES
@@ -173,11 +184,13 @@ export const HeroSlideshow: React.FC = () => {
                         slide.image.toLowerCase().endsWith('.webm') ||
                         slide.image.toLowerCase().endsWith('.mov') ||
                         slide.image.includes('video');
+        const canRedirect = isVideo ? (slide.videoClickRedirect ?? false) : (slide.imageClickRedirect ?? true);
         
         return (
           <div 
             key={slide.id}
-            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${isActive ? 'opacity-80 z-0' : 'opacity-0 -z-10'}`}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${isActive ? 'opacity-80 z-0' : 'opacity-0 -z-10'} ${canRedirect && isActive ? 'cursor-pointer' : ''}`}
+            onClick={canRedirect && isActive ? () => router.push(slide.ctaLink) : undefined}
           >
             {isVideo ? (
               <HeroVideo 

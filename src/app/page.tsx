@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { getProducts, getHomepageSections, getEditorialJournal, subscribeNewsletter } from '@/services/database';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -278,15 +279,32 @@ export default function Home() {
               )}
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {editorialJournal.map((item) => (
-                  <div 
-                    key={item.id} 
-                    onClick={() => router.push(item.linkUrl || '/shop')}
-                    className="relative w-full aspect-[3/4] overflow-hidden bg-neutral-soft/20 cursor-pointer hover:opacity-90 transition-opacity duration-300"
-                  >
-                    <img src={item.imageUrl} alt="Editorial look" className="w-full h-full object-cover" />
-                  </div>
-                ))}
+                {editorialJournal.map((item) => {
+                  const isVid = item.imageUrl.toLowerCase().endsWith('.mp4') || 
+                                item.imageUrl.toLowerCase().endsWith('.webm') || 
+                                item.imageUrl.toLowerCase().endsWith('.mov') ||
+                                item.imageUrl.includes('video');
+                  return (
+                    <div 
+                      key={item.id} 
+                      onClick={() => router.push(item.linkUrl || '/shop')}
+                      className="relative w-full aspect-[3/4] overflow-hidden bg-neutral-soft/20 cursor-pointer hover:opacity-90 transition-opacity duration-300"
+                    >
+                      {isVid ? (
+                        <video 
+                          src={item.imageUrl} 
+                          autoPlay 
+                          muted 
+                          loop 
+                          playsInline 
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : (
+                        <img src={item.imageUrl} alt="Editorial look" className="w-full h-full object-cover" />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </section>
           );
@@ -346,9 +364,10 @@ export default function Home() {
             sec.bannerImage.includes('video')
           ));
           const mediaSrc = isVideo ? (sec.videoUrl || sec.bannerImage) : sec.bannerImage;
+          const sectionProds = getSectionProducts(sec, sec.id, 4);
 
           return (
-            <section key={sec.id} className="py-6 md:py-12 border-b border-neutral-soft/30 container-editorial">
+            <section key={sec.id} className="py-8 md:py-16 border-b border-neutral-soft/30 container-editorial">
               <div 
                 className={`relative w-full aspect-[4/3] md:aspect-[16/7] overflow-hidden group ${sec.imageClickRedirect ? 'cursor-pointer' : ''}`}
                 onClick={sec.imageClickRedirect ? () => router.push(sec.ctaLink) : undefined}
@@ -401,6 +420,23 @@ export default function Home() {
                   </div>
                 )}
               </div>
+
+              {/* Dynamic Product Grid */}
+              {sectionProds.length > 0 && (
+                <div className="mt-12 animate-[fadeIn_0.5s_ease-out]">
+                  <div className="flex justify-between items-baseline mb-6">
+                    <h4 className="text-[10px] uppercase tracking-[0.25em] font-semibold text-fg-luxury">Featured Capsule Articles</h4>
+                    <Link href={sec.ctaLink} className="text-[9px] uppercase tracking-widest text-text-muted hover:text-accent-gold transition-colors font-medium border-b border-neutral-soft/30 hover:border-accent-gold pb-0.5">
+                      Explore All
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+                    {sectionProds.map((p) => (
+                      <ProductCard key={p.id} product={p} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
           );
         }

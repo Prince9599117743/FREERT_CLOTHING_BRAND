@@ -193,17 +193,17 @@ export const Navbar: React.FC = () => {
                           <p className="text-[7.5px] text-text-muted lowercase truncate max-w-[140px] mt-0.5 tracking-normal">{user.email}</p>
                         </div>
                       </div>
-                      <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2.5 py-1 text-fg-luxury hover:text-accent-gold transition-all hover:translate-x-1 duration-200">
+                      <Link href="/dashboard?tab=profile" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2.5 py-1 text-fg-luxury hover:text-accent-gold transition-all hover:translate-x-1 duration-200">
                         <User size={12} strokeWidth={1.5} /> My Profile
                       </Link>
-                      <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2.5 py-1 text-fg-luxury hover:text-accent-gold transition-all hover:translate-x-1 duration-200">
+                      <Link href="/dashboard?tab=orders" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2.5 py-1 text-fg-luxury hover:text-accent-gold transition-all hover:translate-x-1 duration-200">
                         <ClipboardList size={12} strokeWidth={1.5} /> My Orders
                       </Link>
-                      <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2.5 py-1 text-fg-luxury hover:text-accent-gold transition-all hover:translate-x-1 duration-200">
+                      <Link href="/wishlist" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2.5 py-1 text-fg-luxury hover:text-accent-gold transition-all hover:translate-x-1 duration-200">
                         <Heart size={12} strokeWidth={1.5} /> Wishlist
                       </Link>
-                      <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2.5 py-1 text-fg-luxury hover:text-accent-gold transition-all hover:translate-x-1 duration-200">
-                        <Settings size={12} strokeWidth={1.5} /> Addresses
+                      <Link href="/dashboard?tab=addresses" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2.5 py-1 text-fg-luxury hover:text-accent-gold transition-all hover:translate-x-1 duration-200">
+                        <Settings size={12} strokeWidth={1.5} /> Saved Addresses
                       </Link>
                       <button 
                         onClick={() => { handleLogoutClick(); setIsAccountDropdownOpen(false); }}
@@ -221,11 +221,11 @@ export const Navbar: React.FC = () => {
                         Create Account
                       </Link>
                       <div className="border-t border-neutral-soft/30 pt-4 flex flex-col gap-3">
-                        <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center justify-between text-fg-luxury hover:text-accent-gold hover:translate-x-1 transition-transform duration-200 py-1">
+                        <Link href="/wishlist" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center justify-between text-fg-luxury hover:text-accent-gold hover:translate-x-1 transition-transform duration-200 py-1">
                           <span className="flex items-center gap-2.5"><Heart size={12} strokeWidth={1.5} /> Wishlist</span>
                           <ChevronRight size={10} />
                         </Link>
-                        <Link href="/dashboard" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center justify-between text-fg-luxury hover:text-accent-gold hover:translate-x-1 transition-transform duration-200 py-1">
+                        <Link href="/track-order" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center justify-between text-fg-luxury hover:text-accent-gold hover:translate-x-1 transition-transform duration-200 py-1">
                           <span className="flex items-center gap-2.5"><ClipboardList size={12} strokeWidth={1.5} /> Track Order</span>
                           <ChevronRight size={10} />
                         </Link>

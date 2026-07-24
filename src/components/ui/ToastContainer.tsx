@@ -9,7 +9,7 @@ export const ToastContainer: React.FC = () => {
   const { toasts, removeToast } = useToast();
 
   return (
-    <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none">
+    <div className="fixed top-6 right-6 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none">
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
       ))}
@@ -35,10 +35,10 @@ const ToastItem: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void 
   };
 
   return (
-    <div className="pointer-events-auto bg-bg-luxury border border-neutral-soft/80 shadow-md p-4 flex items-center justify-between gap-4 animate-[slideInLeft_0.3s_cubic-bezier(0.16,1,0.3,1)]">
+    <div className="pointer-events-auto bg-bg-luxury/90 backdrop-blur-md border border-accent-gold/45 shadow-[0_12px_40px_rgba(0,0,0,0.15)] p-4 flex items-center justify-between gap-4 rounded-sm animate-[slideIn_0.35s_cubic-bezier(0.16,1,0.3,1)]">
       <div className="flex items-center gap-3">
         {icons[toast.type]}
-        <span className="text-[11px] uppercase tracking-wider font-light text-fg-luxury">{toast.message}</span>
+        <span className="text-[10px] uppercase tracking-widest font-semibold text-fg-luxury">{toast.message}</span>
       </div>
       <button 
         onClick={() => onRemove(toast.id)}

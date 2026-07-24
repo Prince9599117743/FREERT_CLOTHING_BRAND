@@ -133,6 +133,13 @@ export interface Order {
   updatedAt: string;
   items?: OrderItem[];
   payment?: Payment;
+  cancel_requested?: boolean;
+  cancel_reason?: string;
+  cancel_request_status?: string;
+  cancel_admin_notes?: string;
+  tracking_number?: string;
+  courier_name?: string;
+  expected_delivery_date?: string;
 }
 
 export interface OrderItem {

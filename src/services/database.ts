@@ -132,6 +132,18 @@ export const updateProduct = async (id: string, updates: Partial<Product>): Prom
 
 export const deleteProduct = async (id: string): Promise<void> => {
   verifyConnection();
+  
+  // Clean up references to avoid constraint violations
+  try {
+    await supabase.from('combo_offers').delete().or(`product_a_id.eq.${id},product_b_id.eq.${id}`);
+    await supabase.from('product_details_sections').delete().eq('product_id', id);
+    await supabase.from('product_colors').delete().eq('product_id', id);
+    await supabase.from('product_variants').delete().eq('product_id', id);
+    await supabase.from('wishlist').delete().eq('product_id', id);
+  } catch (cleanErr) {
+    console.warn('Silent warning clearing product constraints:', cleanErr);
+  }
+
   const { error } = await supabase.from('products').delete().eq('id', id);
   if (error) throw error;
 };
@@ -257,6 +269,12 @@ export const saveAddress = async (address: Omit<Address, 'id' | 'createdAt'>): P
   return data as Address;
 };
 
+export const deleteAddress = async (id: string): Promise<void> => {
+  verifyConnection();
+  const { error } = await supabase.from('addresses').delete().eq('id', id);
+  if (error) throw error;
+};
+
 // ─────────────────────────────────────────────
 // 5. ORDERS
 // ─────────────────────────────────────────────
@@ -296,12 +314,35 @@ export const updateOrderStatus = async (orderId: string, status: string): Promis
   if (error) throw error;
 };
 
+export const updateOrderDetails = async (orderId: string, updates: any): Promise<void> => {
+  verifyConnection();
+  const payload: any = { updated_at: new Date().toISOString() };
+  if (updates.status !== undefined) payload.status = updates.status;
+  if (updates.cancelRequested !== undefined) payload.cancel_requested = updates.cancelRequested;
+  if (updates.cancelReason !== undefined) payload.cancel_reason = updates.cancelReason;
+  if (updates.cancelRequestStatus !== undefined) payload.cancel_request_status = updates.cancelRequestStatus;
+  if (updates.cancelAdminNotes !== undefined) payload.cancel_admin_notes = updates.cancelAdminNotes;
+  if (updates.trackingNumber !== undefined) payload.tracking_number = updates.trackingNumber;
+  if (updates.courierName !== undefined) payload.courier_name = updates.courierName;
+  if (updates.expectedDeliveryDate !== undefined) payload.expected_delivery_date = updates.expectedDeliveryDate;
+
+  const { error } = await supabase.from('orders').update(payload).eq('id', orderId);
+  if (error) throw error;
+};
+
 export const createOrder = async (order: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>, items: any[]): Promise<Order> => {
   verifyConnection();
+  const trackingNumber = `FRT${Math.floor(100000000 + Math.random() * 900000000)}IN`;
+  const expectedDate = new Date();
+  expectedDate.setDate(expectedDate.getDate() + 5);
+
   const payload: any = {
     total_amount: order.totalAmount,
     discount_amount: order.discountAmount,
     status: order.status,
+    tracking_number: trackingNumber,
+    courier_name: 'Blue Dart',
+    expected_delivery_date: expectedDate.toISOString(),
   };
   if (order.userId) payload.user_id = order.userId;
   if (order.shippingAddressId) payload.shipping_address_id = order.shippingAddressId;
@@ -362,7 +403,7 @@ export const getWishlist = async (userId: string): Promise<any[]> => {
   verifyConnection();
   const { data, error } = await supabase
     .from('wishlist')
-    .select('*, product:products(*)')
+    .select('*, product:products(*, variants:product_variants(*))')
     .eq('user_id', userId);
   if (error) throw error;
   return data || [];
@@ -634,6 +675,7 @@ export const getHeroBanners = async (): Promise<any[]> => {
   const { data, error } = await supabase
     .from('hero_banners')
     .select('*')
+    .order('order', { ascending: true })
     .order('is_primary', { ascending: false })
     .order('created_at', { ascending: true });
   if (error) throw error;
@@ -656,6 +698,10 @@ export const saveHeroBanner = async (banner: any): Promise<any> => {
     poster_url: banner.posterUrl || banner.poster_url || '',
     focal_point: banner.focalPoint || banner.focal_point || 'center',
     is_primary: banner.isPrimary ?? banner.is_primary ?? false,
+    enabled: banner.enabled ?? true,
+    image_click_redirect: banner.imageClickRedirect ?? banner.image_click_redirect ?? true,
+    video_click_redirect: banner.videoClickRedirect ?? banner.video_click_redirect ?? false,
+    order: banner.order ?? 0,
   };
   const { data, error } = await supabase.from('hero_banners').insert(payload).select().single();
   if (error) throw error;
@@ -694,6 +740,10 @@ export const updateHeroBanner = async (id: string, updates: any): Promise<any> =
   if (updates.posterUrl !== undefined) payload.poster_url = updates.posterUrl;
   if (updates.focalPoint !== undefined) payload.focal_point = updates.focalPoint;
   if (updates.isPrimary !== undefined) payload.is_primary = updates.isPrimary;
+  if (updates.enabled !== undefined) payload.enabled = updates.enabled;
+  if (updates.imageClickRedirect !== undefined) payload.image_click_redirect = updates.imageClickRedirect;
+  if (updates.videoClickRedirect !== undefined) payload.video_click_redirect = updates.videoClickRedirect;
+  if (updates.order !== undefined) payload.order = updates.order;
   
   // Support direct snake_case values passed as properties
   if (updates.image_url !== undefined) payload.image_url = updates.image_url;
@@ -707,6 +757,10 @@ export const updateHeroBanner = async (id: string, updates: any): Promise<any> =
   if (updates.poster_url !== undefined) payload.poster_url = updates.poster_url;
   if (updates.focal_point !== undefined) payload.focal_point = updates.focal_point;
   if (updates.is_primary !== undefined) payload.is_primary = updates.is_primary;
+  if (updates.enabled !== undefined) payload.enabled = updates.enabled;
+  if (updates.image_click_redirect !== undefined) payload.image_click_redirect = updates.image_click_redirect;
+  if (updates.video_click_redirect !== undefined) payload.video_click_redirect = updates.video_click_redirect;
+  if (updates.order !== undefined) payload.order = updates.order;
 
   const { data, error } = await supabase.from('hero_banners').update(payload).eq('id', id).select().single();
   if (error) throw error;
@@ -1109,4 +1163,27 @@ export const deleteComboOffer = async (id: string): Promise<void> => {
   verifyConnection();
   const { error } = await supabase.from('combo_offers').delete().eq('id', id);
   if (error) throw error;
+};
+
+export const getOrderForTracking = async (query: string): Promise<any> => {
+  verifyConnection();
+  let dbQuery = supabase
+    .from('orders')
+    .select(`*, items:order_items(*, variant:product_variants(*, product:products(*))), payment:payments(*)`);
+    
+  if (query.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/)) {
+    dbQuery = dbQuery.eq('id', query);
+  } else {
+    const cleanNum = query.replace('#', '').trim();
+    const orderNum = parseInt(cleanNum, 10);
+    if (!isNaN(orderNum)) {
+      dbQuery = dbQuery.eq('order_number', orderNum);
+    } else {
+      dbQuery = dbQuery.eq('tracking_number', query);
+    }
+  }
+  
+  const { data, error } = await dbQuery.maybeSingle();
+  if (error) throw error;
+  return data;
 };

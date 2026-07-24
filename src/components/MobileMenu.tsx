@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { X, ChevronDown, ChevronRight, User, ShoppingBag, Heart, HelpCircle, Package } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { getCategories } from '@/services/database';
+import type { Category } from '@/types';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -16,6 +18,15 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   
   const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
+  const [dbCategories, setDbCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      getCategories()
+        .then(list => setDbCategories(list))
+        .catch(err => console.error('Failed to load categories in MobileMenu:', err));
+    }
+  }, [isOpen]);
 
   const toggleAccordion = (name: string) => {
     setActiveAccordion(activeAccordion === name ? null : name);
@@ -23,54 +34,33 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
 
   const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
 
-  const navigationTree = [
-    {
-      name: 'Men',
-      href: '/shop/men',
-      sub: [
-        { name: 'Oversized T-Shirts', href: '/shop/men/oversized-t-shirts' },
-        { name: 'Regular T-Shirts', href: '/shop/men/regular-t-shirts' },
-        { name: 'Shirts', href: '/shop/men/shirts' },
-        { name: 'Hoodies', href: '/shop/men/hoodies' },
-        { name: 'Jeans', href: '/shop/men/jeans' },
-        { name: 'Cargo Pants', href: '/shop/men/cargo-pants' }
-      ]
-    },
-    {
-      name: 'Women',
-      href: '/shop/women',
-      sub: [
-        { name: 'T-Shirts', href: '/shop/women/t-shirts' },
-        { name: 'Oversized', href: '/shop/women/oversized' },
-        { name: 'Tops', href: '/shop/women/tops' },
-        { name: 'Hoodies', href: '/shop/women/hoodies' },
-        { name: 'Jeans', href: '/shop/women/jeans' },
-        { name: 'Dresses', href: '/shop/women/dresses' }
-      ]
-    },
-    {
-      name: 'Accessories',
-      href: '/shop/accessories',
-      sub: [
-        { name: 'Caps', href: '/shop/accessories/caps' },
-        { name: 'Belts', href: '/shop/accessories/belts' },
-        { name: 'Wallets', href: '/shop/accessories/wallets' },
-        { name: 'Bags', href: '/shop/accessories/bags' },
-        { name: 'Chains', href: '/shop/accessories/chains' },
-        { name: 'Rings', href: '/shop/accessories/rings' }
-      ]
-    },
-    {
-      name: 'Perfumes',
-      href: '/shop/perfumes',
-      sub: [
-        { name: 'Men', href: '/shop/perfumes/men' },
-        { name: 'Women', href: '/shop/perfumes/women' },
-        { name: 'Unisex', href: '/shop/perfumes/unisex' },
-        { name: 'Travel Packs', href: '/shop/perfumes/travel-packs' }
-      ]
-    }
+  // Departments (parent categories)
+  const departments = dbCategories.filter(c => !c.parentCategory);
+
+  // Fallbacks
+  const fallbackDepts = [
+    { id: 'men', name: 'Men', slug: 'men' },
+    { id: 'women', name: 'Women', slug: 'women' },
+    { id: 'accessories', name: 'Accessories', slug: 'accessories' },
+    { id: 'perfumes', name: 'Perfumes', slug: 'perfumes' },
   ];
+
+  const activeDepts = departments.length > 0 ? departments : fallbackDepts;
+
+  const getSubs = (parentSlug: string) => {
+    const subs = dbCategories.filter(c => c.parentCategory === parentSlug);
+    if (subs.length > 0) {
+      return subs.map(s => ({ name: s.name, href: `/shop/${parentSlug}/${s.slug}` }));
+    }
+    // Fallback static arrays
+    let fallbacks: string[] = [];
+    if (parentSlug === 'men') fallbacks = ['Oversized T-Shirts', 'Regular T-Shirts', 'Shirts', 'Hoodies', 'Sweatshirts', 'Jeans', 'Cargo Pants'];
+    else if (parentSlug === 'women') fallbacks = ['T-Shirts', 'Oversized', 'Tops', 'Hoodies', 'Jeans', 'Dresses'];
+    else if (parentSlug === 'accessories') fallbacks = ['Caps', 'Belts', 'Wallets', 'Bags', 'Chains', 'Rings'];
+    else if (parentSlug === 'perfumes') fallbacks = ['Men', 'Women', 'Unisex', 'Travel Packs'];
+    
+    return fallbacks.map(name => ({ name, href: `/shop/${parentSlug}/${name.toLowerCase().replace(/\s+/g, '-')}` }));
+  };
 
   return (
     <>
@@ -106,10 +96,11 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
           </Link>
 
           {/* Collapsible Accordions navigation tree */}
-          {navigationTree.map((item) => {
+          {activeDepts.map((item) => {
             const isAccordionOpen = activeAccordion === item.name;
+            const subItems = getSubs(item.slug);
             return (
-              <div key={item.name} className="flex flex-col border-b border-neutral-soft/10 pb-3">
+              <div key={item.id || item.slug} className="flex flex-col border-b border-neutral-soft/10 pb-3">
                 <button
                   onClick={() => toggleAccordion(item.name)}
                   className="w-full flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-fg-luxury hover:text-accent-gold transition-colors py-1 cursor-pointer"
@@ -121,7 +112,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
                 {/* Collapsible content with sliding height transition */}
                 <div className={`grid transition-all duration-300 ease-in-out ${isAccordionOpen ? 'grid-rows-[1fr] opacity-100 mt-2.5' : 'grid-rows-[0fr] opacity-0 pointer-events-none'}`}>
                   <div className="overflow-hidden flex flex-col gap-2.5 pl-3">
-                    {item.sub.map((sub) => (
+                    {subItems.map((sub) => (
                       <Link
                         key={sub.name}
                         href={sub.href}
@@ -152,11 +143,11 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
 
           {/* Custom Auxiliary links */}
           <div className="flex flex-col gap-3.5 mt-6 pt-6 border-t border-neutral-soft/20 text-[9.5px] uppercase tracking-[0.15em] font-light text-text-muted">
-            <Link href="/dashboard" onClick={onClose} className="flex items-center gap-2 hover:text-fg-luxury transition-colors">
+            <Link href="/track-order" onClick={onClose} className="flex items-center gap-2 hover:text-fg-luxury transition-colors">
               <Package size={12} />
               <span>Track Order</span>
             </Link>
-            <Link href="/dashboard" onClick={onClose} className="flex items-center gap-2 hover:text-fg-luxury transition-colors">
+            <Link href="/wishlist" onClick={onClose} className="flex items-center gap-2 hover:text-fg-luxury transition-colors">
               <Heart size={12} />
               <span>Wishlist</span>
             </Link>

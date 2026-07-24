@@ -6,7 +6,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
 import { 
   getProducts, createProduct, updateProduct, deleteProduct,
-  getAllOrders, updateOrderStatus, getAllCustomers,
+  getAllOrders, updateOrderStatus, updateOrderDetails, getAllCustomers,
   getCoupons, createCoupon, updateCoupon, deleteCoupon,
   getAdminReviews, deleteReview, approveReview, rejectReview,
   getAdminSupportTickets, updateTicketStatus,
@@ -68,9 +68,13 @@ interface OrderAdmin {
   address: string;
   amount: number;
   date: string;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: string;
   items: string;
   paymentMethod: string;
+  cancelRequested?: boolean;
+  cancelReason?: string;
+  cancelRequestStatus?: string;
+  cancelAdminNotes?: string;
 }
 
 interface Customer {
@@ -129,6 +133,7 @@ function AdminCoreWorkspace() {
   const [newColorName, setNewColorName] = useState('');
   const [newColorCode, setNewColorCode] = useState('#FFFFFF');
   const [newColorImage, setNewColorImage] = useState('');
+  const [isUploadingSwatch, setIsUploadingSwatch] = useState(false);
   const [selectedColorForMedia, setSelectedColorForMedia] = useState<string | null>(null);
 
   // Checked sizes checklist
@@ -241,6 +246,11 @@ function AdminCoreWorkspace() {
 
   // Global search query
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Reset search query when active tab switches to prevent lists vanishing
+  useEffect(() => {
+    setSearchQuery('');
+  }, [activeView]);
 
   // Bulk actions status states
   const [isSaving, setIsSaving] = useState(false);
@@ -358,6 +368,10 @@ function AdminCoreWorkspace() {
             status: o.status,
             items: o.items?.map((i: any) => `${i.variant?.product?.name || 'Item'} x${i.qty}`).join(', ') || '—',
             paymentMethod: o.payment?.provider || 'cod',
+            cancelRequested: o.cancel_requested,
+            cancelReason: o.cancel_reason,
+            cancelRequestStatus: o.cancel_request_status,
+            cancelAdminNotes: o.cancel_admin_notes,
           })));
         }
 
@@ -454,6 +468,10 @@ function AdminCoreWorkspace() {
             posterUrl: b.poster_url || b.posterUrl || '',
             focalPoint: b.focal_point || b.focalPoint || 'center',
             isPrimary: b.is_primary ?? b.isPrimary ?? false,
+            enabled: b.enabled ?? true,
+            imageClickRedirect: b.image_click_redirect ?? b.imageClickRedirect ?? true,
+            videoClickRedirect: b.video_click_redirect ?? b.videoClickRedirect ?? false,
+            order: b.order ?? 0,
           });
 
           if (heroList.value.length === 0) {
@@ -1342,14 +1360,44 @@ function AdminCoreWorkspace() {
                             </div>
                           </div>
                           <div>
-                            <label className="text-[8px] uppercase text-text-muted block mb-1">Swatch Image URL (Optional)</label>
-                            <input 
-                              type="text" 
-                              value={newColorImage}
-                              onChange={(e) => setNewColorImage(e.target.value)}
-                              placeholder="https://..."
-                              className="input-editorial text-xs py-1.5 px-2"
-                            />
+                            <label className="text-[8px] uppercase text-text-muted block mb-1">Swatch Image (Optional)</label>
+                            <div className="flex gap-3 items-center">
+                              {newColorImage && (
+                                <img src={newColorImage} className="w-8 h-8 rounded-full border border-neutral-soft/50 object-cover" alt="" />
+                              )}
+                              <label className="btn-editorial py-1.5 px-3 text-[8px] uppercase tracking-wider font-semibold cursor-pointer flex-1 text-center bg-transparent border border-neutral-soft/50 text-fg-luxury hover:bg-neutral-soft/10">
+                                {isUploadingSwatch ? 'Uploading Swatch...' : 'Select Swatch File'}
+                                <input 
+                                  type="file"
+                                  accept=".jpg,.jpeg,.png,.webp,.gif"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      setIsUploadingSwatch(true);
+                                      try {
+                                        const url = await uploadMedia(file, 'swatches');
+                                        setNewColorImage(url);
+                                        showToast('Swatch image uploaded.', 'success');
+                                      } catch (err) {
+                                        showToast('Failed to upload swatch image.', 'error');
+                                      } finally {
+                                        setIsUploadingSwatch(false);
+                                      }
+                                    }
+                                  }}
+                                  className="hidden"
+                                />
+                              </label>
+                              {newColorImage && (
+                                <button
+                                  type="button"
+                                  onClick={() => setNewColorImage('')}
+                                  className="text-red-700 hover:text-red-800 text-[8px] uppercase font-bold cursor-pointer"
+                                >
+                                  Clear
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <button
@@ -2602,22 +2650,27 @@ function AdminCoreWorkspace() {
       const draft = heroDrafts[slideId];
       if (!draft) return;
 
+      const slide = heroBanners.find(b => b.id === slideId) || {};
       setSavingHeroId(slideId);
       try {
         const payload = {
-          heading: draft.heading || '',
-          subtitle: draft.subtitle || '',
-          imageUrl: draft.imageUrl || draft.image_url || '',
-          ctaText: draft.ctaText || draft.cta_text || 'Shop Now',
-          ctaLink: draft.ctaLink || draft.cta_link || '/shop',
-          showTitle: draft.showTitle ?? draft.show_title ?? true,
-          showSubtitle: draft.showSubtitle ?? draft.show_subtitle ?? true,
-          showButton: draft.showButton ?? draft.show_button ?? true,
-          mediaType: draft.mediaType || draft.media_type || 'image',
-          videoUrl: draft.videoUrl || draft.video_url || '',
-          posterUrl: draft.posterUrl || draft.poster_url || '',
-          focalPoint: draft.focalPoint || draft.focal_point || 'center',
-          isPrimary: draft.isPrimary ?? draft.is_primary ?? false,
+          heading: draft.heading !== undefined ? draft.heading : slide.heading,
+          subtitle: draft.subtitle !== undefined ? draft.subtitle : slide.subtitle,
+          imageUrl: draft.imageUrl !== undefined ? draft.imageUrl : slide.imageUrl,
+          ctaText: draft.ctaText !== undefined ? draft.ctaText : slide.ctaText,
+          ctaLink: draft.ctaLink !== undefined ? draft.ctaLink : slide.ctaLink,
+          showTitle: draft.showTitle !== undefined ? draft.showTitle : slide.showTitle,
+          showSubtitle: draft.showSubtitle !== undefined ? draft.showSubtitle : slide.showSubtitle,
+          showButton: draft.showButton !== undefined ? draft.showButton : slide.showButton,
+          mediaType: draft.mediaType !== undefined ? draft.mediaType : slide.mediaType,
+          videoUrl: draft.videoUrl !== undefined ? draft.videoUrl : slide.videoUrl,
+          posterUrl: draft.posterUrl !== undefined ? draft.posterUrl : slide.posterUrl,
+          focalPoint: draft.focalPoint !== undefined ? draft.focalPoint : slide.focalPoint,
+          isPrimary: draft.isPrimary !== undefined ? draft.isPrimary : slide.isPrimary,
+          enabled: draft.enabled !== undefined ? draft.enabled : (slide.enabled ?? true),
+          imageClickRedirect: draft.imageClickRedirect !== undefined ? draft.imageClickRedirect : (slide.imageClickRedirect ?? true),
+          videoClickRedirect: draft.videoClickRedirect !== undefined ? draft.videoClickRedirect : (slide.videoClickRedirect ?? false),
+          order: draft.order !== undefined ? parseInt(String(draft.order), 10) : (slide.order ?? 0),
         };
 
         await updateHeroBanner(slideId, payload);
@@ -2635,6 +2688,10 @@ function AdminCoreWorkspace() {
           posterUrl: b.poster_url || b.posterUrl || '',
           focalPoint: b.focal_point || b.focalPoint || 'center',
           isPrimary: b.is_primary ?? b.isPrimary ?? false,
+          enabled: b.enabled ?? true,
+          imageClickRedirect: b.image_click_redirect ?? b.imageClickRedirect ?? true,
+          videoClickRedirect: b.video_click_redirect ?? b.videoClickRedirect ?? false,
+          order: b.order ?? 0,
         }));
         setHeroBanners(mapped);
 
@@ -2668,7 +2725,11 @@ function AdminCoreWorkspace() {
           subtitle: 'Limited Collection Drop',
           ctaText: 'Shop Collection',
           ctaLink: '/shop',
-          mediaType: 'image'
+          mediaType: 'image',
+          enabled: true,
+          imageClickRedirect: true,
+          videoClickRedirect: false,
+          order: heroBanners.length
         });
         const mapped = {
           ...newBanner,
@@ -2681,6 +2742,10 @@ function AdminCoreWorkspace() {
           posterUrl: newBanner.poster_url || newBanner.posterUrl || '',
           focalPoint: newBanner.focal_point || newBanner.focalPoint || 'center',
           isPrimary: newBanner.is_primary ?? newBanner.isPrimary ?? false,
+          enabled: newBanner.enabled ?? true,
+          imageClickRedirect: newBanner.image_click_redirect ?? newBanner.imageClickRedirect ?? true,
+          videoClickRedirect: newBanner.video_click_redirect ?? newBanner.videoClickRedirect ?? false,
+          order: newBanner.order ?? 0,
         };
         setHeroBanners(prev => [...prev, mapped]);
         showToast('New hero slide created.', 'success');
@@ -2860,6 +2925,10 @@ function AdminCoreWorkspace() {
               const showTitle = draft?.showTitle ?? slide.showTitle ?? true;
               const showSubtitle = draft?.showSubtitle ?? slide.showSubtitle ?? true;
               const showButton = draft?.showButton ?? slide.showButton ?? true;
+              const enabled = draft?.enabled ?? slide.enabled ?? true;
+              const imageClickRedirect = draft?.imageClickRedirect ?? slide.imageClickRedirect ?? true;
+              const videoClickRedirect = draft?.videoClickRedirect ?? slide.videoClickRedirect ?? false;
+              const order = draft?.order ?? slide.order ?? 0;
 
               const isSaving = savingHeroId === slide.id;
 
@@ -2932,6 +3001,29 @@ function AdminCoreWorkspace() {
                         <option value="center">Focal Point: Center</option>
                         <option value="bottom">Focal Point: Bottom</option>
                       </select>
+                    </div>
+                  </div>
+
+                  {/* Enabled Toggle & Slide Order */}
+                  <div className="grid grid-cols-2 gap-3 items-center border-t border-neutral-soft/10 pt-3">
+                    <label className="flex items-center gap-2 cursor-pointer select-none border border-neutral-soft/30 px-3 py-1.5 bg-neutral-soft/5">
+                      <input 
+                        type="checkbox" 
+                        checked={enabled} 
+                        onChange={(e) => handleHeroDraftChange(slide.id, { enabled: e.target.checked })}
+                        className="accent-fg-luxury cursor-pointer"
+                      />
+                      <span className="text-[8px] uppercase tracking-widest font-semibold text-fg-luxury">Enabled Status</span>
+                    </label>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[8px] uppercase tracking-widest text-text-muted">Slide Order:</span>
+                      <input 
+                        type="number" 
+                        value={order} 
+                        onChange={(e) => handleHeroDraftChange(slide.id, { order: e.target.value })}
+                        className="input-editorial py-1 px-2 text-xs w-16" 
+                      />
                     </div>
                   </div>
 
@@ -3076,6 +3168,30 @@ function AdminCoreWorkspace() {
                       />
                       Show CTA Button
                     </label>
+                  </div>
+
+                  {/* Redirect Configuration Toggles */}
+                  <div className="flex flex-wrap gap-4 py-2 border-b border-neutral-soft/20 my-1">
+                    <label className="flex items-center gap-1.5 text-[8px] uppercase tracking-widest cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={imageClickRedirect} 
+                        onChange={(e) => handleHeroDraftChange(slide.id, { imageClickRedirect: e.target.checked })}
+                        className="accent-fg-luxury cursor-pointer"
+                      />
+                      Image Click Redirect
+                    </label>
+                    {mediaType === 'video' && (
+                      <label className="flex items-center gap-1.5 text-[8px] uppercase tracking-widest cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={videoClickRedirect} 
+                          onChange={(e) => handleHeroDraftChange(slide.id, { videoClickRedirect: e.target.checked })}
+                          className="accent-fg-luxury cursor-pointer"
+                        />
+                        Video Click Redirect
+                      </label>
+                    )}
                   </div>
 
                   {/* Button Text & Link */}
@@ -3540,6 +3656,80 @@ function AdminCoreWorkspace() {
               <p>Method: {o.paymentMethod}</p>
               <p className="italic text-fg-luxury mt-1 font-medium">&ldquo;{o.items}&rdquo;</p>
             </div>
+
+            {/* Cancellation Request Panel */}
+            {o.cancelRequested && (
+              <div className="border border-red-700 bg-red-50/10 p-4 text-left flex flex-col gap-2.5 my-1.5 animate-[fadeIn_0.3s_ease-out]">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[9px] uppercase tracking-widest font-bold text-red-700">Order Cancellation Request</span>
+                  <span className={`text-[8px] uppercase tracking-wider font-semibold ${
+                    o.cancelRequestStatus === 'approved' 
+                      ? 'text-green-700' 
+                      : o.cancelRequestStatus === 'rejected' 
+                      ? 'text-red-700' 
+                      : 'text-amber-700 animate-pulse'
+                  }`}>
+                    Status: {o.cancelRequestStatus || 'Pending'}
+                  </span>
+                </div>
+                <p className="text-[10px] text-text-muted leading-relaxed">
+                  <span className="font-semibold text-fg-luxury block uppercase tracking-wider text-[8px] mb-0.5">Reason for Cancellation:</span>
+                  {o.cancelReason || 'Customer requested cancellation'}
+                </p>
+
+                {o.cancelRequestStatus === 'pending' && (
+                  <div className="flex gap-2 text-[8.5px] uppercase font-semibold tracking-wider mt-1.5">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const confirm = window.confirm('Are you sure you want to approve this cancellation request? This will mark the order as cancelled.');
+                        if (!confirm) return;
+                        try {
+                          await updateOrderDetails(o.id, {
+                            cancelRequestStatus: 'approved',
+                            status: 'cancelled'
+                          });
+                          setOrders(prev => prev.map(item => item.id === o.id ? { ...item, cancelRequestStatus: 'approved', status: 'cancelled' } : item));
+                          showToast('Cancellation approved successfully.', 'success');
+                        } catch {
+                          showToast('Failed to approve cancellation.', 'error');
+                        }
+                      }}
+                      className="bg-red-800 text-white hover:bg-red-900 py-1 px-2 border border-red-700 cursor-pointer transition-colors"
+                    >
+                      Approve Request
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const notes = window.prompt('Enter reason or admin notes for rejecting this request:');
+                        if (notes === null) return;
+                        try {
+                          await updateOrderDetails(o.id, {
+                            cancelRequestStatus: 'rejected',
+                            cancelAdminNotes: notes
+                          });
+                          setOrders(prev => prev.map(item => item.id === o.id ? { ...item, cancelRequestStatus: 'rejected', cancelAdminNotes: notes } : item));
+                          showToast('Cancellation request rejected.', 'info');
+                        } catch {
+                          showToast('Failed to reject cancellation.', 'error');
+                        }
+                      }}
+                      className="bg-transparent text-fg-luxury hover:bg-neutral-soft/20 py-1 px-2 border border-neutral-soft/60 cursor-pointer transition-colors"
+                    >
+                      Reject Request
+                    </button>
+                  </div>
+                )}
+
+                {o.cancelRequestStatus === 'rejected' && o.cancelAdminNotes && (
+                  <p className="text-[9px] text-red-700 italic border-l border-red-200 pl-2">
+                    <span className="font-semibold block uppercase tracking-widest text-[7.5px] not-italic mb-0.5 text-text-muted">Rejection Notes:</span>
+                    {o.cancelAdminNotes}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="border-t border-neutral-soft/20 pt-3 flex justify-between items-baseline font-semibold text-fg-luxury">
               <span>Order Value</span>

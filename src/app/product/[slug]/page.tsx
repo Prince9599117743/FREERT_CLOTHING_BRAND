@@ -921,24 +921,36 @@ export default function ProductDetailPage() {
                 </div>
               )}
               {reviews.length === 0 ? (
-                <p className="text-xs text-text-muted font-light tracking-widest uppercase">No reviews yet. Be the first to review.</p>
+                <div className="py-12 flex flex-col items-center justify-center border border-dashed border-neutral-soft/50 p-6 text-center animate-[fadeIn_0.4s_ease-out] w-full">
+                  <Star size={18} className="text-text-muted/60 stroke-[1.2] mb-3" />
+                  <p className="text-[10px] text-text-muted font-light tracking-widest uppercase mb-1">No reviews yet</p>
+                  <p className="text-[9px] text-text-muted/70 font-light lowercase tracking-wider">Be the first to share your thoughts on this capsule article.</p>
+                </div>
               ) : (
-                reviews.map(rev => (
-                  <div key={rev.id} className="border-b border-neutral-soft/20 pb-6 last:border-0 last:pb-0">
-                    <div className="flex justify-between items-baseline mb-2">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-semibold text-fg-luxury">{rev.name}</span>
-                        <div className="flex text-accent-gold">
-                          {Array.from({ length: rev.rating }).map((_, i) => (
-                            <Star key={i} size={10} className="fill-current" />
-                          ))}
+                <div className="flex flex-col gap-6 animate-[fadeIn_0.5s_ease-out] w-full">
+                  {reviews.map(rev => {
+                    const initials = rev.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'US';
+                    return (
+                      <div key={rev.id} className="pb-6 border-b border-neutral-soft/10 last:border-0 last:pb-0 flex items-start gap-4">
+                        <div className="w-8 h-8 rounded-full bg-neutral-soft/10 text-fg-luxury flex items-center justify-center font-semibold text-[9px] border border-neutral-soft/30 flex-shrink-0">
+                          {initials}
+                        </div>
+                        <div className="flex-1 flex flex-col text-left gap-1">
+                          <div className="flex justify-between items-baseline">
+                            <span className="text-[11px] font-semibold text-fg-luxury uppercase tracking-wider">{rev.name}</span>
+                            <span className="text-[8.5px] text-text-muted font-light">{rev.date}</span>
+                          </div>
+                          <div className="flex text-accent-gold my-0.5">
+                            {Array.from({ length: rev.rating }).map((_, i) => (
+                              <Star key={i} size={9} className="fill-current" />
+                            ))}
+                          </div>
+                          <p className="text-xs text-text-muted leading-relaxed font-light mt-1">{rev.comment}</p>
                         </div>
                       </div>
-                      <span className="text-[10px] text-text-muted font-light">{rev.date}</span>
-                    </div>
-                    <p className="text-xs text-text-muted leading-relaxed font-light">{rev.comment}</p>
-                  </div>
-                ))
+                    );
+                  })}
+                </div>
               )}
             </div>
 
