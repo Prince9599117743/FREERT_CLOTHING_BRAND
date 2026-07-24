@@ -12,8 +12,8 @@ export const CartDrawer: React.FC = () => {
   const [promoCode, setPromoCode] = useState('');
   const [discountApplied, setDiscountApplied] = useState(false);
 
-  const shippingThreshold = 15000;
-  const flatShipping = 500;
+  const shippingThreshold = 499;
+  const flatShipping = 80;
 
   const handleApplyPromo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +35,8 @@ export const CartDrawer: React.FC = () => {
   const discount = discountApplied ? cartSubtotal * 0.20 : 0;
   const shipping = cartSubtotal >= shippingThreshold || cartSubtotal === 0 ? 0 : flatShipping;
   const total = cartSubtotal - discount + shipping;
+
+  const progressPercent = Math.min((cartSubtotal / shippingThreshold) * 100, 100);
 
   if (!isCartOpen) return null;
 
@@ -60,13 +62,22 @@ export const CartDrawer: React.FC = () => {
           </button>
         </div>
 
-        {/* Shipping Indicator */}
-        <div className="bg-neutral-soft/30 px-8 py-3 border-b border-neutral-soft/30 text-[10px] uppercase tracking-widest text-text-muted text-center font-light">
-          {cartSubtotal >= shippingThreshold ? (
-            <span className="text-fg-luxury font-medium">Free shipping active</span>
-          ) : (
-            <span>Add ₹{(shippingThreshold - cartSubtotal).toLocaleString('en-IN')} more for free delivery</span>
-          )}
+        {/* Shipping Progress Indicator */}
+        <div className="bg-neutral-soft/10 px-8 py-4 border-b border-neutral-soft/30 text-[10px] uppercase tracking-widest text-text-muted flex flex-col gap-2 font-light">
+          <div className="flex justify-between items-center">
+            {cartSubtotal >= shippingThreshold ? (
+              <span className="text-[#C9A84C] font-semibold">Complimentary Shipping Activated</span>
+            ) : (
+              <span>Add ₹{(shippingThreshold - cartSubtotal).toLocaleString('en-IN')} more for free delivery</span>
+            )}
+            <span className="font-semibold text-fg-luxury">{Math.round(progressPercent)}%</span>
+          </div>
+          <div className="w-full h-1 bg-neutral-200/20 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-[#C9A84C] to-[#E8D5A3] transition-all duration-500 ease-out" 
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
         </div>
 
         {/* Scrollable items */}

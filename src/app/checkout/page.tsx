@@ -1085,7 +1085,7 @@ export default function CheckoutPage() {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 12, fontWeight: 600, color: '#e8e8e8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.variant?.product?.name}</p>
-                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 3, letterSpacing: '0.05em' }}>{item.variant?.size || item.size} · {item.variant?.color || item.color}</p>
+                      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 3, letterSpacing: '0.05em' }}>{item.variant?.size || 'One Size'} · {item.variant?.color || 'Default'}</p>
                     </div>
                     <p style={{ fontSize: 13, fontWeight: 600, color: '#e8e8e8', flexShrink: 0 }}>₹{((item.priceOverride || price) * item.qty).toLocaleString('en-IN')}</p>
                   </div>
