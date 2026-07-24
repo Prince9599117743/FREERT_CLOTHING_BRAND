@@ -406,7 +406,7 @@ export const createOrder = async (order: Omit<Order, 'id' | 'createdAt' | 'updat
   if (items && items.length > 0) {
     const itemsPayload = items.map((item: any) => ({
       order_id: data.id,
-      variant_id: item.variantId || null,
+      variant_id: (item.variantId && !item.variantId.startsWith('virtual-') && item.variantId !== 'guest') ? item.variantId : null,
       qty: item.qty || 1,
       unit_price: item.priceOverride || item.price_override || (item.variant?.product?.basePrice || 0) + (item.variant?.additionalPrice || 0) || item.price || 0,
     }));
