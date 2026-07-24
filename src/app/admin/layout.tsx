@@ -59,7 +59,7 @@ export default function AdminLayout({
       <aside className="w-full md:w-64 bg-bg-luxury border-b md:border-b-0 md:border-r border-neutral-soft/60 flex flex-col pt-10 pb-6 animate-[fadeIn_0.3s_ease-out]">
         <div className="px-6 mb-8 text-left">
           <Link href="/admin?view=dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-            <NextImage src="/freert-logo-light.png" alt="FREERT" width={36} height={36} className="object-contain mix-blend-multiply" />
+            <NextImage src="/freert-logo.svg" alt="FREERT" width={38} height={38} className="object-contain" />
             <span className="text-base font-editorial tracking-[0.25em] font-semibold text-fg-luxury uppercase">FREERT</span>
           </Link>
           <p className="text-[7.5px] uppercase tracking-widest text-text-muted mt-1 font-medium">Store Management</p>

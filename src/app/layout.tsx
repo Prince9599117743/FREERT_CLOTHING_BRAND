@@ -48,13 +48,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/freert-logo.jpg', sizes: '32x32', type: 'image/jpeg' },
-      { url: '/freert-logo.jpg', sizes: '16x16', type: 'image/jpeg' },
+      { url: '/freert-logo.svg', type: 'image/svg+xml' },
     ],
     apple: [
-      { url: '/freert-logo-light.png', sizes: '180x180', type: 'image/png' },
+      { url: '/freert-logo.svg', sizes: '180x180', type: 'image/svg+xml' },
     ],
-    shortcut: '/freert-logo.jpg',
+    shortcut: '/freert-logo.svg',
   },
 };
 

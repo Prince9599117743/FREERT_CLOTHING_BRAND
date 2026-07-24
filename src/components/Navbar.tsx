@@ -154,11 +154,11 @@ export const Navbar: React.FC = () => {
           
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-300 group">
             <Image
-              src="/freert-logo-light.png"
+              src="/freert-logo.svg"
               alt="FREERT"
-              width={42}
-              height={42}
-              className="object-contain mix-blend-multiply"
+              width={44}
+              height={44}
+              className="object-contain"
               priority
             />
             <span className="text-xl font-editorial tracking-[0.25em] font-semibold text-fg-luxury">

@@ -60,11 +60,11 @@ export const Footer: React.FC = () => {
         <div className="flex flex-col gap-5">
           <Link href="/" className="flex items-center gap-3 group hover:opacity-80 transition-opacity">
             <Image
-              src="/freert-logo-light.png"
+              src="/freert-logo.svg"
               alt="FREERT"
-              width={48}
-              height={48}
-              className="object-contain mix-blend-multiply"
+              width={52}
+              height={52}
+              className="object-contain"
             />
             <span className="text-sm font-semibold tracking-[0.3em] text-fg-luxury uppercase">
               {brandName}

@@ -77,7 +77,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-5 border-b border-neutral-soft/30">
           <Link href="/" onClick={onClose} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <Image src="/freert-logo-light.png" alt="FREERT" width={36} height={36} className="object-contain mix-blend-multiply" />
+            <Image src="/freert-logo.svg" alt="FREERT" width={38} height={38} className="object-contain" />
             <span className="text-sm font-semibold tracking-[0.25em] uppercase text-fg-luxury">FREERT</span>
           </Link>
           <button 
