@@ -27,8 +27,13 @@ export default function ShopPage() {
   const [loading, setLoading] = useState(true);
   
   // Category variables derived from slug parameters
-  const parentParam = slug?.[0] || '';
-  const subParam = slug?.[1] || '';
+  const [activeParent, setActiveParent] = useState(slug?.[0] || '');
+  const [activeSub, setActiveSub] = useState(slug?.[1] || '');
+
+  useEffect(() => {
+    setActiveParent(slug?.[0] || '');
+    setActiveSub(slug?.[1] || '');
+  }, [slug]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -51,8 +56,8 @@ export default function ShopPage() {
     let list = [...allProducts];
 
     // Filter by main category or tags
-    if (parentParam) {
-      const decodedParent = decodeURIComponent(parentParam).toLowerCase();
+    if (activeParent) {
+      const decodedParent = decodeURIComponent(activeParent).toLowerCase();
       if (['men', 'women', 'accessories', 'perfumes'].includes(decodedParent)) {
         list = list.filter(p => p.parentCategory === decodedParent);
       } else if (decodedParent === 'new-arrivals') {
@@ -63,8 +68,8 @@ export default function ShopPage() {
     }
 
     // Filter by sub-category
-    if (subParam) {
-      const decodedSub = decodeURIComponent(subParam).toLowerCase();
+    if (activeSub) {
+      const decodedSub = decodeURIComponent(activeSub).toLowerCase();
       list = list.filter(p => 
         p.subCategory === decodedSub || 
         p.subCategory?.toLowerCase().replace(/\s+/g, '-') === decodedSub
@@ -84,18 +89,19 @@ export default function ShopPage() {
     }
 
     setFilteredProducts(list);
-  }, [allProducts, parentParam, subParam, sortBy, priceRange]);
+  }, [allProducts, activeParent, activeSub, sortBy, priceRange]);
 
   const getPageTitle = () => {
-    if (!parentParam) return 'Shop Catalog';
-    const main = parentParam.charAt(0).toUpperCase() + parentParam.slice(1);
-    if (!subParam) return main;
-    const sub = subParam.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    if (!activeParent) return 'Shop Catalog';
+    const main = activeParent.charAt(0).toUpperCase() + activeParent.slice(1);
+    if (!activeSub) return main;
+    const sub = activeSub.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     return `${main} / ${sub}`;
   };
 
   const getSubcategories = (): { name: string; slug: string }[] => {
-    const parent = parentParam.toLowerCase();
+    if (!activeParent) return [];
+    const parent = activeParent.toLowerCase();
     const filtered = dbCategories.filter(c => c.parentCategory === parent);
     if (dbCategories.length > 0) {
       return filtered.map(c => ({ name: c.name, slug: c.slug }));
@@ -137,17 +143,17 @@ export default function ShopPage() {
         {/* Breadcrumb & Header info */}
         <div className="flex flex-col gap-2 mb-10">
           <div className="flex gap-2 text-[9px] uppercase tracking-widest text-text-muted font-light">
-            <span className="cursor-pointer hover:text-fg-luxury" onClick={() => router.push('/shop')}>Shop</span>
-            {parentParam && (
+            <span className="cursor-pointer hover:text-fg-luxury" onClick={() => { setActiveParent(''); setActiveSub(''); window.history.pushState(null, '', '/shop'); }}>Shop</span>
+            {activeParent && (
               <>
                 <span>/</span>
-                <span className="cursor-pointer hover:text-fg-luxury" onClick={() => router.push(`/shop/${parentParam}`)}>{parentParam}</span>
+                <span className="cursor-pointer hover:text-fg-luxury" onClick={() => { setActiveSub(''); window.history.pushState(null, '', `/shop/${activeParent}`); }}>{activeParent}</span>
               </>
             )}
-            {subParam && (
+            {activeSub && (
               <>
                 <span>/</span>
-                <span className="text-fg-luxury">{subParam}</span>
+                <span className="text-fg-luxury">{activeSub}</span>
               </>
             )}
           </div>
@@ -160,24 +166,24 @@ export default function ShopPage() {
         </div>
 
         {/* Subcategory index filter bar (wrapping flex layout) */}
-        {parentParam && activeSubcategories.length > 0 && (
+        {activeParent && activeSubcategories.length > 0 && (
           <div className="mb-8 border-b border-neutral-soft/20 pb-4 flex flex-wrap gap-2 md:gap-3 text-[9px] uppercase tracking-widest">
             <button
-              onClick={() => router.push(`/shop/${parentParam}`)}
+              onClick={() => { setActiveSub(''); window.history.pushState(null, '', `/shop/${activeParent}`); }}
               className={`px-4 py-2 border transition-all cursor-pointer ${
-                !subParam 
+                !activeSub 
                   ? 'border-fg-luxury bg-fg-luxury text-bg-luxury font-medium' 
                   : 'border-neutral-soft/40 text-text-muted hover:border-fg-luxury hover:text-fg-luxury bg-transparent'
               }`}
             >
-              All {parentParam}
+              All {activeParent}
             </button>
             {activeSubcategories.map((sub) => {
-              const isActive = subParam === sub.slug;
+              const isActive = activeSub === sub.slug;
               return (
                 <button
                   key={sub.slug}
-                  onClick={() => router.push(`/shop/${parentParam}/${sub.slug}`)}
+                  onClick={() => { setActiveSub(sub.slug); window.history.pushState(null, '', `/shop/${activeParent}/${sub.slug}`); }}
                   className={`px-4 py-2 border transition-all cursor-pointer ${
                     isActive 
                       ? 'border-accent-gold bg-accent-gold/10 text-accent-gold font-medium' 
@@ -205,11 +211,11 @@ export default function ShopPage() {
                 </h4>
                 <div className="flex flex-col gap-2.5">
                   {activeSubcategories.map((sub) => {
-                    const isActive = subParam === sub.slug;
+                    const isActive = activeSub === sub.slug;
                     return (
                       <button
                         key={sub.slug}
-                        onClick={() => router.push(`/shop/${parentParam}/${sub.slug}`)}
+                        onClick={() => { setActiveSub(sub.slug); window.history.pushState(null, '', `/shop/${activeParent}/${sub.slug}`); }}
                         className={`text-[10px] uppercase tracking-wider text-left transition-colors cursor-pointer hover:text-accent-gold ${isActive ? 'text-accent-gold font-medium' : 'text-text-muted font-light'}`}
                       >
                         {sub.name}
@@ -228,11 +234,11 @@ export default function ShopPage() {
               <div className="flex flex-col gap-2.5">
                 {/* Dynamic departments from DB */}
                 {dbCategories.filter(c => !c.parentCategory).map((dept) => {
-                  const isActive = parentParam === dept.slug;
+                  const isActive = activeParent === dept.slug;
                   return (
                     <button
                       key={dept.id}
-                      onClick={() => router.push(`/shop/${dept.slug}`)}
+                      onClick={() => { setActiveParent(dept.slug); setActiveSub(''); window.history.pushState(null, '', `/shop/${dept.slug}`); }}
                       className={`text-[10px] uppercase tracking-wider text-left transition-colors cursor-pointer hover:text-accent-gold ${isActive ? 'text-accent-gold font-medium' : 'text-text-muted font-light'}`}
                     >
                       {dept.name}
@@ -241,11 +247,11 @@ export default function ShopPage() {
                 })}
                 {/* Static special filters */}
                 {[{ name: 'Sale', slug: 'sale' }, { name: 'New Arrivals', slug: 'new-arrivals' }].map((item) => {
-                  const isActive = parentParam === item.slug;
+                  const isActive = activeParent === item.slug;
                   return (
                     <button
                       key={item.slug}
-                      onClick={() => router.push(`/shop/${item.slug}`)}
+                      onClick={() => { setActiveParent(item.slug); setActiveSub(''); window.history.pushState(null, '', `/shop/${item.slug}`); }}
                       className={`text-[10px] uppercase tracking-wider text-left transition-colors cursor-pointer hover:text-accent-gold ${isActive ? 'text-accent-gold font-medium' : 'text-text-muted font-light'}`}
                     >
                       {item.name}
@@ -348,7 +354,7 @@ export default function ShopPage() {
               <div className="py-24 text-center border border-dashed border-neutral-soft/60 flex flex-col justify-center items-center gap-4">
                 <p className="text-xs uppercase tracking-[0.25em] text-text-muted font-light">No articles match your parameters</p>
                 <button 
-                  onClick={() => { setPriceRange(20000); setSortBy('default'); router.push('/shop'); }}
+                  onClick={() => { setPriceRange(20000); setSortBy('default'); setActiveParent(''); setActiveSub(''); window.history.pushState(null, '', '/shop'); }}
                   className="btn-editorial-solid text-xs py-2 px-6"
                 >
                   Clear Filters
@@ -356,7 +362,7 @@ export default function ShopPage() {
               </div>
             ) : (
               <div 
-                key={`${parentParam || 'shop'}-${subParam || 'all'}-${sortBy}-${priceRange}`}
+                key={`${activeParent || 'shop'}-${activeSub || 'all'}-${sortBy}-${priceRange}`}
                 className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 animate-catalog-fade"
               >
                 {filteredProducts.map((p) => (
