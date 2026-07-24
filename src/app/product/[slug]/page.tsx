@@ -100,10 +100,20 @@ export default function ProductDetailPage() {
             setSelectedColor('Default');
           }
           
+          const itemCatSlug = item.category?.slug?.toLowerCase() || '';
+          const itemParentCatSlug = item.parentCategory?.toLowerCase() || '';
+          const itemIsClothing = itemCatSlug !== 'perfumes' && 
+                             itemCatSlug !== 'accessories' && 
+                             itemParentCatSlug !== 'accessories' &&
+                             !item.slug.includes('perfume') && 
+                             !item.slug.includes('fragrance') &&
+                             !item.slug.includes('wallet') &&
+                             !item.slug.includes('belt');
+
           if (itemSizes.length > 0) {
             setSelectedSize(itemSizes[0]);
           } else {
-            setSelectedSize('One Size');
+            setSelectedSize(itemIsClothing ? 'S' : 'One Size');
           }
 
           const list = await getProducts();
@@ -280,7 +290,20 @@ export default function ProductDetailPage() {
       }));
 
   const colors = colorsConfig.map(c => c.color_name);
-  const sizes = product.variants ? Array.from(new Set(product.variants.map(v => v.size))) : ['One Size'];
+
+  const catSlug = product.category?.slug?.toLowerCase() || '';
+  const parentCatSlug = product.parentCategory?.toLowerCase() || '';
+  const isClothing = catSlug !== 'perfumes' && 
+                     catSlug !== 'accessories' && 
+                     parentCatSlug !== 'accessories' &&
+                     !product.slug.includes('perfume') && 
+                     !product.slug.includes('fragrance') &&
+                     !product.slug.includes('wallet') &&
+                     !product.slug.includes('belt');
+
+  const sizes = product.variants && product.variants.length > 0 
+    ? Array.from(new Set(product.variants.map(v => v.size))) 
+    : (isClothing ? ['S', 'M', 'L', 'XL'] : ['One Size']);
 
   const selectedColorway = colorsConfig.find((col: any) => col.color_name === selectedColor);
   const activeMedia = (selectedColorway && selectedColorway.images && selectedColorway.images.length > 0)
@@ -668,11 +691,11 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              {/* Sizing options */}
+              {/* Sizing options - Luxury Vertical Stack */}
               {sizes.length > 0 && (
-                <div>
-                  <div className="flex justify-between items-baseline mb-3">
-                    <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury">Size Module</h4>
+                <div className="flex flex-col gap-4 mt-6 border-t border-neutral-soft/30 pt-6">
+                  <div className="flex justify-between items-baseline">
+                    <h4 className="text-[9px] uppercase tracking-[0.25em] font-semibold text-fg-luxury">Select Size Variant</h4>
                     <button 
                       type="button" 
                       onClick={() => setIsSizeGuideOpen(true)}
@@ -681,24 +704,41 @@ export default function ProductDetailPage() {
                       Size Guide
                     </button>
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col gap-2.5">
                     {sizes.map((s) => {
                       const sizeVariant = product.variants?.find(v => v.size === s && v.color === (selectedColor || colors[0]));
                       const isSizeOutOfStock = (product.variants && product.variants.length > 0)
                         ? (sizeVariant ? (product.trackQuantity !== false && sizeVariant.stockQty === 0) : true)
                         : (product.status === 'out-of-stock' || (product.trackQuantity !== false && (product.stockQty ?? 0) === 0));
+
+                      const isSelected = selectedSize === s;
+
                       return (
                         <button
                           key={s}
                           disabled={isSizeOutOfStock}
                           onClick={() => setSelectedSize(s)}
-                          className={`w-10 h-10 flex items-center justify-center text-[10px] uppercase font-medium border transition-colors ${
-                            isSizeOutOfStock ? 'border-neutral-soft/30 text-neutral-300 line-through cursor-not-allowed opacity-50' :
-                            selectedSize === s ? 'border-fg-luxury text-fg-luxury bg-fg-luxury/5 cursor-pointer' : 
-                            'border-neutral-soft/80 text-text-muted hover:border-neutral-400 cursor-pointer'
+                          className={`w-full flex items-center justify-between py-3.5 px-4 border text-[10px] uppercase font-semibold transition-all duration-300 rounded-sm ${
+                            isSizeOutOfStock 
+                              ? 'border-neutral-soft/20 text-neutral-300 line-through cursor-not-allowed opacity-40 bg-neutral-soft/5' 
+                              : isSelected 
+                              ? 'border-fg-luxury text-fg-luxury bg-fg-luxury/5 ring-1 ring-fg-luxury scale-[1.01]' 
+                              : 'border-neutral-soft/80 text-text-muted hover:border-neutral-800 hover:text-fg-luxury bg-white/40 backdrop-blur-sm cursor-pointer'
                           }`}
                         >
-                          {s}
+                          <span className="flex items-center gap-3">
+                            <span className="tracking-widest">{s}</span>
+                            {!isSizeOutOfStock && (
+                              <span className="text-[7.5px] uppercase tracking-widest text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium animate-pulse">
+                                In Stock
+                              </span>
+                            )}
+                          </span>
+                          <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all ${
+                            isSelected ? 'border-fg-luxury bg-fg-luxury' : 'border-neutral-300'
+                          }`}>
+                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-bg-luxury" />}
+                          </div>
                         </button>
                       );
                     })}

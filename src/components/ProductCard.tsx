@@ -24,7 +24,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   
   const favorited = isInWishlist(product.id);
-  const sizes = product.variants ? Array.from(new Set(product.variants.map(v => v.size))) : [];
+  const catSlug = product.category?.slug?.toLowerCase() || '';
+  const parentCatSlug = product.parentCategory?.toLowerCase() || '';
+  const isClothing = catSlug !== 'perfumes' && 
+                     catSlug !== 'accessories' && 
+                     parentCatSlug !== 'accessories' &&
+                     !product.slug.includes('perfume') && 
+                     !product.slug.includes('fragrance') &&
+                     !product.slug.includes('wallet') &&
+                     !product.slug.includes('belt');
+
+  const sizes = product.variants && product.variants.length > 0 
+    ? Array.from(new Set(product.variants.map(v => v.size))) 
+    : (isClothing ? ['S', 'M', 'L', 'XL'] : ['One Size']);
 
   // Stock status logic
   const totalStock = product.variants && product.variants.length > 0 ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 10);
