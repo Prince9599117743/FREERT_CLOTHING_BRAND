@@ -338,7 +338,7 @@ function AdminCoreWorkspace() {
     const loadAll = async () => {
       try {
         const [productList, orderList, customerList, couponList, reviewList, ticketList, settings, stats, categoriesList, cmsSections, heroList, lookbookList, subscribersList, alertsList, collectionsList] = await Promise.allSettled([
-          getProducts(),
+          getProducts(true),
           getAllOrders(),
           getAllCustomers(),
           getCoupons(),
@@ -346,7 +346,7 @@ function AdminCoreWorkspace() {
           getAdminSupportTickets(),
           getSiteSettings(),
           getDashboardStats(),
-          getCategories(),
+          getCategories(true),
           getHomepageSections(),
           getHeroBanners(),
           getEditorialJournal(),
@@ -551,7 +551,7 @@ function AdminCoreWorkspace() {
 
   // Refresh products list from DB
   const refreshProducts = async () => {
-    try { const list = await getProducts(); setProducts(list); } catch (e) {}
+    try { const list = await getProducts(true); setProducts(list); } catch (e) {}
   };
 
   // Image Upload to Supabase Storage

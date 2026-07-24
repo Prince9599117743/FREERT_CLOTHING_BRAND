@@ -39,7 +39,49 @@ const mapProduct = (row: any): Product => ({
   updatedAt: row.updated_at ?? row.updatedAt,
 });
 
-export const getProducts = async (): Promise<Product[]> => {
+// Client-side cache variables
+interface CatalogCache {
+  products: Product[];
+  categories: Category[];
+  timestamp: number;
+}
+let catalogCache: CatalogCache | null = null;
+const CLIENT_CACHE_LIMIT = 30 * 1000; // 30 seconds local memory cache
+
+const fetchCatalogData = async (): Promise<CatalogCache> => {
+  const now = Date.now();
+  if (catalogCache && (now - catalogCache.timestamp < CLIENT_CACHE_LIMIT)) {
+    return catalogCache;
+  }
+  
+  try {
+    const response = await fetch('/api/catalog');
+    if (response.ok) {
+      const data = await response.json();
+      catalogCache = {
+        products: data.products,
+        categories: data.categories,
+        timestamp: now
+      };
+      return catalogCache;
+    }
+  } catch (err) {
+    console.warn('Fallback to direct database fetching due to API error:', err);
+  }
+  
+  throw new Error('FALLBACK_TO_DIRECT_DB');
+};
+
+export const getProducts = async (forceRefresh = false): Promise<Product[]> => {
+  if (!forceRefresh && typeof window !== 'undefined') {
+    try {
+      const cache = await fetchCatalogData();
+      return cache.products;
+    } catch (e) {
+      // Fallback to direct supabase query
+    }
+  }
+
   verifyConnection();
   const { data, error } = await supabase
     .from('products')
@@ -175,7 +217,16 @@ export const deleteMedia = async (url: string): Promise<void> => {
 // 3. CATEGORIES & COLLECTIONS
 // ─────────────────────────────────────────────
 
-export const getCategories = async (): Promise<Category[]> => {
+export const getCategories = async (forceRefresh = false): Promise<Category[]> => {
+  if (!forceRefresh && typeof window !== 'undefined') {
+    try {
+      const cache = await fetchCatalogData();
+      return cache.categories;
+    } catch (e) {
+      // Fallback to direct supabase query
+    }
+  }
+
   verifyConnection();
   const { data, error } = await supabase.from('categories').select('*').order('name');
   if (error) throw error;
