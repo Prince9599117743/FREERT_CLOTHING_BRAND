@@ -311,23 +311,36 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
 
         {/* Editorial tags */}
-        <div className="absolute top-4 left-4 flex flex-col gap-1.5 items-start">
+        <div className="absolute top-3 left-3 flex flex-col gap-1 items-start z-10 pointer-events-none">
           {isOutOfStock ? (
-            <span className="text-[8px] uppercase tracking-[0.2em] bg-red-800 text-bg-luxury py-1 px-3 font-semibold">
+            <span className="text-[7.5px] uppercase tracking-[0.25em] bg-neutral-900/90 backdrop-blur-sm text-neutral-100 py-1 px-2.5 font-medium rounded-sm border border-neutral-800 shadow-sm">
               Sold Out
             </span>
           ) : (
             <>
               {isLowStock && (
-                <span className="text-[8px] uppercase tracking-[0.2em] bg-amber-600 text-bg-luxury py-1 px-3 font-semibold">
+                <span className="text-[7px] uppercase tracking-[0.2em] bg-[#fffbeb] text-[#b45309] py-0.5 px-2 font-semibold rounded-sm border border-[#fef3c7] shadow-sm">
                   Only {totalStock} Left
                 </span>
               )}
-              {badges.map((badge, idx) => (
-                <span key={idx} className="text-[8px] uppercase tracking-[0.2em] bg-fg-luxury text-bg-luxury py-1 px-3 font-light">
-                  {badge}
-                </span>
-              ))}
+              {badges.map((badge, idx) => {
+                let badgeStyle = "bg-white/95 text-neutral-800 border border-neutral-200/60";
+                const check = badge.toLowerCase();
+                if (check === 'sale') {
+                  badgeStyle = "bg-[#fef2f2] text-[#dc2626] border border-[#fee2e2]";
+                } else if (check === 'best seller' || check === 'best-seller') {
+                  badgeStyle = "bg-[#fffbeb] text-[#d97706] border border-[#fef3c7]";
+                } else if (check === 'new arrival' || check === 'new-arrivals' || check === 'new-arrival') {
+                  badgeStyle = "bg-[#f0fdf4] text-[#16a34a] border border-[#dcfce7]";
+                } else if (check === 'limited edition' || check === 'limited-edition') {
+                  badgeStyle = "bg-[#faf5ff] text-[#7c3aed] border border-[#f3e8ff]";
+                }
+                return (
+                  <span key={idx} className={`text-[7px] uppercase tracking-[0.2em] py-0.5 px-2 font-semibold rounded-sm shadow-sm ${badgeStyle}`}>
+                    {badge}
+                  </span>
+                );
+              })}
             </>
           )}
         </div>
