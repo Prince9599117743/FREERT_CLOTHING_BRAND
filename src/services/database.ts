@@ -364,7 +364,20 @@ export const getOrderById = async (orderId: string): Promise<any> => {
   return data;
 };
 
-export const createOrder = async (order: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>, items: any[]): Promise<Order> => {
+export const createOrder = async (
+  order: Omit<Order, 'id' | 'createdAt' | 'updatedAt'> & {
+    shippingAddress?: {
+      fullName?: string;
+      phone?: string;
+      email?: string;
+      street?: string;
+      city?: string;
+      state?: string;
+      postalCode?: string;
+    };
+  },
+  items: any[]
+): Promise<Order> => {
   verifyConnection();
   const trackingNumber = `FRT${Math.floor(100000000 + Math.random() * 900000000)}IN`;
   const expectedDate = new Date();
@@ -378,6 +391,16 @@ export const createOrder = async (order: Omit<Order, 'id' | 'createdAt' | 'updat
     courier_name: 'Blue Dart',
     expected_delivery_date: expectedDate.toISOString(),
   };
+
+  if (order.shippingAddress) {
+    payload.shipping_name = order.shippingAddress.fullName || null;
+    payload.shipping_phone = order.shippingAddress.phone || null;
+    payload.shipping_email = order.shippingAddress.email || null;
+    payload.shipping_street = order.shippingAddress.street || null;
+    payload.shipping_city = order.shippingAddress.city || null;
+    payload.shipping_state = order.shippingAddress.state || null;
+    payload.shipping_postal_code = order.shippingAddress.postalCode || null;
+  }
   if (order.userId) {
     try {
       const { data: userExists } = await supabase.from('users').select('id').eq('id', order.userId).maybeSingle();

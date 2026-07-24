@@ -201,7 +201,16 @@ export default function CheckoutPage() {
         totalAmount: total,
         discountAmount: discountAmount,
         couponId: appliedCoupon?.id || undefined,
-        status: 'pending' // default status Pending as requested
+        status: 'pending',
+        shippingAddress: {
+          fullName,
+          email,
+          phone,
+          street,
+          city,
+          state: stateName,
+          postalCode
+        }
       }, cart);
 
       const placedOrder = {

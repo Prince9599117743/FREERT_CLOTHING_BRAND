@@ -292,6 +292,7 @@ function AdminCoreWorkspace() {
   const [savingSectionId, setSavingSectionId] = useState<string | null>(null);
 
   const [orders, setOrders] = useState<OrderAdmin[]>([]);
+  const [selectedAdminOrder, setSelectedAdminOrder] = useState<any>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -359,14 +360,28 @@ function AdminCoreWorkspace() {
           setOrders(orderList.value.map((o: any) => ({
             id: o.id,
             orderNumber: o.order_number || o.orderNumber,
-            customer: o.user?.full_name || 'Guest',
-            phone: o.user?.phone || '—',
-            email: o.user?.email || '—',
-            address: '—',
+            customer: o.shipping_name || o.user?.full_name || 'Guest',
+            phone: o.shipping_phone || o.user?.phone || '—',
+            email: o.shipping_email || o.user?.email || '—',
+            address: o.shipping_street 
+              ? `${o.shipping_street}, ${o.shipping_city}, ${o.shipping_state} - ${o.shipping_postal_code}`
+              : '—',
+            shippingAddress: {
+              street: o.shipping_street || '—',
+              city: o.shipping_city || '—',
+              state: o.shipping_state || '—',
+              postalCode: o.shipping_postal_code || '—',
+            },
             amount: o.total_amount,
             date: o.created_at?.split('T')[0] || '—',
             status: o.status,
-            items: o.items?.map((i: any) => `${i.variant?.product?.name || 'Item'} x${i.qty}`).join(', ') || '—',
+            items: o.items?.map((i: any) => {
+              const name = i.variant?.product?.name || 'Item';
+              const size = i.variant?.size || 'One Size';
+              const color = i.variant?.color || 'Default';
+              return `${name} (${size}/${color}) x${i.qty}`;
+            }).join(', ') || '—',
+            rawItems: o.items || [],
             paymentMethod: o.payment?.provider || 'cod',
             cancelRequested: o.cancel_requested,
             cancelReason: o.cancel_reason,
@@ -3869,10 +3884,110 @@ function AdminCoreWorkspace() {
               >
                 <Printer size={11} /> Invoice
               </button>
+              
+              <button 
+                onClick={() => setSelectedAdminOrder(o)}
+                className="btn-editorial-solid py-1.5 px-3 text-[9px] flex items-center gap-1 ml-2 cursor-pointer hover:opacity-90 font-semibold"
+              >
+                View Details
+              </button>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Premium Order Details Modal */}
+      {selectedAdminOrder && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-[fadeIn_0.25s_ease-out]">
+          <div className="bg-bg-luxury border border-neutral-soft/80 max-w-xl w-full max-h-[85vh] overflow-y-auto flex flex-col p-6 relative shadow-2xl rounded-sm">
+            <button
+              onClick={() => setSelectedAdminOrder(null)}
+              className="absolute top-4 right-4 text-stone-500 hover:text-fg-luxury transition-colors cursor-pointer p-2"
+            >
+              <X size={16} strokeWidth={2} />
+            </button>
+
+            <div className="flex flex-col gap-5 text-left mt-2">
+              {/* Header Info */}
+              <div>
+                <span className="text-[8px] uppercase tracking-[0.25em] font-semibold text-accent-gold">Order Specification Sheet</span>
+                <h3 className="text-base uppercase tracking-widest font-semibold text-fg-luxury mt-1">
+                  Order {selectedAdminOrder.orderNumber ? `#${selectedAdminOrder.orderNumber}` : selectedAdminOrder.id}
+                </h3>
+                <p className="text-[8px] text-text-muted mt-1 uppercase tracking-widest">Placed on: {selectedAdminOrder.date}</p>
+              </div>
+
+              {/* Status and Value Row */}
+              <div className="grid grid-cols-2 gap-4 border-t border-b border-neutral-soft/30 py-3.5">
+                <div>
+                  <span className="text-[7.5px] uppercase tracking-widest text-text-muted block font-semibold mb-1">Status</span>
+                  <span className={`text-[8.5px] uppercase font-semibold py-1 px-3.5 border border-neutral-soft inline-block ${
+                    selectedAdminOrder.status === 'delivered' ? 'bg-green-50 text-green-800 border-green-200' : 
+                    selectedAdminOrder.status === 'cancelled' ? 'bg-red-50 text-red-800 border-red-200' : 
+                    'bg-amber-50 text-amber-800 border-amber-200'
+                  }`}>
+                    {selectedAdminOrder.status}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[7.5px] uppercase tracking-widest text-text-muted block font-semibold mb-1">Order Amount</span>
+                  <span className="text-xs font-semibold text-fg-luxury">₹{selectedAdminOrder.amount.toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+
+              {/* Customer and Shipping details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="border border-neutral-soft/30 p-4 rounded-sm bg-neutral-soft/5">
+                  <h4 className="text-[8px] uppercase tracking-[0.2em] font-bold text-fg-luxury mb-2 border-b border-neutral-soft/20 pb-1.5">Customer Information</h4>
+                  <div className="text-[9.5px] text-text-muted leading-relaxed flex flex-col gap-1">
+                    <p><span className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mr-1">Name:</span> {selectedAdminOrder.customer}</p>
+                    <p><span className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mr-1">Email:</span> {selectedAdminOrder.email}</p>
+                    <p><span className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mr-1">Contact:</span> {selectedAdminOrder.phone}</p>
+                    <p><span className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mr-1">Payment:</span> <span className="uppercase">{selectedAdminOrder.paymentMethod}</span></p>
+                  </div>
+                </div>
+                <div className="border border-neutral-soft/30 p-4 rounded-sm bg-neutral-soft/5">
+                  <h4 className="text-[8px] uppercase tracking-[0.2em] font-bold text-fg-luxury mb-2 border-b border-neutral-soft/20 pb-1.5">Delivery Location</h4>
+                  <div className="text-[9.5px] text-text-muted leading-relaxed flex flex-col gap-1">
+                    <p><span className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mr-1">Street:</span> {selectedAdminOrder.shippingAddress?.street}</p>
+                    <p><span className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mr-1">City:</span> {selectedAdminOrder.shippingAddress?.city}</p>
+                    <p><span className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mr-1">State:</span> {selectedAdminOrder.shippingAddress?.state}</p>
+                    <p><span className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mr-1">Pincode:</span> {selectedAdminOrder.shippingAddress?.postalCode}</p>
+                    <p><span className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mr-1">Country:</span> India</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items Ordered Detailed list */}
+              <div>
+                <h4 className="text-[8.5px] uppercase tracking-[0.2em] font-bold text-fg-luxury mb-3 pb-1 border-b border-neutral-soft/30">Items Ordered ({selectedAdminOrder.rawItems?.length || 0})</h4>
+                <div className="flex flex-col gap-2.5 max-h-48 overflow-y-auto pr-1">
+                  {selectedAdminOrder.rawItems?.map((item: any, idx: number) => {
+                    const name = item.variant?.product?.name || 'Garment';
+                    const size = item.variant?.size || 'One Size';
+                    const color = item.variant?.color || 'Default';
+                    const price = item.unit_price || item.priceOverride || 0;
+                    return (
+                      <div key={idx} className="flex justify-between items-center text-[9.5px] text-text-muted border-b border-neutral-soft/10 pb-2">
+                        <div className="flex flex-col text-left">
+                          <span className="font-semibold text-fg-luxury">{name}</span>
+                          <span className="text-[7.5px] uppercase tracking-wider text-text-muted mt-0.5">
+                            Size: {size} | Color: {color} | Qty: {item.qty}
+                          </span>
+                        </div>
+                        <span className="font-medium text-fg-luxury">₹{(price * item.qty).toLocaleString('en-IN')}</span>
+                      </div>
+                    );
+                  })}
+                  {(!selectedAdminOrder.rawItems || selectedAdminOrder.rawItems.length === 0) && (
+                    <p className="text-[9px] italic text-text-muted">No item configuration logged.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
