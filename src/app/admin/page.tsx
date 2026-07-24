@@ -2954,7 +2954,7 @@ function AdminCoreWorkspace() {
               const handleMediaUpload = async (type: 'image' | 'video' | 'poster', file: File) => {
                 try {
                   const url = await uploadMedia(file, 'hero-banners');
-                  if (type === 'image') handleHeroDraftChange(slide.id, { imageUrl: url });
+                  if (type === 'image') handleHeroDraftChange(slide.id, { imageUrl: url, mediaType: 'image' });
                   else if (type === 'video') handleHeroDraftChange(slide.id, { videoUrl: url, mediaType: 'video' });
                   else if (type === 'poster') handleHeroDraftChange(slide.id, { posterUrl: url });
                   showToast(`${type} uploaded to draft. Save to apply.`, 'success');
@@ -3093,33 +3093,45 @@ function AdminCoreWorkspace() {
                       </div>
 
                       <div className="flex flex-col gap-1 w-full">
-                        <label className="btn-editorial py-1 text-[8px] text-center uppercase font-semibold cursor-pointer block">
-                          {mediaType === 'video' ? 'Upload Video' : 'Upload Image'}
+                        <label className="btn-editorial py-1 text-[8px] text-center uppercase font-semibold cursor-pointer block hover:bg-neutral-soft/10">
+                          Upload Image
                           <input 
                             type="file" 
-                            accept={mediaType === 'video' ? '.mp4,.mov,.webm' : '.jpg,.jpeg,.png,.webp,.gif'}
+                            accept=".jpg,.jpeg,.png,.webp,.gif"
                             onChange={(e) => {
                               const file = e.target.files?.[0];
-                              if (file) handleMediaUpload(mediaType === 'video' ? 'video' : 'image', file);
+                              if (file) handleMediaUpload('image', file);
+                            }}
+                            className="hidden" 
+                          />
+                        </label>
+                        <label className="btn-editorial py-1 text-[8px] text-center uppercase font-semibold cursor-pointer block hover:bg-neutral-soft/10">
+                          Upload Video
+                          <input 
+                            type="file" 
+                            accept=".mp4,.mov,.webm"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleMediaUpload('video', file);
                             }}
                             className="hidden" 
                           />
                         </label>
 
-                        {mediaType === 'video' && videoUrl && (
+                        {videoUrl && (
                           <button
                             type="button"
                             onClick={() => handleHeroDraftChange(slide.id, { videoUrl: '', mediaType: 'image' })}
-                            className="text-red-700 hover:text-red-800 text-[8px] uppercase tracking-widest font-semibold border border-red-200/50 py-1"
+                            className="text-red-700 hover:text-red-800 text-[8px] uppercase tracking-widest font-semibold border border-red-200/50 py-1 mt-1 cursor-pointer"
                           >
                             Remove Video
                           </button>
                         )}
-                        {mediaType === 'image' && imageUrl && (
+                        {imageUrl && (
                           <button
                             type="button"
                             onClick={() => handleHeroDraftChange(slide.id, { imageUrl: '' })}
-                            className="text-red-700 hover:text-red-800 text-[8px] uppercase tracking-widest font-semibold border border-red-200/50 py-1"
+                            className="text-red-700 hover:text-red-800 text-[8px] uppercase tracking-widest font-semibold border border-red-200/50 py-1 mt-1 cursor-pointer"
                           >
                             Remove Image
                           </button>
@@ -3347,7 +3359,7 @@ function AdminCoreWorkspace() {
               const handleMediaUpload = async (type: 'image' | 'video' | 'poster', file: File) => {
                 try {
                   const url = await uploadMedia(file, 'homepage');
-                  if (type === 'image') handleSectionDraftChange(sec.id, { bannerImage: url });
+                  if (type === 'image') handleSectionDraftChange(sec.id, { bannerImage: url, mediaType: 'image' });
                   else if (type === 'video') handleSectionDraftChange(sec.id, { videoUrl: url, mediaType: 'video' });
                   else if (type === 'poster') handleSectionDraftChange(sec.id, { posterUrl: url });
                   showToast(`${type} uploaded to draft. Save to apply.`, 'success');
@@ -3435,27 +3447,48 @@ function AdminCoreWorkspace() {
                           )}
                         </div>
 
-                        <div className="flex flex-col gap-1 w-full">
-                          <label className="btn-editorial py-1 text-[8px] text-center uppercase font-semibold cursor-pointer block">
-                            {mediaType === 'video' ? 'Upload Video' : 'Upload Image'}
+                        <div className="flex flex-col gap-1.5 w-full">
+                          <label className="btn-editorial py-1 text-[8px] text-center uppercase font-semibold cursor-pointer block hover:bg-neutral-soft/10">
+                            Upload Image
                             <input 
                               type="file" 
-                              accept={mediaType === 'video' ? '.mp4,.mov,.webm' : '.jpg,.jpeg,.png,.webp,.gif'}
+                              accept=".jpg,.jpeg,.png,.webp,.gif"
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
-                                if (file) handleMediaUpload(mediaType === 'video' ? 'video' : 'image', file);
+                                if (file) handleMediaUpload('image', file);
+                              }}
+                              className="hidden" 
+                            />
+                          </label>
+                          <label className="btn-editorial py-1 text-[8px] text-center uppercase font-semibold cursor-pointer block hover:bg-neutral-soft/10">
+                            Upload Video
+                            <input 
+                              type="file" 
+                              accept=".mp4,.mov,.webm"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleMediaUpload('video', file);
                               }}
                               className="hidden" 
                             />
                           </label>
 
-                          {mediaType === 'video' && videoUrl && (
+                          {videoUrl && (
                             <button
                               type="button"
                               onClick={() => handleSectionDraftChange(sec.id, { videoUrl: '', mediaType: 'image' })}
-                              className="text-red-700 hover:text-red-800 text-[8px] uppercase tracking-widest font-semibold border border-red-200/50 py-1"
+                              className="text-red-700 hover:text-red-800 text-[8px] uppercase tracking-widest font-semibold border border-red-200/50 py-1 mt-1 cursor-pointer"
                             >
                               Remove Video
+                            </button>
+                          )}
+                          {bannerImage && (
+                            <button
+                              type="button"
+                              onClick={() => handleSectionDraftChange(sec.id, { bannerImage: '' })}
+                              className="text-red-700 hover:text-red-800 text-[8px] uppercase tracking-widest font-semibold border border-red-200/50 py-1 mt-1 cursor-pointer"
+                            >
+                              Remove Image
                             </button>
                           )}
                         </div>
