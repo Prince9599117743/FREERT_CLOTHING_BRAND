@@ -152,13 +152,13 @@ export const Navbar: React.FC = () => {
             <Menu size={18} strokeWidth={1.5} />
           </button>
           
-          <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity duration-300 group">
+          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-300 group">
             <Image
-              src="/freert-logo.jpg"
+              src="/freert-logo-light.png"
               alt="FREERT"
-              width={28}
-              height={28}
-              className="object-contain rounded-sm"
+              width={42}
+              height={42}
+              className="object-contain"
               priority
             />
             <span className="text-xl font-editorial tracking-[0.25em] font-semibold text-fg-luxury">
