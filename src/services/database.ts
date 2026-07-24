@@ -330,6 +330,40 @@ export const updateOrderDetails = async (orderId: string, updates: any): Promise
   if (error) throw error;
 };
 
+export const getOrderById = async (orderId: string): Promise<any> => {
+  verifyConnection();
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      user:users(id, email, full_name, phone),
+      items:order_items(*, variant:product_variants(*, product:products(*))),
+      payment:payments(*),
+      address:shipping_address_id(*)
+    `)
+    .eq('id', orderId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) {
+    if (/^\d+$/.test(orderId)) {
+      const { data: numData, error: numErr } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          user:users(id, email, full_name, phone),
+          items:order_items(*, variant:product_variants(*, product:products(*))),
+          payment:payments(*),
+          address:shipping_address_id(*)
+        `)
+        .eq('order_number', parseInt(orderId, 10))
+        .maybeSingle();
+      if (numErr) throw numErr;
+      return numData;
+    }
+  }
+  return data;
+};
+
 export const createOrder = async (order: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>, items: any[]): Promise<Order> => {
   verifyConnection();
   const trackingNumber = `FRT${Math.floor(100000000 + Math.random() * 900000000)}IN`;

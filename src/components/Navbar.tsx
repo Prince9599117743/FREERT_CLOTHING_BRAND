@@ -237,14 +237,14 @@ export const Navbar: React.FC = () => {
             )}
           </div>
 
-          <button 
-            onClick={() => setIsCartOpen(true)}
-            className="hover:text-accent-gold transition-colors duration-300 flex items-center gap-1.5 cursor-pointer relative"
-            aria-label="Open Shopping Bag"
+          <Link 
+            href="/cart"
+            className="hover:text-accent-gold transition-colors duration-300 flex items-center gap-1.5 cursor-pointer relative animate-[fadeIn_0.3s_ease-out]"
+            aria-label="View Shopping Bag"
           >
             <ShoppingBag size={16} strokeWidth={1.5} />
             <span className="text-[10px] font-light tracking-wider">({totalItems})</span>
-          </button>
+          </Link>
         </div>
       </header>
 

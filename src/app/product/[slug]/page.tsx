@@ -733,10 +733,15 @@ export default function ProductDetailPage() {
               
               <button 
                 onClick={handleWishlistToggle}
-                className={`p-4 border transition-colors cursor-pointer flex items-center justify-center ${favorited ? 'border-fg-luxury bg-fg-luxury/5 text-fg-luxury' : 'border-neutral-soft/80 text-text-muted hover:border-fg-luxury hover:text-fg-luxury'}`}
+                className={`p-4 border transition-colors cursor-pointer flex items-center justify-center ${favorited ? 'border-red-600 bg-red-50/5 text-red-600' : 'border-neutral-soft/80 text-text-muted hover:border-fg-luxury hover:text-fg-luxury'}`}
                 aria-label={favorited ? 'Remove from wishlist' : 'Add to wishlist'}
               >
-                <Heart size={16} fill={favorited ? 'currentColor' : 'none'} strokeWidth={1.5} />
+                <Heart 
+                  size={16} 
+                  fill={favorited ? '#e11d48' : 'none'} 
+                  className={favorited ? 'animate-[heartBeat_0.4s_ease-in-out]' : ''} 
+                  strokeWidth={1.5} 
+                />
               </button>
             </div>
 

@@ -14,7 +14,7 @@ import {
 import type { Order, Address } from '@/types';
 import { 
   Package, User, Star, Copy, Check, Edit2, Trash2, Plus, MapPin, 
-  CreditCard, Calendar, Truck, Clipboard, ShieldAlert, LogOut, ArrowRight 
+  CreditCard, Calendar, Truck, Clipboard, ShieldAlert, LogOut, ArrowRight, ChevronRight
 } from 'lucide-react';
 
 interface OrderItemLog {
@@ -91,8 +91,8 @@ function DashboardContent() {
       setEditName(user.fullName || '');
       setEditPhone(user.phone || '');
       fetchAddresses();
-      fetchUserOrders();
     }
+    fetchUserOrders();
   }, [user]);
 
   const fetchAddresses = async () => {
@@ -106,7 +106,36 @@ function DashboardContent() {
   };
 
   const fetchUserOrders = async () => {
-    if (!user) return;
+    if (!user) {
+      const saved = localStorage.getItem('freert_orders_log');
+      if (saved) {
+        try {
+          const list = JSON.parse(saved);
+          setOrders(list.map((o: any) => ({
+            id: o.order_number ? String(o.order_number) : o.id,
+            rawId: o.id,
+            date: o.date,
+            totalAmount: o.totalAmount,
+            status: o.status,
+            paymentMethod: o.paymentMethod,
+            items: o.items ? o.items.map((i: any) => ({
+              name: i.name,
+              qty: i.qty,
+              price: i.price,
+              size: i.size,
+              color: i.color,
+              image: '/assets/trench_coat.jpg',
+              slug: ''
+            })) : []
+          })));
+        } catch (e) {
+          setOrders([]);
+        }
+      } else {
+        setOrders([]);
+      }
+      return;
+    }
     try {
       const data = await getOrders(user.id);
       const mapped: OrderLog[] = data.map((o: any) => ({
@@ -424,8 +453,10 @@ function DashboardContent() {
                       
                       {/* Order Card header */}
                       <div className="flex justify-between items-start flex-wrap gap-4 pb-3 border-b border-neutral-soft/15">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-xs uppercase tracking-wider font-semibold text-fg-luxury">Order #{order.id}</span>
+                        <div className="flex flex-col gap-1 text-left">
+                          <Link href={`/order/${order.rawId || order.id}`} className="text-xs uppercase tracking-wider font-semibold text-fg-luxury hover:text-accent-gold transition-colors flex items-center gap-1">
+                            Order #{order.id} <ChevronRight size={12} />
+                          </Link>
                           <span className="text-[8.5px] text-text-muted uppercase tracking-wider font-light flex items-center gap-1">
                             <Calendar size={10} /> Date: {order.date}
                           </span>

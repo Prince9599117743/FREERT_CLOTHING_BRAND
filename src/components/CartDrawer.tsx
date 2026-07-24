@@ -195,11 +195,11 @@ export const CartDrawer: React.FC = () => {
 
             {/* Checkout Action Button */}
             <Link 
-              href="/checkout" 
+              href="/cart" 
               onClick={() => setIsCartOpen(false)}
               className="btn-editorial-solid w-full flex items-center justify-center gap-2 mt-2 text-center text-xs tracking-[0.2em] font-medium"
             >
-              Checkout <ArrowRight size={14} />
+              Review Bag & Checkout <ArrowRight size={14} />
             </Link>
           </div>
         )}

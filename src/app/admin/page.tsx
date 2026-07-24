@@ -697,69 +697,9 @@ function AdminCoreWorkspace() {
     }
   };
 
-  // Mock Invoice Printer Window
+  // Dynamic Invoice Printer Window
   const handlePrintInvoice = (order: OrderAdmin) => {
-    const printWindow = window.open('', '_blank', 'width=600,height=600');
-    if (!printWindow) return;
-    
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Invoice - #${order.orderNumber || order.id}</title>
-          <style>
-            body { font-family: monospace; padding: 40px; color: #111; line-height: 1.5; }
-            .header { text-align: center; border-bottom: 1px dashed #ccc; padding-bottom: 20px; margin-bottom: 20px; }
-            .meta { display: flex; justify-content: space-between; margin-bottom: 20px; }
-            .items { width: 100%; border-collapse: collapse; margin: 30px 0; }
-            .items th, .items td { text-align: left; padding: 8px 0; }
-            .items th { border-bottom: 1px dashed #000; }
-            .total { text-align: right; font-size: 14px; font-weight: bold; border-top: 1px dashed #000; padding-top: 15px; }
-            .footer { text-align: center; font-size: 9px; color: #777; margin-top: 50px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h2>FREERT STORE INVOICE</h2>
-            <p>CONCIERGE DEPARTMENT</p>
-          </div>
-          <div class="meta">
-            <div>
-              <strong>Order Ref:</strong> #${order.orderNumber || order.id}<br/>
-              <strong>Date:</strong> ${order.date}<br/>
-              <strong>Payment Mode:</strong> ${order.paymentMethod}
-            </div>
-            <div>
-              <strong>Customer details:</strong><br/>
-              ${order.customer}<br/>
-              ${order.phone}<br/>
-              ${order.address}
-            </div>
-          </div>
-          <table class="items">
-            <thead>
-              <tr>
-                <th>Item Specification</th>
-                <th style="text-align: right;">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>${order.items}</td>
-                <td style="text-align: right;">₹${order.amount.toLocaleString('en-IN')}</td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="total">
-            Total Paid: ₹${order.amount.toLocaleString('en-IN')}
-          </div>
-          <div class="footer">
-            Thank you for buying from FREERT. This is a digital tax invoice receipt.
-          </div>
-          <script>window.print();</script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+    window.open(`/order/${order.id}/invoice`, '_blank');
   };
 
   // Helper filters for Global Search

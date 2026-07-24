@@ -102,10 +102,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         {/* Floating Heart icon */}
         <button 
           onClick={handleFavoriteClick}
-          className="absolute top-4 right-4 p-2 bg-bg-luxury/80 rounded-full text-fg-luxury hover:text-red-700 hover:bg-bg-luxury shadow-sm transition-all duration-300 cursor-pointer z-10"
+          className={`absolute top-4 right-4 p-2 bg-bg-luxury/80 rounded-full shadow-sm transition-all duration-300 cursor-pointer z-10 ${
+            favorited ? 'text-red-600 bg-bg-luxury' : 'text-fg-luxury hover:text-red-600 hover:bg-bg-luxury'
+          }`}
           aria-label={favorited ? 'Remove from wishlist' : 'Add to wishlist'}
         >
-          <Heart size={13} fill={favorited ? 'currentColor' : 'none'} strokeWidth={1.5} />
+          <Heart 
+            size={13} 
+            fill={favorited ? '#e11d48' : 'none'} 
+            className={favorited ? 'animate-[heartBeat_0.4s_ease-in-out]' : ''} 
+            strokeWidth={1.5} 
+          />
         </button>
 
         {/* Floating Quick Add Button */}

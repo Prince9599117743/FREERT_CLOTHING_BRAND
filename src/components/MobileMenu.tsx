@@ -170,11 +170,11 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
             <span>{user ? 'My Account' : 'Identify Sign In'}</span>
           </Link>
           <Link 
-            href="/checkout" 
+            href="/cart" 
             onClick={onClose}
             className="btn-editorial-solid text-center text-xs tracking-[0.25em] py-3.5 flex items-center justify-center gap-2"
           >
-            <ShoppingBag size={14} /> Checkout Bag ({totalItems})
+            <ShoppingBag size={14} /> View Shopping Bag ({totalItems})
           </Link>
         </div>
 

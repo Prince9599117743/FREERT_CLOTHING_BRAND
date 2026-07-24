@@ -214,3 +214,22 @@ h1, h2, h3, h4, h5, h6 {
 .prose em {
   font-style: italic;
 }
+
+@keyframes heartBeat {
+  0% { transform: scale(1); }
+  15% { transform: scale(1.25); }
+  30% { transform: scale(0.95); }
+  45% { transform: scale(1.15); }
+  60% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

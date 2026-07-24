@@ -44,6 +44,7 @@ export default function CheckoutPage() {
   // Auto redirect countdown states
   const [redirectCount, setRedirectCount] = useState(5);
   const redirectTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const isSubmittingRef = React.useRef(false);
 
   const shippingCost = cartSubtotal >= 499 ? 0 : 60;
 
@@ -189,6 +190,8 @@ export default function CheckoutPage() {
     e.preventDefault();
     if (cart.length === 0) return;
 
+    if (isSubmittingRef.current || processing) return;
+    isSubmittingRef.current = true;
     setProcessing(true);
     setDatabaseOfflineError(false);
 
@@ -230,6 +233,7 @@ export default function CheckoutPage() {
       showToast('Order successfully placed.', 'success');
       setCurrentStep(4);
     } catch (err: any) {
+      isSubmittingRef.current = false;
       if (err.message === 'DATABASE_CONNECTION_ERROR') {
         setDbConnectionError(true);
       } else if (err.message === 'DATABASE_OFFLINE') {
@@ -434,10 +438,14 @@ export default function CheckoutPage() {
 
             <div className="flex flex-col sm:flex-row gap-4 mt-2">
               <button 
-                onClick={() => { handleCancelRedirect(); router.push('/dashboard'); }}
+                onClick={() => { 
+                  handleCancelRedirect(); 
+                  const orderId = placedOrderDetails?.rawId || placedOrderDetails?.id;
+                  router.push(`/order/${orderId}`); 
+                }}
                 className="btn-editorial-solid flex-1 text-xs py-3.5 tracking-widest uppercase cursor-pointer"
               >
-                Track Order
+                View Order Details
               </button>
               <button 
                 onClick={() => { handleCancelRedirect(); router.push('/shop'); }}
@@ -611,9 +619,10 @@ export default function CheckoutPage() {
                     </button>
                     <button 
                       type="submit"
-                      className="btn-editorial-solid flex-1 flex items-center justify-center gap-2 text-xs tracking-[0.2em] font-medium py-3.5"
+                      disabled={processing}
+                      className="btn-editorial-solid flex-1 flex items-center justify-center gap-2 text-xs tracking-[0.2em] font-medium py-3.5 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Complete Order & Pay <ArrowRight size={14} />
+                      {processing ? 'Processing Order...' : 'Complete Order & Pay'} <ArrowRight size={14} />
                     </button>
                   </div>
                 </form>
