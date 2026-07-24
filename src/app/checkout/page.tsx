@@ -97,6 +97,15 @@ export default function CheckoutPage() {
     };
   }, [currentStep, router]);
 
+  // Sync coupon from sessionStorage
+  useEffect(() => {
+    const activeDiscount = sessionStorage.getItem('freert_discount_active') === 'true';
+    if (activeDiscount && cartSubtotal > 0 && !appliedCoupon) {
+      setAppliedCoupon({ code: 'FREERT20', discountValue: 20, discountType: 'percentage' });
+      setDiscountAmount(cartSubtotal * 0.20);
+    }
+  }, [cartSubtotal, appliedCoupon]);
+
   const handleCancelRedirect = () => {
     if (redirectTimerRef.current) {
       clearInterval(redirectTimerRef.current);
