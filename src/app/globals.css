@@ -56,18 +56,40 @@ h1, h2, h3, h4, h5, h6 {
   background-color: transparent;
   color: var(--foreground-luxury);
   font-family: var(--font-clean);
-  font-weight: 300;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
-  font-size: 0.75rem;
-  padding: 12px 36px;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  letter-spacing: 0.18em;
+  font-size: 0.7rem;
+  padding: 12px 34px;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  transition: color 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
 }
 
-.btn-editorial:hover {
+.btn-editorial::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background-color: var(--foreground-luxury);
+  z-index: -1;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-editorial:hover {
   color: var(--background-luxury);
+  border-color: var(--foreground-luxury);
+}
+
+.btn-editorial:hover::before {
+  transform: scaleX(1);
+  transform-origin: left;
 }
 
 .btn-editorial-solid {
@@ -78,18 +100,40 @@ h1, h2, h3, h4, h5, h6 {
   background-color: var(--foreground-luxury);
   color: var(--background-luxury);
   font-family: var(--font-clean);
-  font-weight: 300;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
-  font-size: 0.75rem;
-  padding: 12px 36px;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  letter-spacing: 0.18em;
+  font-size: 0.7rem;
+  padding: 12px 34px;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  transition: color 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
 }
 
+.btn-editorial-solid::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--accent-gold);
+  z-index: -1;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .btn-editorial-solid:hover {
-  background-color: transparent;
   color: var(--foreground-luxury);
+  border-color: var(--accent-gold);
+}
+
+.btn-editorial-solid:hover::before {
+  transform: scaleX(1);
+  transform-origin: left;
 }
 
 /* Minimal Luxury Inputs */
@@ -232,4 +276,47 @@ h1, h2, h3, h4, h5, h6 {
   .no-print {
     display: none !important;
   }
+}
+
+/* Custom premium scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background-luxury);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent-gold);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--foreground-luxury);
+}
+
+.hover-underline-luxury {
+  position: relative;
+}
+.hover-underline-luxury::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  transform: scaleX(0);
+  height: 1px;
+  bottom: -2px;
+  left: 0;
+  background-color: var(--accent-gold);
+  transform-origin: bottom right;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-underline-luxury:hover::after {
+  transform: scaleX(1);
+  transform-origin: bottom left;
+}
+
+.hover-scale-luxury {
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-scale-luxury:hover {
+  transform: scale(1.025);
 }
