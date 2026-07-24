@@ -216,7 +216,7 @@ export default function Home() {
 
   // Sort and filter active sections list
   const activeSections = sections
-    .filter(s => s.visible)
+    .filter(s => s.visible && s.id !== 'hero')
     .sort((a, b) => a.order - b.order);
 
   if (dbError) {
