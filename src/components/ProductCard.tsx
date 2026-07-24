@@ -69,7 +69,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     if (variant) {
       await addToCart({ ...variant, product });
       showToast(`Equipped ${product.name} (${size}) to bag.`, 'success');
-      setIsCartOpen(true);
     }
   };
 
@@ -173,7 +172,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 if (defaultVariant) {
                   await addToCart({ ...defaultVariant, product });
                   showToast(`Equipped ${product.name} to bag.`, 'success');
-                  setIsCartOpen(true);
                 }
               }
             }}
@@ -249,7 +247,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 if (variant) {
                   await addToCart({ ...variant, product });
                   showToast(`Equipped ${product.name} (${sizeToSelect}) to bag.`, 'success');
-                  setIsCartOpen(true);
                   setIsQuickAddOpen(false);
                 }
               }}
