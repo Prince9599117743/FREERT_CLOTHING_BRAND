@@ -158,7 +158,7 @@ export const Navbar: React.FC = () => {
               alt="FREERT"
               width={42}
               height={42}
-              className="object-contain"
+              className="object-contain mix-blend-multiply"
               priority
             />
             <span className="text-xl font-editorial tracking-[0.25em] font-semibold text-fg-luxury">

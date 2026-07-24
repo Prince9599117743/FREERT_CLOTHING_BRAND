@@ -64,7 +64,7 @@ export const Footer: React.FC = () => {
               alt="FREERT"
               width={48}
               height={48}
-              className="object-contain"
+              className="object-contain mix-blend-multiply"
             />
             <span className="text-sm font-semibold tracking-[0.3em] text-fg-luxury uppercase">
               {brandName}
