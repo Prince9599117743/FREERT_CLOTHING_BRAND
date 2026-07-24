@@ -159,37 +159,35 @@ export default function ShopPage() {
           </p>
         </div>
 
-        {/* Horizontal scrollbar subcategory index filter bar */}
+        {/* Subcategory index filter bar (wrapping flex layout) */}
         {parentParam && activeSubcategories.length > 0 && (
-          <div className="mb-8 border-b border-neutral-soft/20 pb-4 w-full max-w-full overflow-x-auto scrollbar-none block">
-            <div className="flex gap-3 text-[9px] uppercase tracking-widest min-w-max pb-1">
-              <button
-                onClick={() => router.push(`/shop/${parentParam}`)}
-                className={`px-4 py-2 border transition-all cursor-pointer ${
-                  !subParam 
-                    ? 'border-fg-luxury bg-fg-luxury text-bg-luxury font-medium' 
-                    : 'border-neutral-soft/40 text-text-muted hover:border-fg-luxury hover:text-fg-luxury bg-transparent'
-                }`}
-              >
-                All {parentParam}
-              </button>
-              {activeSubcategories.map((sub) => {
-                const isActive = subParam === sub.slug;
-                return (
-                  <button
-                    key={sub.slug}
-                    onClick={() => router.push(`/shop/${parentParam}/${sub.slug}`)}
-                    className={`px-4 py-2 border transition-all cursor-pointer ${
-                      isActive 
-                        ? 'border-accent-gold bg-accent-gold/10 text-accent-gold font-medium' 
-                        : 'border-neutral-soft/40 text-text-muted hover:border-fg-luxury hover:text-fg-luxury bg-transparent'
-                    }`}
-                  >
-                    {sub.name}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="mb-8 border-b border-neutral-soft/20 pb-4 flex flex-wrap gap-2 md:gap-3 text-[9px] uppercase tracking-widest">
+            <button
+              onClick={() => router.push(`/shop/${parentParam}`)}
+              className={`px-4 py-2 border transition-all cursor-pointer ${
+                !subParam 
+                  ? 'border-fg-luxury bg-fg-luxury text-bg-luxury font-medium' 
+                  : 'border-neutral-soft/40 text-text-muted hover:border-fg-luxury hover:text-fg-luxury bg-transparent'
+              }`}
+            >
+              All {parentParam}
+            </button>
+            {activeSubcategories.map((sub) => {
+              const isActive = subParam === sub.slug;
+              return (
+                <button
+                  key={sub.slug}
+                  onClick={() => router.push(`/shop/${parentParam}/${sub.slug}`)}
+                  className={`px-4 py-2 border transition-all cursor-pointer ${
+                    isActive 
+                      ? 'border-accent-gold bg-accent-gold/10 text-accent-gold font-medium' 
+                      : 'border-neutral-soft/40 text-text-muted hover:border-fg-luxury hover:text-fg-luxury bg-transparent'
+                  }`}
+                >
+                  {sub.name}
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -337,8 +335,8 @@ export default function ShopPage() {
 
             {/* Products grid */}
             {loading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-10">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                   <div key={i} className="flex flex-col gap-4 animate-[fadeIn_0.5s_ease-out_infinite_alternate]">
                     <div className="bg-neutral-soft/30 aspect-[3/4] w-full rounded-sm" />
                     <div className="bg-neutral-soft/30 h-3 w-3/4" />
@@ -359,7 +357,7 @@ export default function ShopPage() {
             ) : (
               <div 
                 key={`${parentParam || 'shop'}-${subParam || 'all'}-${sortBy}-${priceRange}`}
-                className="grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-10 animate-catalog-fade"
+                className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 animate-catalog-fade"
               >
                 {filteredProducts.map((p) => (
                   <ProductCard key={p.id} product={p} />
