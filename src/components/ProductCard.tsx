@@ -260,8 +260,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </div>
         )}
 
-        {/* Hover Slider Actions (Premium Glassmorphic overlay) */}
-        <div className="absolute bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-white/20 p-3.5 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 flex flex-col gap-2.5 z-10">
+        {/* Hover Slider Actions (Premium Glassmorphic overlay - Desktop Only) */}
+        <div className="absolute bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-white/20 p-3.5 opacity-0 translate-y-2 pointer-events-none md:pointer-events-auto md:group-hover:opacity-100 md:group-hover:translate-y-0 transition-all duration-300 hidden md:flex flex-col gap-2.5 z-10">
           
           {isOutOfStock ? (
             <button 
