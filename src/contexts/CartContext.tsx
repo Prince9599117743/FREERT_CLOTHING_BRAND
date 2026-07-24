@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (variant: ProductVariant & { product?: Product }, qty?: number) => Promise<void>;
+  addToCart: (variant: ProductVariant & { product?: Product }, qty?: number, priceOverride?: number) => Promise<void>;
   updateQty: (variantId: string, qty: number) => Promise<void>;
   removeFromCart: (variantId: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -28,6 +28,28 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const loadCart = async () => {
       if (user) {
+        // Merge guest local cart to database if it exists
+        const localData = localStorage.getItem('freert_local_cart');
+        if (localData) {
+          try {
+            const localItems: CartItem[] = JSON.parse(localData);
+            if (localItems && localItems.length > 0) {
+              for (const item of localItems) {
+                // Upsert to merge with potential existing items
+                await supabase.from('cart').upsert({
+                  user_id: user.id,
+                  variant_id: item.variantId,
+                  qty: item.qty
+                }, { onConflict: 'user_id,variant_id' });
+              }
+            }
+          } catch (e) {
+            console.error('Failed to merge guest cart to DB:', e);
+          } finally {
+            localStorage.removeItem('freert_local_cart');
+          }
+        }
+
         // Authenticated users: Load cart from database
         try {
           const { data, error } = await supabase
@@ -37,6 +59,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
               user_id,
               variant_id,
               qty,
+              price_override,
               created_at,
               updated_at,
               variant:product_variants (
@@ -64,6 +87,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
               userId: item.user_id,
               variantId: item.variant_id,
               qty: item.qty,
+              priceOverride: item.price_override,
               createdAt: item.created_at,
               updatedAt: item.updated_at,
               variant: item.variant ? {
@@ -113,18 +137,25 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [cart, user]);
 
-  const addToCart = async (variant: ProductVariant & { product?: Product }, qty = 1) => {
+  const addToCart = async (variant: ProductVariant & { product?: Product }, qty = 1, priceOverride?: number) => {
     const existingIndex = cart.findIndex(item => item.variantId === variant.id);
 
     if (existingIndex >= 0) {
       const updatedQty = cart[existingIndex].qty + qty;
-      await updateQty(variant.id, updatedQty);
+      setCart(prev => prev.map((item, idx) => idx === existingIndex ? { ...item, qty: updatedQty, priceOverride: priceOverride !== undefined ? priceOverride : item.priceOverride } : item));
+      if (user) {
+        await supabase.from('cart').update({ 
+          qty: updatedQty,
+          price_override: priceOverride !== undefined ? (priceOverride || null) : (cart[existingIndex].priceOverride || null)
+        }).eq('user_id', user.id).eq('variant_id', variant.id);
+      }
     } else {
       const newItem: CartItem = {
         id: Math.random().toString(), // Temp local ID
         userId: user?.id || 'guest',
         variantId: variant.id,
         qty,
+        priceOverride,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         variant
@@ -137,7 +168,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await supabase.from('cart').insert({
           user_id: user.id,
           variant_id: variant.id,
-          qty
+          qty,
+          price_override: priceOverride || null
         });
       }
     }
@@ -183,9 +215,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const cartSubtotal = cart.reduce((sum, item) => {
-    const price = item.variant?.product?.basePrice || 0;
-    const additionalPrice = item.variant?.additionalPrice || 0;
-    return sum + (price + additionalPrice) * item.qty;
+    const price = item.priceOverride !== undefined && item.priceOverride !== null
+      ? item.priceOverride
+      : (item.variant?.product?.basePrice || 0) + (item.variant?.additionalPrice || 0);
+    return sum + price * item.qty;
   }, 0);
 
   return (

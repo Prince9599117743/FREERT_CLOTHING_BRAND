@@ -27,6 +27,10 @@ interface HomepageSection {
   showSubtitle?: boolean;
   showButton?: boolean;
   imageClickRedirect?: boolean;
+  mediaType?: string;
+  videoUrl?: string;
+  posterUrl?: string;
+  focalPoint?: string;
 }
 
 interface EditorialItem {
@@ -143,7 +147,6 @@ export default function Home() {
         ]);
         setAllProducts(productList);
         if (cmsSections && cmsSections.length > 0) {
-          // Map DB structure to local HomepageSection structure
           const mapped = cmsSections.map((s: any) => ({
             id: s.id,
             title: s.title,
@@ -158,6 +161,10 @@ export default function Home() {
             showSubtitle: s.show_subtitle ?? s.showSubtitle ?? true,
             showButton: s.show_button ?? s.showButton ?? true,
             imageClickRedirect: s.image_click_redirect ?? s.imageClickRedirect ?? true,
+            mediaType: s.media_type || s.mediaType || 'image',
+            videoUrl: s.video_url || s.videoUrl || '',
+            posterUrl: s.poster_url || s.posterUrl || '',
+            focalPoint: s.focal_point || s.focalPoint || 'center',
           }));
           setSections(mapped);
         }
@@ -230,54 +237,141 @@ export default function Home() {
 
       {/* Dynamic Loops CMS Banners and Grids */}
       {activeSections.map((sec) => {
-        // Render New Drop Block
-        if (sec.id === 'new-drop') {
+        // 1. BRAND STORY BLOCK
+        if (sec.id === 'brand-story') {
+          if (!sec.showTitle && !sec.showSubtitle && !sec.showButton) return null;
           return (
-            <section key={sec.id} className="py-12 md:py-24 border-b border-neutral-soft/30 bg-neutral-soft/5">
-              <div className="container-editorial flex flex-col md:flex-row md:items-center justify-between gap-8 text-left">
-                <div className="max-w-xl">
-                  <p className="text-[9px] uppercase tracking-[0.3em] text-text-muted mb-2 font-medium">{sec.subtitle}</p>
-                  <h2 className="text-3xl md:text-4xl font-light uppercase tracking-widest text-fg-luxury mb-4">
-                    {sec.title}
-                  </h2>
-                  <p className="text-xs text-text-muted font-light leading-relaxed">
-                    Explore our latest drop of organic raw linen kimonos and boxy cotton staples. Structured for flow, detailed with clean pocketing, tailored in small batches.
-                  </p>
+            <section key={sec.id} className="py-16 md:py-32 text-center px-6 border-b border-neutral-soft/30 max-w-4xl mx-auto flex flex-col items-center">
+              {sec.showSubtitle && sec.subtitle && (
+                <p className="text-[9px] uppercase tracking-[0.3em] text-text-muted mb-6">{sec.subtitle}</p>
+              )}
+              {sec.showTitle && sec.title && (
+                <h3 className="font-editorial text-3xl md:text-4xl text-fg-luxury leading-relaxed font-light italic max-w-3xl mb-8">
+                  &ldquo;{sec.title}&rdquo;
+                </h3>
+              )}
+              {sec.showButton && sec.ctaText && (
+                <button 
+                  onClick={() => router.push(sec.ctaLink)} 
+                  className="btn-editorial py-2 px-6 uppercase tracking-widest text-[9px] cursor-pointer"
+                >
+                  {sec.ctaText}
+                </button>
+              )}
+            </section>
+          );
+        }
+
+        // 2. LOOKBOOK EDITORIAL JOURNAL
+        if (sec.id === 'editorial-journal') {
+          return (
+            <section key={sec.id} className="py-10 md:py-20 border-b border-neutral-soft/30 container-editorial">
+              {(sec.showSubtitle || sec.showTitle) && (
+                <div className="mb-10 text-left">
+                  {sec.showSubtitle && sec.subtitle && (
+                    <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">{sec.subtitle}</p>
+                  )}
+                  {sec.showTitle && sec.title && (
+                    <h2 className="text-xl uppercase tracking-widest font-light text-fg-luxury">{sec.title}</h2>
+                  )}
                 </div>
-                <div>
-                  <button 
-                    onClick={() => router.push(sec.ctaLink)}
-                    className="btn-editorial-solid text-[10px] tracking-[0.25em] py-4 px-10 cursor-pointer whitespace-nowrap"
+              )}
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {editorialJournal.map((item) => (
+                  <div 
+                    key={item.id} 
+                    onClick={() => router.push(item.linkUrl || '/shop')}
+                    className="relative w-full aspect-[3/4] overflow-hidden bg-neutral-soft/20 cursor-pointer hover:opacity-90 transition-opacity duration-300"
                   >
-                    {sec.ctaText}
-                  </button>
-                </div>
+                    <img src={item.imageUrl} alt="Editorial look" className="w-full h-full object-cover" />
+                  </div>
+                ))}
               </div>
             </section>
           );
         }
 
-        // Render Campaign Banners (Men, Women, Accessories, Perfumes)
-        if (sec.id === 'men' || sec.id === 'women' || sec.id === 'accessories' || sec.id === 'perfumes') {
-          const fallbackImages: Record<string, string> = {
-            men: '/assets/trench_coat.jpg',
-            women: '/assets/slip_dress.jpg',
-            accessories: '/assets/cap_1784646670746.png',
-            perfumes: '/assets/sneakers_1784646656235.png'
-          };
-          const bannerSrc = sec.bannerImage || fallbackImages[sec.id] || '/assets/trench_coat.jpg';
+        // 3. NEWSLETTER DISPATCH
+        if (sec.id === 'newsletter') {
+          if (!sec.showTitle && !sec.showSubtitle && !sec.showButton) return null;
+          return (
+            <section key={sec.id} className="py-12 md:py-24 container-editorial text-center flex flex-col items-center">
+              <div className="max-w-md w-full flex flex-col gap-6">
+                <div className="flex flex-col gap-2">
+                  {sec.showSubtitle && sec.subtitle && (
+                    <p className="text-[9px] uppercase tracking-[0.3em] text-text-muted">{sec.subtitle}</p>
+                  )}
+                  {sec.showTitle && sec.title && (
+                    <h3 className="text-xl uppercase tracking-widest font-light text-fg-luxury">{sec.title}</h3>
+                  )}
+                </div>
+                {sec.showSubtitle && (
+                  <p className="text-[11px] text-text-muted font-light leading-relaxed">
+                    Subscribe to receive priority notifications for new seasonal drops, limited runs, and editorial lookbooks.
+                  </p>
+                )}
+                {sec.showButton && (
+                  <form onSubmit={handleSubscribe} className="flex gap-4 border-b border-neutral-soft/80 pb-2 mt-4">
+                    <input 
+                      type="email" 
+                      required
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      placeholder="ENTER EMAIL ADDRESS" 
+                      className="bg-transparent text-[11px] font-light placeholder-neutral-400 focus:outline-none w-full text-fg-luxury uppercase tracking-wider"
+                    />
+                    <button type="submit" className="hover:text-accent-gold transition-colors duration-300 cursor-pointer" aria-label="Submit email to newsletter">
+                      <ArrowRight size={16} strokeWidth={1.5} />
+                    </button>
+                  </form>
+                )}
+              </div>
+            </section>
+          );
+        }
+
+        // 4. Skip trending/best-sellers filters if they have duplicate displays
+        if (sec.id === 'trending' || sec.id === 'best-sellers') {
+          return null;
+        }
+
+        // 5. RENDER MEDIA BANNER (Image or Video)
+        const hasMedia = sec.bannerImage || sec.videoUrl;
+        if (hasMedia) {
+          const isVideo = sec.mediaType === 'video' || (sec.bannerImage && (
+            sec.bannerImage.toLowerCase().endsWith('.mp4') || 
+            sec.bannerImage.toLowerCase().endsWith('.webm') ||
+            sec.bannerImage.toLowerCase().endsWith('.mov') ||
+            sec.bannerImage.includes('video')
+          ));
+          const mediaSrc = isVideo ? (sec.videoUrl || sec.bannerImage) : sec.bannerImage;
 
           return (
-            <section key={sec.id} className="py-10 md:py-20 border-b border-neutral-soft/30 container-editorial">
+            <section key={sec.id} className="py-6 md:py-12 border-b border-neutral-soft/30 container-editorial">
               <div 
                 className={`relative w-full aspect-[4/3] md:aspect-[16/7] overflow-hidden group ${sec.imageClickRedirect ? 'cursor-pointer' : ''}`}
                 onClick={sec.imageClickRedirect ? () => router.push(sec.ctaLink) : undefined}
               >
-                <img 
-                  src={bannerSrc} 
-                  alt={sec.title} 
-                  className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-102"
-                />
+                {isVideo ? (
+                  <video 
+                    src={mediaSrc}
+                    poster={sec.posterUrl} 
+                    autoPlay 
+                    muted 
+                    loop 
+                    playsInline
+                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-102"
+                    style={{ objectPosition: sec.focalPoint || 'center' }}
+                  />
+                ) : (
+                  <img 
+                    src={mediaSrc} 
+                    alt={sec.title} 
+                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-102"
+                    style={{ objectPosition: sec.focalPoint || 'center' }}
+                  />
+                )}
                 <div className="absolute inset-0 bg-black/10 group-hover:bg-black/25 transition-colors duration-500" />
                 
                 {/* Content Overlay Box */}
@@ -311,70 +405,35 @@ export default function Home() {
           );
         }
 
-        // Skip trending and best-sellers sections to clean the home page
-        if (sec.id === 'trending' || sec.id === 'best-sellers') {
-          return null;
-        }
-
-        return null;
-      })}
-
-      {/* Brand story details (Not layout block) */}
-      <section className="py-16 md:py-32 text-center px-6 border-b border-neutral-soft/30 max-w-4xl mx-auto flex flex-col items-center">
-        <p className="text-[9px] uppercase tracking-[0.3em] text-text-muted mb-6">Our DNA</p>
-        <h3 className="font-editorial text-3xl md:text-4xl text-fg-luxury leading-relaxed font-light italic max-w-3xl mb-8">
-          &ldquo;We tailor structure for the spaces between expression and identity. Zero clutter. Pure form.&rdquo;
-        </h3>
-        <p className="text-xs text-text-muted font-light leading-relaxed max-w-lg">
-          FREERT was founded in 2026. Every item is cut from organic linen or raw mulberry silk, wash-treated to establish soft, natural drape, and finished with horn buttons. We produce in small runs of 50 units.
-        </p>
-      </section>
-
-      {/* Lookbook gallery */}
-      <section className="py-10 md:py-20 border-b border-neutral-soft/30 container-editorial">
-        <div className="mb-10 text-left">
-          <p className="text-[8px] uppercase tracking-[0.3em] text-text-muted mb-1">Lookbook gallery</p>
-          <h2 className="text-xl uppercase tracking-widest font-light text-fg-luxury">Editorial Journal</h2>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {editorialJournal.map((item) => (
-            <div 
-              key={item.id} 
-              onClick={() => router.push(item.linkUrl || '/shop')}
-              className="relative w-full aspect-[3/4] overflow-hidden bg-neutral-soft/20 cursor-pointer hover:opacity-90 transition-opacity duration-300"
-            >
-              <img src={item.imageUrl} alt="Editorial look" className="w-full h-full object-cover" />
+        // 6. RENDER TEXT BANNER (No media fallback)
+        if (!sec.showTitle && !sec.showSubtitle && !sec.showButton) return null;
+        return (
+          <section key={sec.id} className="py-12 md:py-24 border-b border-neutral-soft/30 bg-neutral-soft/5">
+            <div className="container-editorial flex flex-col md:flex-row md:items-center justify-between gap-8 text-left">
+              <div className="max-w-xl">
+                {sec.showSubtitle && sec.subtitle && (
+                  <p className="text-[9px] uppercase tracking-[0.3em] text-text-muted mb-2 font-medium">{sec.subtitle}</p>
+                )}
+                {sec.showTitle && sec.title && (
+                  <h2 className="text-3xl md:text-4xl font-light uppercase tracking-widest text-fg-luxury mb-4">
+                    {sec.title}
+                  </h2>
+                )}
+              </div>
+              {sec.showButton && sec.ctaText && (
+                <div>
+                  <button 
+                    onClick={() => router.push(sec.ctaLink)}
+                    className="btn-editorial-solid text-[10px] tracking-[0.25em] py-4 px-10 cursor-pointer whitespace-nowrap"
+                  >
+                    {sec.ctaText}
+                  </button>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Newsletter */}
-      <section className="py-12 md:py-24 container-editorial text-center flex flex-col items-center">
-        <div className="max-w-md w-full flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <p className="text-[9px] uppercase tracking-[0.3em] text-text-muted">Stay Connected</p>
-            <h3 className="text-xl uppercase tracking-widest font-light text-fg-luxury">The FREERT Dispatch</h3>
-          </div>
-          <p className="text-[11px] text-text-muted font-light leading-relaxed">
-            Subscribe to receive priority notifications for new seasonal drops, limited runs, and editorial lookbooks.
-          </p>
-          <form onSubmit={handleSubscribe} className="flex gap-4 border-b border-neutral-soft/80 pb-2 mt-4">
-            <input 
-              type="email" 
-              required
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              placeholder="ENTER EMAIL ADDRESS" 
-              className="bg-transparent text-[11px] font-light placeholder-neutral-400 focus:outline-none w-full text-fg-luxury uppercase tracking-wider"
-            />
-            <button type="submit" className="hover:text-accent-gold transition-colors duration-300 cursor-pointer" aria-label="Submit email to newsletter">
-              <ArrowRight size={16} strokeWidth={1.5} />
-            </button>
-          </form>
-        </div>
-      </section>
+          </section>
+        );
+      })}
 
       <CartDrawer />
       <Footer />

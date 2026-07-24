@@ -8,8 +8,8 @@ import { useToast } from '@/contexts/ToastContext';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/CartDrawer';
-import { createOrder, getSiteSettings } from '@/services/database';
-import { ArrowRight, CreditCard, Shield, Truck, AlertTriangle, Check, MapPin, ClipboardCheck } from 'lucide-react';
+import { createOrder, getSiteSettings, validateCoupon } from '@/services/database';
+import { ArrowRight, CreditCard, Shield, Truck, AlertTriangle, Check, MapPin, ClipboardCheck, Trash2 } from 'lucide-react';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -32,20 +32,24 @@ export default function CheckoutPage() {
   const [isExpressEnabled, setIsExpressEnabled] = useState(true);
   const [isOnlinePaymentEnabled, setIsOnlinePaymentEnabled] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [promoApplied, setPromoApplied] = useState(false);
   const [databaseOfflineError, setDatabaseOfflineError] = useState(false);
   const [dbConnectionError, setDbConnectionError] = useState(false);
   const [placedOrderDetails, setPlacedOrderDetails] = useState<any>(null);
+
+  // Real Coupon states
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
+
+  // Auto redirect countdown states
+  const [redirectCount, setRedirectCount] = useState(5);
+  const redirectTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const shippingCost = cartSubtotal >= 499 ? 0 : 60;
 
   useEffect(() => {
     if (cart.length === 0 && !processing && currentStep !== 4) {
       router.push('/');
-    }
-    const promo = sessionStorage.getItem('freert_discount_active') === 'true';
-    if (promo) {
-      setPromoApplied(true);
     }
     if (user) {
       setEmail(user.email);
@@ -72,8 +76,103 @@ export default function CheckoutPage() {
     loadSettings();
   }, [cart, user, router, processing, currentStep]);
 
-  const discount = promoApplied ? cartSubtotal * 0.20 : 0;
-  const total = cartSubtotal - discount + shippingCost;
+  // Handle redirect countdown trigger
+  useEffect(() => {
+    if (currentStep === 4) {
+      setRedirectCount(5);
+      redirectTimerRef.current = setInterval(() => {
+        setRedirectCount(prev => {
+          if (prev <= 1) {
+            if (redirectTimerRef.current) clearInterval(redirectTimerRef.current);
+            router.push('/shop');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (redirectTimerRef.current) clearInterval(redirectTimerRef.current);
+    };
+  }, [currentStep, router]);
+
+  const handleCancelRedirect = () => {
+    if (redirectTimerRef.current) {
+      clearInterval(redirectTimerRef.current);
+      redirectTimerRef.current = null;
+    }
+    setRedirectCount(0);
+  };
+
+  const total = Math.max(0, cartSubtotal - discountAmount + shippingCost);
+
+  const handleApplyCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!couponCode.trim()) return;
+
+    try {
+      const coupon = (await validateCoupon(couponCode.trim())) as any;
+      if (!coupon) {
+        showToast('Invalid coupon code.', 'error');
+        setAppliedCoupon(null);
+        setDiscountAmount(0);
+        return;
+      }
+
+      if (!coupon.isActive) {
+        showToast('This coupon is disabled.', 'error');
+        setAppliedCoupon(null);
+        setDiscountAmount(0);
+        return;
+      }
+
+      const now = new Date();
+      if (now < new Date(coupon.activeFrom) || now > new Date(coupon.activeTo)) {
+        showToast('This coupon has expired.', 'error');
+        setAppliedCoupon(null);
+        setDiscountAmount(0);
+        return;
+      }
+
+      if (coupon.currentUses >= coupon.maxUses) {
+        showToast('Coupon usage limit exceeded.', 'error');
+        setAppliedCoupon(null);
+        setDiscountAmount(0);
+        return;
+      }
+
+      if (cartSubtotal < coupon.minOrderAmount) {
+        showToast(`Minimum order value of ₹${coupon.minOrderAmount} required for this coupon.`, 'error');
+        setAppliedCoupon(null);
+        setDiscountAmount(0);
+        return;
+      }
+
+      // Calculate discount value
+      let calculatedDiscount = 0;
+      if (coupon.discountType === 'flat') {
+        calculatedDiscount = coupon.discountValue;
+      } else {
+        calculatedDiscount = cartSubtotal * (coupon.discountValue / 100);
+        if (coupon.maxDiscountAmount > 0) {
+          calculatedDiscount = Math.min(calculatedDiscount, coupon.maxDiscountAmount);
+        }
+      }
+
+      setAppliedCoupon(coupon);
+      setDiscountAmount(calculatedDiscount);
+      showToast(`Coupon "${coupon.code}" applied successfully!`, 'success');
+    } catch (err) {
+      showToast('Failed to apply coupon.', 'error');
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setDiscountAmount(0);
+    setCouponCode('');
+    showToast('Coupon removed.', 'info');
+  };
 
   const handleNextStep = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,20 +196,23 @@ export default function CheckoutPage() {
       const dbOrder = await createOrder({
         userId: user?.id || undefined,
         totalAmount: total,
-        discountAmount: discount,
-        status: 'processing'
+        discountAmount: discountAmount,
+        couponId: appliedCoupon?.id || undefined,
+        status: 'pending' // default status Pending as requested
       }, cart);
 
       const placedOrder = {
         id: dbOrder.orderNumber ? String(dbOrder.orderNumber) : dbOrder.id,
+        order_number: dbOrder.orderNumber,
         date: new Date().toISOString().split('T')[0],
         totalAmount: total,
-        discountAmount: discount,
-        status: 'processing',
+        discountAmount: discountAmount,
+        status: 'pending',
+        paymentMethod: paymentMethod === 'razorpay' ? 'Online' : 'Cash on Delivery',
         items: cart.map(item => ({
           name: item.variant?.product?.name || 'Garment',
           qty: item.qty,
-          price: (item.variant?.product?.basePrice || 0) + (item.variant?.additionalPrice || 0),
+          price: item.priceOverride || (item.variant?.product?.basePrice || 0) + (item.variant?.additionalPrice || 0),
           size: item.variant?.size || 'One Size',
           color: item.variant?.color || 'Default'
         }))
@@ -132,12 +234,15 @@ export default function CheckoutPage() {
         setDbConnectionError(true);
       } else if (err.message === 'DATABASE_OFFLINE') {
         // Fallback for demo flow to keep checkout 100% functional even offline!
+        const fallbackOrderNum = Math.floor(100000 + Math.random() * 900000);
         const fallbackOrder = {
-          id: `FR-${Math.floor(100000 + Math.random() * 900000)}`,
+          id: `FR-${fallbackOrderNum}`,
+          order_number: fallbackOrderNum,
           date: new Date().toISOString().split('T')[0],
           totalAmount: total,
-          discountAmount: discount,
-          status: 'processing',
+          discountAmount: discountAmount,
+          status: 'pending',
+          paymentMethod: 'Cash on Delivery',
           items: cart.map(item => ({
             name: item.variant?.product?.name || 'Garment',
             qty: item.qty,
@@ -256,7 +361,7 @@ export default function CheckoutPage() {
                 Order Placed Successfully
               </span>
               <h2 className="text-2xl uppercase tracking-widest font-semibold text-fg-luxury mt-2">
-                Order ID: #{placedOrderDetails?.orderNumber || placedOrderDetails?.order_number || placedOrderDetails?.id}
+                Order ID: #{placedOrderDetails?.order_number || placedOrderDetails?.id}
               </h2>
               <p className="text-[11px] text-text-muted max-w-sm leading-relaxed mt-1">
                 Thank you for choosing FREERT. Your bespoke order has been registered and is being prepared by our master craftsmen.
@@ -265,14 +370,17 @@ export default function CheckoutPage() {
 
             {/* Tracking Timeline */}
             <div className="bg-neutral-soft/5 p-6 rounded-lg border border-neutral-soft/20">
-              <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury mb-6">Delivery Progression</h4>
+              <div className="flex justify-between items-center mb-6">
+                <h4 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-fg-luxury">Delivery Progression</h4>
+                <span className="text-[9px] uppercase font-light text-text-muted tracking-widest">Est. Delivery: 3-5 Business Days</span>
+              </div>
               <div className="grid grid-cols-5 text-center relative items-center">
                 <div className="absolute top-[11px] left-[10%] right-[10%] h-[2px] bg-neutral-soft/40 z-0" />
                 <div className="absolute top-[11px] left-[10%] w-[20%] h-[2px] bg-emerald-600 z-0" />
                 
                 {[
-                  { label: 'Ordered', done: true, current: false },
-                  { label: 'Confirmed', done: true, current: true },
+                  { label: 'Pending', done: true, current: true },
+                  { label: 'Confirmed', done: false, current: false },
                   { label: 'Shipped', done: false, current: false },
                   { label: 'Out for Delivery', done: false, current: false },
                   { label: 'Delivered', done: false, current: false }
@@ -312,21 +420,27 @@ export default function CheckoutPage() {
                 ))}
                 
                 <div className="flex justify-between text-xs font-semibold text-fg-luxury border-t border-neutral-soft/30 pt-4 mt-2">
-                  <span className="uppercase tracking-widest">Total Paid (COD)</span>
+                  <span className="uppercase tracking-widest">Total Paid ({placedOrderDetails?.paymentMethod || 'COD'})</span>
                   <span className="text-sm">₹{placedOrderDetails?.totalAmount.toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>
 
+            {redirectCount > 0 && (
+              <div className="text-center text-[10px] text-text-muted uppercase tracking-[0.2em] py-1 bg-neutral-soft/5 border border-neutral-soft/35 rounded animate-pulse">
+                Redirecting to Shop in <span className="font-semibold text-fg-luxury">{redirectCount}</span> seconds...
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-4 mt-2">
               <button 
-                onClick={() => router.push('/dashboard')}
+                onClick={() => { handleCancelRedirect(); router.push('/dashboard'); }}
                 className="btn-editorial-solid flex-1 text-xs py-3.5 tracking-widest uppercase cursor-pointer"
               >
-                Go to Order History
+                Track Order
               </button>
               <button 
-                onClick={() => router.push('/')}
+                onClick={() => { handleCancelRedirect(); router.push('/shop'); }}
                 className="btn-editorial flex-1 text-xs py-3.5 tracking-widest uppercase cursor-pointer"
               >
                 Continue Shopping
@@ -536,14 +650,24 @@ export default function CheckoutPage() {
                   <span>Subtotal</span>
                   <span>₹{cartSubtotal.toLocaleString('en-IN')}</span>
                 </div>
-                {promoApplied && (
-                  <div className="flex justify-between text-green-700 uppercase tracking-wider text-[10px]">
-                    <span>Coupon Discount</span>
-                    <span>-₹{discount.toLocaleString('en-IN')}</span>
+                {appliedCoupon && (
+                  <div className="flex justify-between text-green-700 uppercase tracking-wider text-[10px] items-center">
+                    <span className="flex items-center gap-1.5">
+                      Coupon ({appliedCoupon.code})
+                      <button 
+                        type="button" 
+                        onClick={handleRemoveCoupon}
+                        className="text-red-700 hover:text-red-800 cursor-pointer"
+                        aria-label="Remove applied coupon"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </span>
+                    <span>-₹{discountAmount.toLocaleString('en-IN')}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-text-muted uppercase tracking-wider text-[10px]">
-                  <span>Express Delivery</span>
+                  <span>Delivery Charges</span>
                   <span>{shippingCost === 0 ? 'FREE' : `₹${shippingCost.toLocaleString('en-IN')}`}</span>
                 </div>
                 <div className="flex justify-between text-fg-luxury font-semibold uppercase tracking-[0.1em] text-sm pt-4 border-t border-neutral-soft/20">
@@ -551,6 +675,27 @@ export default function CheckoutPage() {
                   <span>₹{total.toLocaleString('en-IN')}</span>
                 </div>
               </div>
+
+              {/* Real Coupon code input box */}
+              {currentStep <= 3 && (
+                <form onSubmit={handleApplyCoupon} className="flex gap-2 pt-2 border-t border-neutral-soft/10 mt-2">
+                  <input 
+                    type="text"
+                    placeholder="ENTER COUPON CODE"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                    disabled={!!appliedCoupon}
+                    className="bg-transparent text-[10px] font-medium border border-neutral-soft/80 py-2 px-3 focus:outline-none w-full text-fg-luxury uppercase tracking-wider placeholder-neutral-400 disabled:opacity-50"
+                  />
+                  <button 
+                    type="submit" 
+                    disabled={!!appliedCoupon || !couponCode.trim()}
+                    className="btn-editorial-solid text-[9px] py-2 px-4 uppercase tracking-widest cursor-pointer font-semibold whitespace-nowrap disabled:opacity-50"
+                  >
+                    Apply
+                  </button>
+                </form>
+              )}
 
               <div className="flex justify-center items-center gap-2 text-[9px] uppercase tracking-widest text-text-muted font-light mt-2">
                 <Shield size={12} className="text-accent-gold" />

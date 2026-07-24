@@ -7,8 +7,9 @@ import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/CartDrawer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
+import { useToast } from '@/contexts/ToastContext';
 import { getOrders } from '@/services/database';
-import { Package, User, Star, Copy, Check } from 'lucide-react';
+import { Package, User, Star, Copy, Check, Edit2 } from 'lucide-react';
 
 interface OrderItemLog {
   name: string;
@@ -30,12 +31,44 @@ interface OrderLog {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const { cart } = useCart();
+  const { showToast } = useToast();
   
   const [orders, setOrders] = useState<OrderLog[]>([]);
   const [copied, setCopied] = useState(false);
   const referralCode = 'FR-LOYAL-9599';
+
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // Initialize edit fields when user profile loads
+  useEffect(() => {
+    if (user) {
+      setEditName(user.fullName || '');
+      setEditPhone(user.phone || '');
+    }
+  }, [user]);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editName.trim()) {
+      showToast('Name is required.', 'error');
+      return;
+    }
+    setIsSavingProfile(true);
+    try {
+      await updateProfile(editName.trim(), editPhone.trim());
+      showToast('Profile updated successfully.', 'success');
+      setIsEditingProfile(false);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update profile.', 'error');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   const getTimelineSteps = (status: string) => {
     const s = status.toLowerCase();
@@ -154,21 +187,74 @@ export default function DashboardPage() {
 
             <div className="border-t border-neutral-soft/30 pt-6 flex flex-col gap-4">
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-text-muted mb-1 font-medium">Account Details</p>
-                <div className="flex flex-col gap-3 mt-3 text-xs uppercase tracking-wider text-fg-luxury font-light">
-                  <p className="border-b border-neutral-soft/10 pb-2">
-                    <span className="text-[9px] text-text-muted font-normal block normal-case tracking-wider mb-0.5">Full Name</span> 
-                    {user?.fullName || 'N/A'}
-                  </p>
-                  <p className="border-b border-neutral-soft/10 pb-2">
-                    <span className="text-[9px] text-text-muted font-normal block normal-case tracking-wider mb-0.5">Email Address</span> 
-                    <span className="lowercase tracking-normal font-light">{user?.email || 'N/A'}</span>
-                  </p>
-                  <p className="pb-1">
-                    <span className="text-[9px] text-text-muted font-normal block normal-case tracking-wider mb-0.5">Phone Number</span> 
-                    {user?.phone || 'N/A'}
-                  </p>
+                <div className="flex justify-between items-baseline mb-4">
+                  <p className="text-[9px] uppercase tracking-widest text-text-muted font-semibold">Account Details</p>
+                  {!isEditingProfile && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingProfile(true)}
+                      className="text-[9px] uppercase tracking-wider text-accent-gold hover:text-fg-luxury flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <Edit2 size={10} /> Edit Details
+                    </button>
+                  )}
                 </div>
+
+                {isEditingProfile ? (
+                  <form onSubmit={handleSaveProfile} className="flex flex-col gap-4 animate-[fadeIn_0.2s_ease-out]">
+                    <div className="flex flex-col gap-1.5 text-left">
+                      <label className="text-[8px] uppercase tracking-[0.15em] text-text-muted font-medium">Full Name</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="input-editorial text-xs py-1.5 px-2 bg-transparent text-white"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5 text-left">
+                      <label className="text-[8px] uppercase tracking-[0.15em] text-text-muted font-medium">Phone Number (Optional)</label>
+                      <input 
+                        type="tel" 
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        className="input-editorial text-xs py-1.5 px-2 bg-transparent text-white"
+                        placeholder="e.g. 9876543210"
+                      />
+                    </div>
+                    <div className="flex gap-2 justify-end mt-2 text-[9px] tracking-wider uppercase font-semibold">
+                      <button 
+                        type="button" 
+                        onClick={() => setIsEditingProfile(false)}
+                        className="btn-editorial py-2 px-3 border border-neutral-soft/40 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit" 
+                        disabled={isSavingProfile}
+                        className="btn-editorial-solid py-2 px-4 cursor-pointer"
+                      >
+                        {isSavingProfile ? 'Saving...' : 'Save'}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex flex-col gap-3 text-xs uppercase tracking-wider text-fg-luxury font-light">
+                    <p className="border-b border-neutral-soft/10 pb-2">
+                      <span className="text-[9px] text-text-muted font-normal block normal-case tracking-wider mb-0.5">Full Name</span> 
+                      {user?.fullName || 'N/A'}
+                    </p>
+                    <p className="border-b border-neutral-soft/10 pb-2">
+                      <span className="text-[9px] text-text-muted font-normal block normal-case tracking-wider mb-0.5">Email Address</span> 
+                      <span className="lowercase tracking-normal font-light">{user?.email || 'N/A'}</span>
+                    </p>
+                    <p className="pb-1">
+                      <span className="text-[9px] text-text-muted font-normal block normal-case tracking-wider mb-0.5">Phone Number</span> 
+                      {user?.phone || 'N/A'}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

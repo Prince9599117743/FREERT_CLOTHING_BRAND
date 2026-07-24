@@ -27,8 +27,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   // Stock status logic
   const totalStock = product.variants && product.variants.length > 0 ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 10);
-  const isOutOfStock = product.status === 'out-of-stock' || totalStock === 0;
-  const isLowStock = totalStock > 0 && totalStock <= 5;
+  const isOutOfStock = product.status === 'out-of-stock' || (product.trackQuantity !== false && totalStock === 0);
+  const isLowStock = product.trackQuantity !== false && totalStock > 0 && totalStock <= 5;
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -83,7 +83,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   return (
     <div 
-      className="group flex flex-col gap-3 relative text-left"
+      className="group flex flex-col gap-2 relative text-left"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -107,14 +107,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <Heart size={13} fill={favorited ? 'currentColor' : 'none'} strokeWidth={1.5} />
         </button>
 
-        {/* Floating Quick View Icon */}
-        <Link 
-          href={`/product/${product.slug}`}
-          className="absolute top-16 right-4 p-2 bg-bg-luxury/80 rounded-full text-fg-luxury hover:text-accent-gold hover:bg-bg-luxury shadow-sm transition-all duration-300 cursor-pointer z-10 opacity-0 group-hover:opacity-100 hidden md:flex"
-          aria-label="Quick View product"
-        >
-          <Eye size={13} strokeWidth={1.5} />
-        </Link>
+        {/* Floating Quick Add Button */}
+        {!isOutOfStock && (
+          <button 
+            onClick={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const defaultVariant = product.variants?.[0];
+              if (defaultVariant) {
+                await addToCart({ ...defaultVariant, product });
+                showToast(`Equipped ${product.name} to bag.`, 'success');
+                setIsCartOpen(true);
+              }
+            }}
+            className="absolute bottom-4 right-4 w-7 h-7 bg-bg-luxury/95 rounded-full text-fg-luxury hover:text-accent-gold hover:bg-bg-luxury shadow-md transition-all duration-300 cursor-pointer z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 flex items-center justify-center border border-neutral-soft/40"
+            aria-label="Quick Add to Bag"
+          >
+            <span className="text-[14px] font-light leading-none">+</span>
+          </button>
+        )}
 
         {/* Hover Slider Actions */}
         <div className="absolute bottom-0 left-0 right-0 bg-fg-luxury/90 backdrop-blur-[2px] p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-in-out flex flex-col gap-3 z-10">
@@ -194,45 +205,39 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
       {/* Product Details info */}
       <div className="flex flex-col gap-1 px-1">
-        <div className="flex justify-between items-baseline">
-          <h3 className="text-[11px] uppercase tracking-[0.15em] font-medium text-fg-luxury truncate max-w-[70%]">
-            <Link href={`/product/${product.slug}`} className="hover:text-accent-gold transition-colors duration-300">
-              {product.name}
-            </Link>
-          </h3>
-          
-          {hasDiscount ? (
-            <div className="flex flex-col text-right">
-              <span className="text-[10px] font-semibold text-fg-luxury tracking-wider">
-                ₹{product.basePrice.toLocaleString('en-IN')}
-              </span>
-              <span className="text-[8px] text-text-muted line-through">
+        <h3 className="text-[11px] uppercase tracking-[0.15em] font-medium text-fg-luxury line-clamp-2 min-h-[30px] leading-tight">
+          <Link href={`/product/${product.slug}`} className="hover:text-accent-gold transition-colors duration-300">
+            {product.name}
+          </Link>
+        </h3>
+        
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-[10px] font-semibold text-fg-luxury tracking-wider">
+            ₹{product.basePrice.toLocaleString('en-IN')}
+          </span>
+          {hasDiscount && (
+            <>
+              <span className="text-[8px] text-text-muted line-through tracking-wider">
                 ₹{product.mrp?.toLocaleString('en-IN')}
               </span>
-              <span className="text-[8px] text-red-700 font-semibold uppercase tracking-wider mt-0.5">
+              <span className="text-[8px] text-accent-gold font-medium uppercase tracking-widest bg-accent-gold/10 px-1.5 py-0.5 rounded-[2px]">
                 {discountPercent}% OFF
               </span>
-            </div>
-          ) : (
-            <span className="text-[10px] font-light text-fg-luxury tracking-wider">
-              ₹{product.basePrice.toLocaleString('en-IN')}
-            </span>
+            </>
           )}
         </div>
         
         {/* Rating & reviews */}
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <div className="flex text-accent-gold">
-            <Star size={9} className="fill-current" />
+        {product.reviewsCount !== undefined && product.reviewsCount > 0 && (
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <div className="flex text-accent-gold">
+              <Star size={9} className="fill-current" />
+            </div>
+            <span className="text-[8px] text-text-muted font-light uppercase tracking-widest">
+              {Number(product.rating || 0).toFixed(1)} ({product.reviewsCount} {product.reviewsCount === 1 ? 'Review' : 'Reviews'})
+            </span>
           </div>
-          <span className="text-[8px] text-text-muted font-light uppercase tracking-widest">
-            {product.reviewsCount && product.reviewsCount > 0 ? (
-              `${Number(product.rating || 0).toFixed(1)} (${product.reviewsCount} ${product.reviewsCount === 1 ? 'Review' : 'Reviews'})`
-            ) : (
-              'No reviews yet'
-            )}
-          </span>
-        </div>
+        )}
 
         {/* Sizes line representation */}
         {sizes.length > 0 && (

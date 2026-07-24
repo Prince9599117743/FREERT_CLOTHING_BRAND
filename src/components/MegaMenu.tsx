@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getCategories } from '@/services/database';
-import { Category } from '@/types';
+import { getCategories, getCollections } from '@/services/database';
+import { Category, Collection } from '@/types';
 
 interface MegaMenuProps {
   isOpen: boolean;
@@ -12,14 +12,20 @@ interface MegaMenuProps {
 
 export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
   const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [allCollections, setAllCollections] = useState<Collection[]>([]);
 
   useEffect(() => {
     if (isOpen) {
-      // Always fetch fresh from DB when menu opens
       setAllCategories([]);
+      setAllCollections([]);
+      
       getCategories()
         .then(list => setAllCategories(list))
         .catch(err => console.error('Error fetching categories in MegaMenu:', err));
+
+      getCollections()
+        .then(list => setAllCollections(list))
+        .catch(err => console.error('Error fetching collections in MegaMenu:', err));
     }
   }, [isOpen]);
 
@@ -50,7 +56,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
       className="absolute left-0 w-full bg-bg-luxury border-b border-neutral-soft/50 shadow-sm z-40 py-16 px-12 md:px-24 flex justify-center animate-[fadeIn_0.2s_ease-out]"
     >
       <div className="max-w-7xl w-full grid gap-12 text-left"
-        style={{ gridTemplateColumns: `repeat(${Math.min(activeDepts.length + 1, 6)}, 1fr)` }}
+        style={{ gridTemplateColumns: `repeat(${Math.min(activeDepts.length + (allCollections.length > 0 ? 2 : 1), 6)}, 1fr)` }}
       >
         {activeDepts.map(dept => {
           const subs = getSubsForDept(dept.slug);
@@ -81,6 +87,24 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
             </div>
           );
         })}
+
+        {/* Dynamic Collections Column */}
+        {allCollections.length > 0 && (
+          <div>
+            <h4 className="text-[10px] uppercase tracking-[0.25em] font-semibold text-fg-luxury mb-6 pb-1.5 border-b border-neutral-soft/30">
+              Collections
+            </h4>
+            <ul className="text-[11px] space-y-3.5 font-light text-text-muted">
+              {allCollections.map(coll => (
+                <li key={coll.id}>
+                  <Link href={`/shop?collection=${coll.slug}`} onClick={onClose} className="hover:text-accent-gold transition-colors block font-medium">
+                    {coll.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Campaign banner — always last */}
         <div className="bg-neutral-soft/10 p-6 flex flex-col justify-between border border-neutral-soft/60 aspect-[4/5] max-w-[220px]">

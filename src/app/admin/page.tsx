@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { 
   getProducts, createProduct, updateProduct, deleteProduct,
   getAllOrders, updateOrderStatus, getAllCustomers,
-  getCoupons, createCoupon, deleteCoupon,
+  getCoupons, createCoupon, updateCoupon, deleteCoupon,
   getAdminReviews, deleteReview, approveReview, rejectReview,
   getAdminSupportTickets, updateTicketStatus,
   getSiteSettings, saveSiteSetting,
@@ -16,10 +16,15 @@ import {
   getEditorialJournal, saveEditorialJournalItem, deleteEditorialJournalItem,
   uploadMedia, getDashboardStats, logActivity,
   createCategory, deleteCategory, getCategories,
+  getCollections, createCollection, deleteCollection,
   getAdminProductDetailsSections, saveProductDetailsSection, deleteProductDetailsSection,
-  getRestockAlerts, deleteRestockAlert, getNewsletterSubscribers
+  getRestockAlerts, deleteRestockAlert, getNewsletterSubscribers, deleteNewsletterSubscriber,
+  getProductColors, saveProductColor, deleteProductColor,
+  getProductLookProducts, addProductLookProduct, removeProductLookProduct,
+  getComboOffers, createComboOffer, deleteComboOffer
 } from '@/services/database';
-import type { Product, Category } from '@/types';
+import { RichTextEditor } from '@/components/ui/RichTextEditor';
+import type { Product, Category, Collection } from '@/types';
 import { 
   Save, Plus, Trash2, Copy, Upload, ArrowRight, Star, Heart, Check, 
   HelpCircle, Trash, RotateCcw, AlertTriangle, Eye, ShieldAlert, Settings, 
@@ -48,6 +53,10 @@ interface HomepageSection {
   showSubtitle?: boolean;
   showButton?: boolean;
   imageClickRedirect?: boolean;
+  mediaType?: string;
+  videoUrl?: string;
+  posterUrl?: string;
+  focalPoint?: string;
 }
 
 interface OrderAdmin {
@@ -78,8 +87,17 @@ interface Customer {
 interface Coupon {
   id: string;
   code: string;
-  value: number;
-  enabled: boolean;
+  discountPercentage: number;
+  maxUses: number;
+  currentUses: number;
+  activeFrom: string;
+  activeTo: string;
+  createdAt: string;
+  discountType?: string;
+  discountValue?: number;
+  minOrderAmount?: number;
+  maxDiscountAmount?: number;
+  isActive?: boolean;
 }
 
 function AdminCoreWorkspace() {
@@ -92,15 +110,40 @@ function AdminCoreWorkspace() {
   const [trashProducts, setTrashProducts] = useState<Product[]>([]);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [editTab, setEditTab] = useState<'info' | 'photos' | 'price' | 'stock' | 'sizes' | 'seo' | 'details'>('info');
+  const [editTab, setEditTab] = useState<'info' | 'photos' | 'price' | 'stock' | 'sizes' | 'seo' | 'details' | 'variants' | 'look' | 'combos'>('info');
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [seoExpanded, setSeoExpanded] = useState(false);
+  const [editingLookProducts, setEditingLookProducts] = useState<Product[]>([]);
+  const [allComboOffers, setAllComboOffers] = useState<any[]>([]);
+  const [editingCombos, setEditingCombos] = useState<any[]>([]);
+  const [selectedLookProductId, setSelectedLookProductId] = useState('');
+  const [comboPartnerProductId, setComboPartnerProductId] = useState('');
+  const [comboOfferPrice, setComboOfferPrice] = useState(0);
 
   const [editingSections, setEditingSections] = useState<any[]>([]);
   const [newSectionTitle, setNewSectionTitle] = useState('');
   const [newSectionContent, setNewSectionContent] = useState('');
 
-  // Automatically fetch details sections for the editing product
+  // Product Colors & Variants states
+  const [productColors, setProductColors] = useState<any[]>([]);
+  const [newColorName, setNewColorName] = useState('');
+  const [newColorCode, setNewColorCode] = useState('#FFFFFF');
+  const [newColorImage, setNewColorImage] = useState('');
+  const [selectedColorForMedia, setSelectedColorForMedia] = useState<string | null>(null);
+
+  // Checked sizes checklist
+  const [checkedSizes, setCheckedSizes] = useState<string[]>(['S', 'M', 'L']);
+  
+  // Matrix data for combination rows: colorName + size -> { stock, sku, additionalPrice, id, isActive }
+  const [variantMatrix, setVariantMatrix] = useState<Record<string, {
+    id?: string;
+    stock: number;
+    sku: string;
+    additionalPrice: number;
+    isActive: boolean;
+  }>>({});
+
+  // Automatically fetch details sections and colors for the editing product
   useEffect(() => {
     if (editingProduct) {
       const loadSections = async () => {
@@ -111,11 +154,77 @@ function AdminCoreWorkspace() {
           setEditingSections([]);
         }
       };
+      
+      const loadColorsAndVariants = async () => {
+        try {
+          const colorsList = await getProductColors(editingProduct.id);
+          setProductColors(colorsList);
+          
+          const currentSizes = editingProduct.variants 
+            ? Array.from(new Set(editingProduct.variants.map(v => v.size)))
+            : ['S', 'M', 'L'];
+          setCheckedSizes(currentSizes.length > 0 ? currentSizes : ['S', 'M', 'L']);
+          
+          const matrix: Record<string, any> = {};
+          if (editingProduct.variants) {
+            for (const v of editingProduct.variants) {
+              const key = `${v.color}-${v.size}`;
+              matrix[key] = {
+                id: v.id,
+                stock: v.stockQty ?? 0,
+                sku: v.sku || '',
+                additionalPrice: v.additionalPrice || 0,
+                isActive: true
+              };
+            }
+          }
+          setVariantMatrix(matrix);
+        } catch (err) {
+          console.error('Failed to load colors/variants:', err);
+        }
+      };
+
+      const loadLookProducts = async () => {
+        try {
+          const res = await getProductLookProducts(editingProduct.id);
+          setEditingLookProducts(res);
+        } catch {
+          setEditingLookProducts([]);
+        }
+      };
+
+      const loadComboOffers = async () => {
+        try {
+          const res = await getComboOffers();
+          setAllComboOffers(res);
+          const currentProductCombos = res.filter(c => c.product_a_id === editingProduct.id || c.product_b_id === editingProduct.id);
+          setEditingCombos(currentProductCombos);
+        } catch {
+          setEditingCombos([]);
+          setAllComboOffers([]);
+        }
+      };
+
       loadSections();
+      loadColorsAndVariants();
+      loadLookProducts();
+      loadComboOffers();
     } else {
       setEditingSections([]);
       setNewSectionTitle('');
       setNewSectionContent('');
+      setProductColors([]);
+      setNewColorName('');
+      setNewColorCode('#FFFFFF');
+      setNewColorImage('');
+      setSelectedColorForMedia(null);
+      setCheckedSizes(['S', 'M', 'L']);
+      setVariantMatrix({});
+      setEditingLookProducts([]);
+      setEditingCombos([]);
+      setSelectedLookProductId('');
+      setComboPartnerProductId('');
+      setComboOfferPrice(0);
     }
   }, [editingProduct]);
 
@@ -145,29 +254,32 @@ function AdminCoreWorkspace() {
     images: ['/assets/trench_coat.jpg'],
     parentCategory: 'men',
     subCategory: 'hoodies',
-    brand: 'Made in India'
+    brand: 'Made in India',
+    status: 'published',
+    trackQuantity: true
   });
 
-  const [categories, setCategories] = useState<Category[]>([
-    { id: 'men', name: 'Men', slug: 'men', imageUrl: '/assets/trench_coat.jpg', createdAt: new Date().toISOString() },
-    { id: 'women', name: 'Women', slug: 'women', imageUrl: '/assets/trench_coat.jpg', createdAt: new Date().toISOString() },
-    { id: 'accessories', name: 'Accessories', slug: 'accessories', imageUrl: '/assets/trench_coat.jpg', createdAt: new Date().toISOString() },
-    { id: 'perfumes', name: 'Perfumes', slug: 'perfumes', imageUrl: '/assets/trench_coat.jpg', createdAt: new Date().toISOString() }
-  ]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryParent, setNewCategoryParent] = useState('');
   const [newCategoryBanner, setNewCategoryBanner] = useState('/assets/trench_coat.jpg');
 
+  // Collections state
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [newCollectionName, setNewCollectionName] = useState('');
+  const [newCollectionDescription, setNewCollectionDescription] = useState('');
+  const [newCollectionBanner, setNewCollectionBanner] = useState('/assets/trench_coat.jpg');
+
   const [heroBanners, setHeroBanners] = useState<any[]>([]);
   const [editorialJournal, setEditorialJournal] = useState<any[]>([]);
 
-  const [homeSections, setHomeSections] = useState<HomepageSection[]>([
-    { id: 'hero', title: 'Main Hero Slide', subtitle: 'Primary Campaign', bannerImage: '/assets/trench_coat.jpg', ctaText: 'Shop Now', ctaLink: '/shop', visible: true },
-    { id: 'men', title: 'Men Silhouette Highlight', subtitle: 'Tailored Minimal Staples', bannerImage: '/assets/trench_coat.jpg', ctaText: 'Shop Men', ctaLink: '/shop/men', visible: true },
-    { id: 'women', title: 'Women Highlight Banner', subtitle: 'Linen Silhouettes', bannerImage: '/assets/trench_coat.jpg', ctaText: 'Shop Women', ctaLink: '/shop/women', visible: true },
-    { id: 'accessories', title: 'Luxury Accessories Block', subtitle: 'Fine Leather Crafts', bannerImage: '/assets/trench_coat.jpg', ctaText: 'Explore', ctaLink: '/shop/accessories', visible: true },
-    { id: 'perfumes', title: 'Olfactory Signature block', subtitle: 'Scent Guidelines', bannerImage: '/assets/trench_coat.jpg', ctaText: 'Scent Me', ctaLink: '/shop/perfumes', visible: true }
-  ]);
+  const [homeSections, setHomeSections] = useState<HomepageSection[]>([]);
+
+  // Local draft states for non-laggy CMS typing
+  const [heroDrafts, setHeroDrafts] = useState<Record<string, any>>({});
+  const [sectionDrafts, setSectionDrafts] = useState<Record<string, any>>({});
+  const [savingHeroId, setSavingHeroId] = useState<string | null>(null);
+  const [savingSectionId, setSavingSectionId] = useState<string | null>(null);
 
   const [orders, setOrders] = useState<OrderAdmin[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -176,16 +288,44 @@ function AdminCoreWorkspace() {
   const [reviewTab, setReviewTab] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
   const [dashboardStats, setDashboardStats] = useState({ totalRevenue: 0, totalOrders: 0, totalCustomers: 0, totalProducts: 0, lowStockCount: 0, pendingOrders: 0 });
-  const [newCouponForm, setNewCouponForm] = useState({ code: '', discountPercentage: 10, maxUses: 100, activeFrom: '', activeTo: '' });
+
+  // Dynamic Coupon form state
+  const [newCouponForm, setNewCouponForm] = useState({
+    code: '',
+    discountType: 'percentage' as 'percentage' | 'flat',
+    discountValue: 10,
+    maxUses: 100,
+    minOrderAmount: 0,
+    maxDiscountAmount: 0,
+    activeFrom: new Date().toISOString().split('T')[0],
+    activeTo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    isActive: true
+  });
+
+  // Dynamic Store settings states
+  const [brandName, setBrandName] = useState('FREERT');
+  const [storeEmail, setStoreEmail] = useState('concierge@freert.net');
+  const [storePhone, setStorePhone] = useState('+91 98765 43210');
+  const [storeAddress, setStoreAddress] = useState('FREERT Headquarters, New Delhi, India');
+  const [facebookUrl, setFacebookUrl] = useState('https://facebook.com');
+  const [instagramUrl, setInstagramUrl] = useState('https://instagram.com/freert');
+  const [twitterUrl, setTwitterUrl] = useState('https://twitter.com/freert');
+  const [pinterestUrl, setPinterestUrl] = useState('https://pinterest.com');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [copyrightText, setCopyrightText] = useState('© 2026 FREERT. All rights reserved.');
+  const [seoTitle, setSeoTitle] = useState('FREERT | Luxury Minimalist Fashion');
+  const [seoDescription, setSeoDescription] = useState('BE YOU. BE BOLD. BE FREERT.');
+  const [footerInfo, setFooterInfo] = useState('A global luxury clothing label designing minimalist structures and organic linens in small batches.');
 
   const [subscribers, setSubscribers] = useState<any[]>([]);
+  const [subscriberSearch, setSubscriberSearch] = useState('');
   const [restockAlerts, setRestockAlerts] = useState<any[]>([]);
 
   // Load all admin data on mount
   useEffect(() => {
     const loadAll = async () => {
       try {
-        const [productList, orderList, customerList, couponList, reviewList, ticketList, settings, stats, categoriesList, cmsSections, heroList, lookbookList, subscribersList, alertsList] = await Promise.allSettled([
+        const [productList, orderList, customerList, couponList, reviewList, ticketList, settings, stats, categoriesList, cmsSections, heroList, lookbookList, subscribersList, alertsList, collectionsList] = await Promise.allSettled([
           getProducts(),
           getAllOrders(),
           getAllCustomers(),
@@ -199,7 +339,8 @@ function AdminCoreWorkspace() {
           getHeroBanners(),
           getEditorialJournal(),
           getNewsletterSubscribers(),
-          getRestockAlerts()
+          getRestockAlerts(),
+          getCollections()
         ]);
 
         if (productList.status === 'fulfilled') setProducts(productList.value);
@@ -234,12 +375,7 @@ function AdminCoreWorkspace() {
         }
 
         if (couponList.status === 'fulfilled') {
-          setCoupons(couponList.value.map((c: any) => ({
-            id: c.id,
-            code: c.code,
-            value: c.discount_percentage,
-            enabled: new Date(c.active_to) > new Date(),
-          })));
+          setCoupons(couponList.value as any);
         }
 
         if (reviewList.status === 'fulfilled' && Array.isArray(reviewList.value)) {
@@ -257,14 +393,32 @@ function AdminCoreWorkspace() {
         if (ticketList.status === 'fulfilled') setSupportTickets(ticketList.value);
 
         if (settings.status === 'fulfilled') {
-          setExpressDeliveryEnabled(settings.value['express_delivery_enabled'] !== 'false');
-          setOnlinePaymentEnabled(settings.value['online_payment_enabled'] === 'true');
+          const vals = settings.value;
+          setExpressDeliveryEnabled(vals['express_delivery_enabled'] !== 'false');
+          setOnlinePaymentEnabled(vals['online_payment_enabled'] === 'true');
+          setBrandName(vals['brand_name'] || 'FREERT');
+          setStoreEmail(vals['store_email'] || 'concierge@freert.net');
+          setStorePhone(vals['store_phone'] || '+91 98765 43210');
+          setStoreAddress(vals['store_address'] || 'FREERT Headquarters, New Delhi, India');
+          setFacebookUrl(vals['facebook_url'] || 'https://facebook.com');
+          setInstagramUrl(vals['instagram_url'] || 'https://instagram.com/freert');
+          setTwitterUrl(vals['twitter_url'] || 'https://twitter.com/freert');
+          setPinterestUrl(vals['pinterest_url'] || 'https://pinterest.com');
+          setLogoUrl(vals['logo_url'] || '');
+          setCopyrightText(vals['copyright'] || '© 2026 FREERT. All rights reserved.');
+          setSeoTitle(vals['seo_title'] || 'FREERT | Luxury Minimalist Fashion');
+          setSeoDescription(vals['seo_description'] || 'BE YOU. BE BOLD. BE FREERT.');
+          setFooterInfo(vals['footer_info'] || 'A global luxury clothing label designing minimalist structures and organic linens in small batches.');
         }
 
         if (stats.status === 'fulfilled') setDashboardStats(stats.value);
 
         if (categoriesList.status === 'fulfilled' && categoriesList.value.length > 0) {
           setCategories(categoriesList.value);
+        }
+
+        if (collectionsList.status === 'fulfilled' && collectionsList.value) {
+          setCollections(collectionsList.value);
         }
 
         if (cmsSections.status === 'fulfilled' && cmsSections.value.length > 0) {
@@ -280,20 +434,37 @@ function AdminCoreWorkspace() {
             showSubtitle: s.show_subtitle ?? s.showSubtitle ?? true,
             showButton: s.show_button ?? s.showButton ?? true,
             imageClickRedirect: s.image_click_redirect ?? s.imageClickRedirect ?? true,
+            mediaType: s.media_type || s.mediaType || 'image',
+            videoUrl: s.video_url || s.videoUrl || '',
+            posterUrl: s.poster_url || s.posterUrl || '',
+            focalPoint: s.focal_point || s.focalPoint || 'center',
           }));
           setHomeSections(mapped);
         }
 
         if (heroList.status === 'fulfilled' && heroList.value) {
+          const mapBanner = (b: any) => ({
+            ...b,
+            imageUrl: b.image_url || b.imageUrl || '',
+            showTitle: b.show_title ?? b.showTitle ?? true,
+            showSubtitle: b.show_subtitle ?? b.showSubtitle ?? true,
+            showButton: b.show_button ?? b.showButton ?? true,
+            mediaType: b.media_type || b.mediaType || 'image',
+            videoUrl: b.video_url || b.videoUrl || '',
+            posterUrl: b.poster_url || b.posterUrl || '',
+            focalPoint: b.focal_point || b.focalPoint || 'center',
+            isPrimary: b.is_primary ?? b.isPrimary ?? false,
+          });
+
           if (heroList.value.length === 0) {
             try {
               const seeded = await seedDefaultHeroBanners();
-              setHeroBanners(seeded);
+              setHeroBanners(seeded.map(mapBanner));
             } catch (seedErr) {
               setHeroBanners([]);
             }
           } else {
-            setHeroBanners(heroList.value);
+            setHeroBanners(heroList.value.map(mapBanner));
           }
         }
         if (lookbookList.status === 'fulfilled' && lookbookList.value) {
@@ -677,6 +848,122 @@ function AdminCoreWorkspace() {
 
   // 2. Simplified Shopify-style Product editing & list view
   const renderProducts = () => {
+    const handleSaveColorsAndVariants = async () => {
+      if (!editingProduct) return;
+      setIsSaving(true);
+      try {
+        // 1. Save all colorway configurations in state
+        const savedColors = [];
+        for (const col of productColors) {
+          const res = await saveProductColor({
+            id: col.id?.startsWith('temp_') ? undefined : col.id,
+            productId: editingProduct.id,
+            colorName: col.color_name,
+            colorCode: col.color_code,
+            colorImage: col.color_image,
+            images: col.images || [],
+            videos: col.videos || [],
+            isActive: col.is_active ?? true
+          });
+          savedColors.push(res);
+        }
+
+        // 2. Determine which colors were deleted and clean them up
+        const originalColors = await getProductColors(editingProduct.id);
+        const activeNames = productColors.map(c => c.color_name);
+        for (const orig of originalColors) {
+          if (!activeNames.includes(orig.color_name)) {
+            await deleteProductColor(orig.id);
+          }
+        }
+
+        // Reload colors list to get database IDs for new colors
+        const freshColors = await getProductColors(editingProduct.id);
+        setProductColors(freshColors);
+
+        // 3. Upsert variant matrix rows for each Color x Size combination
+        const activeCombinations = [];
+        for (const col of freshColors) {
+          for (const size of checkedSizes) {
+            const key = `${col.color_name}-${size}`;
+            const matrixCell = variantMatrix[key] || { stock: 0, sku: '', additionalPrice: 0, isActive: true };
+            
+            if (matrixCell.isActive) {
+              const defaultSku = `${editingProduct.name.substring(0, 3).toUpperCase()}-${col.color_name.substring(0, 3).toUpperCase()}-${size}`;
+              const finalSku = matrixCell.sku.trim() || defaultSku;
+
+              const payload = {
+                id: matrixCell.id,
+                product_id: editingProduct.id,
+                color_id: col.id,
+                color: col.color_name,
+                size,
+                sku: finalSku,
+                stock_qty: Number(matrixCell.stock || 0),
+                additional_price: Number(matrixCell.additionalPrice || 0)
+              };
+
+              const { data: upserted, error } = await supabase
+                .from('product_variants')
+                .upsert(payload, { onConflict: 'product_id,color,size' })
+                .select();
+
+              if (error) throw error;
+              if (upserted && upserted[0]) {
+                activeCombinations.push(upserted[0].id);
+              }
+            }
+          }
+        }
+
+        // Clean up any product variants that are not in the active combination list
+        const { data: dbVariants } = await supabase
+          .from('product_variants')
+          .select('id')
+          .eq('product_id', editingProduct.id);
+          
+        if (dbVariants) {
+          for (const dv of dbVariants) {
+            if (!activeCombinations.includes(dv.id)) {
+              await supabase.from('product_variants').delete().eq('id', dv.id);
+            }
+          }
+        }
+
+        // 4. Calculate total stock from all active variants and update main product table
+        const totalStock = Object.keys(variantMatrix).reduce((sum, key) => {
+          const cell = variantMatrix[key];
+          return sum + (cell.isActive ? Number(cell.stock || 0) : 0);
+        }, 0);
+
+        await updateProduct(editingProduct.id, { 
+          stockQty: totalStock,
+          status: totalStock === 0 ? 'out-of-stock' : 'published'
+        });
+
+        await logActivity('product_update', `Updated variants and colors configuration for product: ${editingProduct.name}`);
+        await refreshProducts();
+        
+        // Refresh editing product details state
+        const refreshedProd = await supabase
+          .from('products')
+          .select('*, category:categories(*), collection:collections(*), variants:product_variants(*), colors:product_colors(*)')
+          .eq('id', editingProduct.id)
+          .single();
+          
+        if (refreshedProd.data) {
+          setEditingProduct(refreshedProd.data as any);
+        }
+
+        showToast('Colors and variants configuration updated successfully!', 'success');
+      } catch (err: any) {
+        console.error('Save variants error:', err);
+        showToast(`Failed to update variants: ${err.message || 'Unknown error'}`, 'error');
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
     const handleSaveProductEdit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!editingProduct) return;
@@ -712,19 +999,20 @@ function AdminCoreWorkspace() {
           basePrice: Number(newProductForm.basePrice),
           mrp: Number(newProductForm.mrp || newProductForm.basePrice),
           stockQty,
-          status: (stockQty === 0 ? 'out-of-stock' : 'published') as any,
+          status: newProductForm.status || (stockQty === 0 ? 'out-of-stock' : 'published'),
           images: newProductForm.images || ['/assets/trench_coat.jpg'],
           parentCategory: newProductForm.parentCategory || 'men',
           subCategory: newProductForm.subCategory || 'hoodies',
           brand: newProductForm.brand || 'Made in India',
           isPublished: true,
-          rating: 4.8,
+          rating: 0,
           reviewsCount: 0,
-        });
+          trackQuantity: newProductForm.trackQuantity !== false
+        } as any);
         await logActivity('product_create', `Added product: ${created.name}`);
         await refreshProducts();
         setIsAddingProduct(false);
-        setNewProductForm({ name: '', description: '', basePrice: 0, mrp: 0, stockQty: 10, images: ['/assets/trench_coat.jpg'], parentCategory: 'men', subCategory: 'hoodies', brand: 'Made in India' });
+        setNewProductForm({ name: '', description: '', basePrice: 0, mrp: 0, stockQty: 10, images: ['/assets/trench_coat.jpg'], parentCategory: 'men', subCategory: 'hoodies', brand: 'Made in India', status: 'published', trackQuantity: true });
         showToast('Product added successfully.', 'success');
       } catch (e) {
         showToast('Failed to add product.', 'error');
@@ -789,13 +1077,15 @@ function AdminCoreWorkspace() {
                 </div>
 
                 {/* Custom Tab selectors */}
-                <div className="flex border-b border-neutral-soft/20 gap-2">
+                <div className="flex border-b border-neutral-soft/20 gap-2 overflow-x-auto">
                   {[
                     { key: 'info', label: '📝 Basic info' },
                     { key: 'photos', label: '📷 Photos' },
                     { key: 'price', label: '💰 Pricing' },
-                    { key: 'stock', label: '📦 Stock' },
+                    { key: 'variants', label: '🎭 Variants Engine' },
                     { key: 'details', label: '📖 Details Accordion' },
+                    { key: 'look', label: '🧣 Complete Look' },
+                    { key: 'combos', label: '🎁 Combo Offers' },
                     { key: 'seo', label: '⚙ Advanced SEO' }
                   ].map(tab => (
                     <button
@@ -861,12 +1151,37 @@ function AdminCoreWorkspace() {
                         <option value="Other">Other</option>
                       </select>
                     </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[9px] uppercase tracking-wider text-text-muted mb-1 block">Stock Status Override</label>
+                        <select 
+                          value={editingProduct.status || 'published'}
+                          onChange={(e) => setEditingProduct({ ...editingProduct, status: e.target.value as any })}
+                          className="w-full bg-bg-luxury border border-neutral-soft/80 py-2 px-3 text-[11px] uppercase tracking-wider focus:outline-none"
+                        >
+                          <option value="published">In Stock / Published</option>
+                          <option value="out-of-stock">Out of Stock</option>
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2 mt-4 select-none">
+                        <input 
+                          type="checkbox"
+                          id="edit-track-quantity"
+                          checked={editingProduct.trackQuantity !== false}
+                          onChange={(e) => setEditingProduct({ ...editingProduct, trackQuantity: e.target.checked })}
+                          className="w-4 h-4 accent-fg-luxury cursor-pointer"
+                        />
+                        <label htmlFor="edit-track-quantity" className="text-[9px] uppercase tracking-wider text-text-muted cursor-pointer font-semibold">
+                          Track Inventory Quantities
+                        </label>
+                      </div>
+                    </div>
                     <div>
-                      <label className="text-[9px] uppercase tracking-wider text-text-muted mb-1 block">Description</label>
-                      <textarea 
-                        value={editingProduct.description}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
-                        className="input-editorial h-20 resize-none text-xs" 
+                      <label className="text-[9px] uppercase tracking-wider text-text-muted mb-1 block font-semibold">Description (Rich Text)</label>
+                      <RichTextEditor 
+                        value={editingProduct.description || ''}
+                        onChange={(val) => setEditingProduct({ ...editingProduct, description: val })}
+                        placeholder="Garment details, loom description..."
                       />
                     </div>
                     <div>
@@ -962,7 +1277,7 @@ function AdminCoreWorkspace() {
                         <label className="text-[9px] uppercase tracking-wider text-text-muted mb-1 block">Original Price (MRP)</label>
                         <input 
                           type="number" 
-                          value={editingProduct.mrp || editingProduct.basePrice}
+                          value={editingProduct.mrp === 0 ? '' : (editingProduct.mrp || editingProduct.basePrice)}
                           onChange={(e) => setEditingProduct({ ...editingProduct, mrp: Number(e.target.value) })}
                           className="input-editorial text-xs" 
                         />
@@ -971,7 +1286,7 @@ function AdminCoreWorkspace() {
                         <label className="text-[9px] uppercase tracking-wider text-text-muted mb-1 block">Selling Price</label>
                         <input 
                           type="number" 
-                          value={editingProduct.basePrice}
+                          value={editingProduct.basePrice === 0 ? '' : editingProduct.basePrice}
                           onChange={(e) => setEditingProduct({ ...editingProduct, basePrice: Number(e.target.value) })}
                           className="input-editorial text-xs" 
                           required
@@ -986,19 +1301,359 @@ function AdminCoreWorkspace() {
                   </div>
                 )}
 
-                {/* Tab content 4: Stock Settings */}
-                {editTab === 'stock' && (
-                  <div className="flex flex-col gap-4 animate-[fadeIn_0.2s_ease-out]">
-                    <div>
-                      <label className="text-[9px] uppercase tracking-wider text-text-muted mb-1 block">Available Stock quantity</label>
-                      <input 
-                        type="number" 
-                        value={editingProduct.stockQty ?? 10}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, stockQty: Number(e.target.value) })}
-                        className="input-editorial text-xs" 
-                        required
-                      />
+                {/* Tab content 4: Variants Engine Manager */}
+                {editTab === 'variants' && (
+                  <div className="flex flex-col gap-6 animate-[fadeIn_0.2s_ease-out]">
+                    
+                    {/* Part A: Manage Colors */}
+                    <div className="border border-neutral-soft/50 p-4 flex flex-col gap-4 bg-bg-luxury">
+                      <span className="text-[10px] uppercase tracking-wider font-semibold text-fg-luxury">1. Configure Product Colors (Colorways)</span>
+                      
+                      {/* Color Add Form */}
+                      <div className="bg-neutral-soft/10 p-3.5 border border-neutral-soft/30 flex flex-col gap-3">
+                        <span className="text-[8px] uppercase tracking-widest text-fg-luxury font-medium">Create New Colorway</span>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div>
+                            <label className="text-[8px] uppercase text-text-muted block mb-1">Color Name</label>
+                            <input 
+                              type="text" 
+                              value={newColorName}
+                              onChange={(e) => setNewColorName(e.target.value)}
+                              placeholder="e.g. Vintage White, Onyx Black"
+                              className="input-editorial text-xs py-1.5 px-2"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[8px] uppercase text-text-muted block mb-1">Swatch Hex Code</label>
+                            <div className="flex gap-2">
+                              <input 
+                                type="color" 
+                                value={newColorCode}
+                                onChange={(e) => setNewColorCode(e.target.value)}
+                                className="w-8 h-7 bg-transparent border-0 cursor-pointer p-0"
+                              />
+                              <input 
+                                type="text" 
+                                value={newColorCode}
+                                onChange={(e) => setNewColorCode(e.target.value)}
+                                placeholder="#FFFFFF"
+                                className="input-editorial text-xs py-1.5 px-2 flex-1"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-[8px] uppercase text-text-muted block mb-1">Swatch Image URL (Optional)</label>
+                            <input 
+                              type="text" 
+                              value={newColorImage}
+                              onChange={(e) => setNewColorImage(e.target.value)}
+                              placeholder="https://..."
+                              className="input-editorial text-xs py-1.5 px-2"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!newColorName.trim()) {
+                              showToast('Color Name is required.', 'error');
+                              return;
+                            }
+                            const exists = productColors.some(c => c.color_name.toLowerCase() === newColorName.trim().toLowerCase());
+                            if (exists) {
+                              showToast('A colorway with this name already exists.', 'info');
+                              return;
+                            }
+                            const tempCol = {
+                              id: `temp_${Date.now()}`,
+                              color_name: newColorName.trim(),
+                              color_code: newColorCode,
+                              color_image: newColorImage.trim() || null,
+                              images: [],
+                              videos: [],
+                              is_active: true
+                            };
+                            setProductColors([...productColors, tempCol]);
+                            setNewColorName('');
+                            setNewColorCode('#FFFFFF');
+                            setNewColorImage('');
+                            showToast('Colorway added to list. Remember to save changes.', 'success');
+                          }}
+                          className="btn-editorial-solid self-end text-[8px] tracking-widest font-semibold py-2 px-4 cursor-pointer"
+                        >
+                          + Add Colorway
+                        </button>
+                      </div>
+
+                      {/* Colors List and Media Management */}
+                      {productColors.length > 0 && (
+                        <div className="flex flex-col gap-4 mt-2">
+                          <span className="text-[9px] uppercase tracking-wider text-text-muted font-medium">Configured Colors</span>
+                          <div className="flex flex-col gap-3">
+                            {productColors.map((col) => (
+                              <div key={col.id} className="border border-neutral-soft/40 p-3 bg-neutral-soft/5 flex flex-col gap-3">
+                                <div className="flex justify-between items-center">
+                                  <div className="flex items-center gap-2">
+                                    <span 
+                                      className="w-4 h-4 rounded-full border border-neutral-soft" 
+                                      style={{ 
+                                        backgroundColor: col.color_code,
+                                        backgroundImage: col.color_image ? `url(${col.color_image})` : 'none',
+                                        backgroundSize: 'cover'
+                                      }} 
+                                    />
+                                    <span className="text-xs font-semibold text-fg-luxury">{col.color_name}</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = productColors.filter(c => c.id !== col.id);
+                                      setProductColors(updated);
+                                      showToast(`Removed colorway: ${col.color_name}`, 'info');
+                                    }}
+                                    className="text-red-400 hover:text-red-500 text-[10px]"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+
+                                {/* Color Specific Media list */}
+                                <div className="flex flex-col gap-2 border-t border-neutral-soft/20 pt-2 text-left">
+                                  <span className="text-[8px] uppercase tracking-wider text-text-muted font-semibold">Color Specific Photos & Videos</span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {col.images?.map((img: string, imgIdx: number) => (
+                                      <div key={imgIdx} className="relative w-10 h-14 border border-neutral-soft overflow-hidden group">
+                                        <img src={img} className="w-full h-full object-cover" alt="" />
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const newImgs = col.images.filter((_: any, i: number) => i !== imgIdx);
+                                            const updatedColors = productColors.map(c => c.id === col.id ? { ...c, images: newImgs } : c);
+                                            setProductColors(updatedColors);
+                                          }}
+                                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 text-[8px] font-bold"
+                                        >
+                                          ✕
+                                        </button>
+                                      </div>
+                                    ))}
+                                    {col.videos?.map((vid: string, vidIdx: number) => (
+                                      <div key={vidIdx} className="relative w-10 h-14 border border-neutral-soft overflow-hidden bg-neutral-soft/20 group flex items-center justify-center">
+                                        <span className="text-[7px] uppercase font-bold text-fg-luxury">Video</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const newVids = col.videos.filter((_: any, i: number) => i !== vidIdx);
+                                            const updatedColors = productColors.map(c => c.id === col.id ? { ...c, videos: newVids } : c);
+                                            setProductColors(updatedColors);
+                                          }}
+                                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 text-[8px] font-bold"
+                                        >
+                                          ✕
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  
+                                  {/* Add media URL tool */}
+                                  <div className="flex gap-2 mt-1">
+                                    <input 
+                                      type="text" 
+                                      placeholder="Paste Image/Video URL here & press Enter"
+                                      id={`media-input-${col.id}`}
+                                      className="input-editorial text-[9px] py-1 px-2 flex-1"
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          const val = (e.target as HTMLInputElement).value.trim();
+                                          if (!val) return;
+                                          const isVideo = val.endsWith('.mp4') || val.endsWith('.webm') || val.endsWith('.mov') || val.includes('/video/') || val.includes('_video');
+                                          
+                                          const updatedColors = productColors.map(c => {
+                                            if (c.id === col.id) {
+                                              if (isVideo) {
+                                                return { ...c, videos: [...(c.videos || []), val] };
+                                              } else {
+                                                return { ...c, images: [...(c.images || []), val] };
+                                              }
+                                            }
+                                            return c;
+                                          });
+                                          setProductColors(updatedColors);
+                                          (e.target as HTMLInputElement).value = '';
+                                          showToast('Added media file reference.', 'success');
+                                        }
+                                      }}
+                                    />
+                                    <label className="btn-editorial py-1 px-2.5 text-[8px] uppercase font-semibold cursor-pointer border border-neutral-soft/80 flex items-center justify-center gap-1">
+                                      <Upload size={10} /> Upload
+                                      <input 
+                                        type="file" 
+                                        accept="image/*,video/*"
+                                        className="hidden"
+                                        onChange={async (e) => {
+                                          const file = e.target.files?.[0];
+                                          if (!file) return;
+                                          try {
+                                            showToast('Uploading media to storage...', 'info');
+                                            const url = await uploadMedia(file, 'products');
+                                            const isVideo = file.type.startsWith('video/') || file.name.endsWith('.mp4');
+                                            
+                                            const updatedColors = productColors.map(c => {
+                                              if (c.id === col.id) {
+                                                if (isVideo) {
+                                                  return { ...c, videos: [...(c.videos || []), url] };
+                                                } else {
+                                                  return { ...c, images: [...(c.images || []), url] };
+                                                }
+                                              }
+                                              return c;
+                                            });
+                                            setProductColors(updatedColors);
+                                            showToast('Media uploaded and attached successfully.', 'success');
+                                          } catch (uploadErr: any) {
+                                            showToast(`Upload failed: ${uploadErr.message || 'Error'}`, 'error');
+                                          }
+                                        }}
+                                      />
+                                    </label>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Part B: Manage Sizes */}
+                    <div className="border border-neutral-soft/50 p-4 flex flex-col gap-4 bg-bg-luxury">
+                      <span className="text-[10px] uppercase tracking-wider font-semibold text-fg-luxury">2. Configure Available Sizes</span>
+                      <div className="flex flex-wrap gap-4">
+                        {['XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size'].map((size) => {
+                          const isChecked = checkedSizes.includes(size);
+                          return (
+                            <label key={size} className="flex items-center gap-2 cursor-pointer select-none">
+                              <input 
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  if (isChecked) {
+                                    setCheckedSizes(checkedSizes.filter(s => s !== size));
+                                  } else {
+                                    setCheckedSizes([...checkedSizes, size]);
+                                  }
+                                }}
+                                className="w-3.5 h-3.5 accent-fg-luxury"
+                              />
+                              <span className={`text-[10px] font-medium uppercase tracking-wider ${isChecked ? 'text-accent-gold font-bold' : 'text-text-muted'}`}>{size}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Part C: Variant Matrix Stock, SKU & Price overrides */}
+                    {productColors.length > 0 && checkedSizes.length > 0 && (
+                      <div className="border border-neutral-soft/50 p-4 flex flex-col gap-4 bg-bg-luxury">
+                        <span className="text-[10px] uppercase tracking-wider font-semibold text-fg-luxury">3. Variant Combinations & Inventory Settings</span>
+                        
+                        <div className="overflow-x-auto max-h-[300px] border border-neutral-soft/20">
+                          <table className="w-full text-[10px] text-left uppercase tracking-wider text-fg-luxury">
+                            <thead>
+                              <tr className="border-b border-neutral-soft bg-neutral-soft/10 text-[8px] text-text-muted font-bold">
+                                <th className="py-2.5 px-4 text-center">Active</th>
+                                <th className="py-2.5 px-4">Combination</th>
+                                <th className="py-2.5 px-4">Available Stock</th>
+                                <th className="py-2.5 px-4">SKU Code</th>
+                                <th className="py-2.5 px-4">Price Override (INR)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {productColors.map((col) => (
+                                checkedSizes.map((size) => {
+                                  const key = `${col.color_name}-${size}`;
+                                  const cell = variantMatrix[key] || { stock: 0, sku: '', additionalPrice: 0, isActive: true };
+                                  
+                                  return (
+                                    <tr key={key} className="border-b border-neutral-soft/20 hover:bg-neutral-soft/5">
+                                      <td className="py-2 px-4 text-center">
+                                        <input 
+                                          type="checkbox"
+                                          checked={cell.isActive}
+                                          onChange={(e) => {
+                                            setVariantMatrix({
+                                              ...variantMatrix,
+                                              [key]: { ...cell, isActive: e.target.checked }
+                                            });
+                                          }}
+                                          className="w-3.5 h-3.5 accent-fg-luxury"
+                                        />
+                                      </td>
+                                      <td className="py-2 px-4 font-semibold">
+                                        {col.color_name} / {size}
+                                      </td>
+                                      <td className="py-2 px-4">
+                                        <input 
+                                          type="number"
+                                          value={cell.stock === 0 ? '' : cell.stock}
+                                          placeholder="0"
+                                          onChange={(e) => {
+                                            setVariantMatrix({
+                                              ...variantMatrix,
+                                              [key]: { ...cell, stock: Number(e.target.value) }
+                                            });
+                                          }}
+                                          className="w-20 bg-transparent border border-neutral-soft/60 px-2 py-1 text-[10px] text-fg-luxury"
+                                        />
+                                      </td>
+                                      <td className="py-2 px-4">
+                                        <input 
+                                          type="text"
+                                          value={cell.sku}
+                                          placeholder="Auto-generated"
+                                          onChange={(e) => {
+                                            setVariantMatrix({
+                                              ...variantMatrix,
+                                              [key]: { ...cell, sku: e.target.value }
+                                            });
+                                          }}
+                                          className="w-32 bg-transparent border border-neutral-soft/60 px-2 py-1 text-[10px] text-fg-luxury"
+                                        />
+                                      </td>
+                                      <td className="py-2 px-4">
+                                        <input 
+                                          type="number"
+                                          value={cell.additionalPrice === 0 ? '' : cell.additionalPrice}
+                                          placeholder="₹0.00"
+                                          onChange={(e) => {
+                                            setVariantMatrix({
+                                              ...variantMatrix,
+                                              [key]: { ...cell, additionalPrice: Number(e.target.value) }
+                                            });
+                                          }}
+                                          className="w-24 bg-transparent border border-neutral-soft/60 px-2 py-1 text-[10px] text-fg-luxury"
+                                        />
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Save Action */}
+                        <button
+                          type="button"
+                          onClick={handleSaveColorsAndVariants}
+                          disabled={isSaving}
+                          className="btn-editorial-solid self-end text-[10px] tracking-widest font-semibold py-3 px-6 cursor-pointer mt-2"
+                        >
+                          {isSaving ? 'Processing configs...' : 'Save Colors & Variants Configuration'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1021,18 +1676,215 @@ function AdminCoreWorkspace() {
                             <label className="text-[9px] uppercase block mb-1">SEO Title Tag</label>
                             <input 
                               type="text" 
-                              value={editingProduct.seoTitle || editingProduct.name}
+                              value={editingProduct.seoTitle || ''}
                               onChange={(e) => setEditingProduct({ ...editingProduct, seoTitle: e.target.value })}
-                              className="input-editorial text-xs" 
+                              className="input-editorial text-xs text-fg-luxury bg-transparent border-b border-neutral-soft/80" 
+                              placeholder="e.g. Linen Trench Coat | Luxury Capsule" 
                             />
                           </div>
                           <div>
-                            <label className="text-[9px] uppercase block mb-1">Meta Description</label>
+                            <label className="text-[9px] uppercase block mb-1">SEO Meta Description</label>
                             <textarea 
-                              value={editingProduct.seoDescription || editingProduct.description}
+                              value={editingProduct.seoDescription || ''}
                               onChange={(e) => setEditingProduct({ ...editingProduct, seoDescription: e.target.value })}
-                              className="input-editorial text-xs h-16 resize-none" 
+                              className="input-editorial h-12 resize-none text-xs leading-relaxed text-fg-luxury bg-transparent border-b border-neutral-soft/80" 
+                              placeholder="Provide search description context..." 
                             />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab content 6: Complete the Look */}
+                {editTab === 'look' && (
+                  <div className="flex flex-col gap-4 animate-[fadeIn_0.2s_ease-out] text-left">
+                    <div className="border border-neutral-soft/50 p-4 flex flex-col gap-4 bg-bg-luxury">
+                      <span className="text-[10px] uppercase tracking-wider font-semibold text-fg-luxury">Manage Complete the Look Mappings</span>
+                      
+                      {/* Search and add lookup products */}
+                      <div className="bg-neutral-soft/10 p-3.5 border border-neutral-soft/30 flex flex-col gap-3">
+                        <span className="text-[8px] uppercase tracking-widest text-fg-luxury font-medium">Add Related Look Recommendation</span>
+                        <div className="flex gap-2">
+                          <select
+                            value={selectedLookProductId}
+                            onChange={(e) => setSelectedLookProductId(e.target.value)}
+                            className="bg-bg-luxury border border-neutral-soft/80 py-2 px-3 text-[11px] uppercase tracking-wider focus:outline-none flex-1 text-fg-luxury"
+                          >
+                            <option value="">— Select Product to Recommend —</option>
+                            {products.filter(p => p.id !== editingProduct.id).map(prod => (
+                              <option key={prod.id} value={prod.id}>{prod.name}</option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!selectedLookProductId) {
+                                showToast('Select a product first.', 'error');
+                                return;
+                              }
+                              if (editingLookProducts.some(p => p.id === selectedLookProductId)) {
+                                showToast('Already in recommended list.', 'info');
+                                return;
+                              }
+                              try {
+                                await addProductLookProduct(editingProduct.id, selectedLookProductId, editingLookProducts.length);
+                                const addedProduct = products.find(p => p.id === selectedLookProductId);
+                                if (addedProduct) {
+                                  setEditingLookProducts([...editingLookProducts, addedProduct]);
+                                }
+                                setSelectedLookProductId('');
+                                showToast('Recommendation added.', 'success');
+                              } catch {
+                                showToast('Failed to save mapping.', 'error');
+                              }
+                            }}
+                            className="btn-editorial-solid text-[9px] py-2 px-4 cursor-pointer"
+                          >
+                            Add Relation
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Display current relations */}
+                      {editingLookProducts.length === 0 ? (
+                        <p className="text-[10px] uppercase text-text-muted text-center py-6">No look recommendations configured yet</p>
+                      ) : (
+                        <div className="flex flex-col gap-2">
+                          <span className="text-[9px] uppercase tracking-wider text-text-muted font-medium">Currently Linked Articles</span>
+                          <div className="flex flex-col gap-2">
+                            {editingLookProducts.map((lookP) => (
+                              <div key={lookP.id} className="flex justify-between items-center border border-neutral-soft/30 p-2 bg-neutral-soft/10">
+                                <span className="text-[10px] uppercase tracking-wider font-semibold text-fg-luxury">{lookP.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      await removeProductLookProduct(editingProduct.id, lookP.id);
+                                      setEditingLookProducts(editingLookProducts.filter(p => p.id !== lookP.id));
+                                      showToast('Recommendation link removed.', 'info');
+                                    } catch {
+                                      showToast('Failed to delete mapping.', 'error');
+                                    }
+                                  }}
+                                  className="text-red-400 hover:text-red-600 text-[10px] p-1 cursor-pointer"
+                                >
+                                  ✕ Remove
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab content 7: Combo Offers */}
+                {editTab === 'combos' && (
+                  <div className="flex flex-col gap-4 animate-[fadeIn_0.2s_ease-out] text-left">
+                    <div className="border border-neutral-soft/50 p-4 flex flex-col gap-4 bg-bg-luxury">
+                      <span className="text-[10px] uppercase tracking-wider font-semibold text-fg-luxury">Manage Combo Offers</span>
+                      
+                      {/* Create combo form */}
+                      <div className="bg-neutral-soft/10 p-3.5 border border-neutral-soft/30 flex flex-col gap-3">
+                        <span className="text-[8px] uppercase tracking-widest text-fg-luxury font-medium">Create Combo Offer with this product</span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-[8px] uppercase text-text-muted block mb-1">Select Partner Product</label>
+                            <select
+                              value={comboPartnerProductId}
+                              onChange={(e) => setComboPartnerProductId(e.target.value)}
+                              className="w-full bg-bg-luxury border border-neutral-soft/80 py-2 px-3 text-[11px] uppercase tracking-wider focus:outline-none text-fg-luxury"
+                            >
+                              <option value="">— Select Companion Product —</option>
+                              {products.filter(p => p.id !== editingProduct.id).map(prod => (
+                                <option key={prod.id} value={prod.id}>{prod.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[8px] uppercase text-text-muted block mb-1">Combo Offer price (Selling Price, INR)</label>
+                            <input
+                              type="number"
+                              value={comboOfferPrice === 0 ? '' : comboOfferPrice}
+                              onChange={(e) => setComboOfferPrice(Number(e.target.value))}
+                              placeholder="e.g. 2499"
+                              className="input-editorial text-xs py-1.5 px-2 w-full text-fg-luxury bg-transparent border-b border-neutral-soft/80"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!comboPartnerProductId || !comboOfferPrice) {
+                              showToast('Partner product and combo price are required.', 'error');
+                              return;
+                            }
+                            const partnerProduct = products.find(p => p.id === comboPartnerProductId);
+                            if (!partnerProduct) return;
+                            try {
+                              const created = await createComboOffer({
+                                title: `${editingProduct.name} + ${partnerProduct.name}`,
+                                product_a_id: editingProduct.id,
+                                product_b_id: comboPartnerProductId,
+                                combo_price: comboOfferPrice
+                              });
+                              // Hydrate object
+                              const comboWithProducts = {
+                                ...created,
+                                product_a: editingProduct,
+                                product_b: partnerProduct
+                              };
+                              setEditingCombos([...editingCombos, comboWithProducts]);
+                              setComboPartnerProductId('');
+                              setComboOfferPrice(0);
+                              showToast('Combo offer created successfully.', 'success');
+                            } catch {
+                              showToast('Failed to create combo. Duplicate combo might exist.', 'error');
+                            }
+                          }}
+                          className="btn-editorial-solid text-[9px] py-2 px-4 cursor-pointer self-end"
+                        >
+                          Create Combo
+                        </button>
+                      </div>
+
+                      {/* Display current product combos */}
+                      {editingCombos.length === 0 ? (
+                        <p className="text-[10px] uppercase text-text-muted text-center py-6">No combo deals featuring this product</p>
+                      ) : (
+                        <div className="flex flex-col gap-2">
+                          <span className="text-[9px] uppercase tracking-wider text-text-muted font-medium">Configured Combo Deals</span>
+                          <div className="flex flex-col gap-2">
+                            {editingCombos.map((comb) => {
+                              const isProdA = comb.product_a_id === editingProduct.id;
+                              const partnerName = isProdA ? (comb.product_b?.name || 'Companion') : (comb.product_a?.name || 'Companion');
+                              return (
+                                <div key={comb.id} className="flex justify-between items-center border border-neutral-soft/30 p-2.5 bg-neutral-soft/10">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-[10px] uppercase tracking-wider font-semibold text-fg-luxury">{comb.title}</span>
+                                    <span className="text-[9px] tracking-wider text-accent-gold font-light">Combo Price: ₹{comb.combo_price.toLocaleString('en-IN')}</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      try {
+                                        await deleteComboOffer(comb.id);
+                                        setEditingCombos(editingCombos.filter(c => c.id !== comb.id));
+                                        showToast('Combo offer deleted.', 'info');
+                                      } catch {
+                                        showToast('Failed to delete combo offer.', 'error');
+                                      }
+                                    }}
+                                    className="text-red-400 hover:text-red-600 text-[10px] p-1 cursor-pointer"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -1061,12 +1913,11 @@ function AdminCoreWorkspace() {
                             />
                           </div>
                           <div>
-                            <label className="text-[8px] uppercase block mb-0.5">Content Description (Rich Text)</label>
-                            <textarea 
+                            <label className="text-[8px] uppercase block mb-0.5 font-semibold">Content Description (Rich Text)</label>
+                            <RichTextEditor 
                               value={newSectionContent}
-                              onChange={(e) => setNewSectionContent(e.target.value)}
-                              placeholder="Describe the details..."
-                              className="input-editorial text-xs h-20 resize-none py-1 px-2"
+                              onChange={(val) => setNewSectionContent(val)}
+                              placeholder="Describe styling suggestions, fabric specifics..."
                             />
                           </div>
                         </div>
@@ -1155,14 +2006,14 @@ function AdminCoreWorkspace() {
                                     </button>
                                   </div>
                                 </div>
-                                <textarea 
+                                <RichTextEditor 
                                   value={sec.content}
-                                  onChange={(e) => {
+                                  onChange={(val) => {
                                     const updated = [...editingSections];
-                                    updated[idx].content = e.target.value;
+                                    updated[idx].content = val;
                                     setEditingSections(updated);
                                   }}
-                                  className="text-[10px] font-light text-text-muted bg-transparent border border-neutral-soft/20 focus:border-fg-luxury focus:outline-none p-1.5 h-16 resize-none"
+                                  placeholder="Describe styling suggestions, fabric specifics..."
                                 />
                                 
                                 <div className="flex gap-4 items-center mt-1">
@@ -1299,8 +2150,8 @@ function AdminCoreWorkspace() {
                   <label className="text-[9px] uppercase tracking-wider text-text-muted mb-1 block">Original Price (MRP)</label>
                   <input 
                     type="number" 
-                    value={newProductForm.mrp}
-                    onChange={(e) => setNewProductForm({ ...newProductForm, mrp: Number(e.target.value) })}
+                    value={newProductForm.mrp === 0 ? '' : newProductForm.mrp}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, mrp: e.target.value === '' ? 0 : Number(e.target.value) })}
                     className="input-editorial text-xs" 
                     placeholder="3999"
                   />
@@ -1309,8 +2160,8 @@ function AdminCoreWorkspace() {
                   <label className="text-[9px] uppercase tracking-wider text-text-muted mb-1 block">Selling Price</label>
                   <input 
                     type="number" 
-                    value={newProductForm.basePrice}
-                    onChange={(e) => setNewProductForm({ ...newProductForm, basePrice: Number(e.target.value) })}
+                    value={newProductForm.basePrice === 0 ? '' : newProductForm.basePrice}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, basePrice: e.target.value === '' ? 0 : Number(e.target.value) })}
                     className="input-editorial text-xs" 
                     placeholder="2499" 
                     required
@@ -1323,13 +2174,27 @@ function AdminCoreWorkspace() {
                   <label className="text-[9px] uppercase tracking-wider text-text-muted mb-1 block">Stock Quantity</label>
                   <input 
                     type="number" 
-                    value={newProductForm.stockQty}
-                    onChange={(e) => setNewProductForm({ ...newProductForm, stockQty: Number(e.target.value) })}
+                    value={newProductForm.stockQty === 0 ? '' : newProductForm.stockQty}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, stockQty: e.target.value === '' ? 0 : Number(e.target.value) })}
                     className="input-editorial text-xs" 
                     placeholder="10" 
                     required
                   />
                 </div>
+                <div className="flex items-center gap-2 mt-4 select-none">
+                  <input 
+                    type="checkbox"
+                    id="new-track-quantity"
+                    checked={newProductForm.trackQuantity !== false}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, trackQuantity: e.target.checked })}
+                    className="w-4 h-4 accent-fg-luxury cursor-pointer"
+                  />
+                  <label htmlFor="new-track-quantity" className="text-[9px] uppercase tracking-wider text-text-muted cursor-pointer font-semibold">
+                    Track Inventory Quantities
+                  </label>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[9px] uppercase tracking-wider text-text-muted mb-1 block">Department</label>
                   <select 
@@ -1435,10 +2300,9 @@ function AdminCoreWorkspace() {
 
               <div>
                 <label className="text-[9px] uppercase tracking-wider text-text-muted mb-1 block">Description</label>
-                <textarea 
-                  value={newProductForm.description}
-                  onChange={(e) => setNewProductForm({ ...newProductForm, description: e.target.value })}
-                  className="input-editorial h-16 resize-none text-xs" 
+                <RichTextEditor 
+                  value={newProductForm.description || ''}
+                  onChange={(val) => setNewProductForm({ ...newProductForm, description: val })}
                   placeholder="Detail fit parameters or material qualities..."
                 />
               </div>
@@ -1720,14 +2584,80 @@ function AdminCoreWorkspace() {
     const redirectOptions = getRedirectOptions();
 
     // ─── HERO SLIDES MODERATION ───
-    const handleSaveHeroSlide = async (slideId: string, fields: any) => {
+    const handleHeroDraftChange = (slideId: string, fields: any) => {
+      setHeroDrafts(prev => {
+        const slide = heroBanners.find(b => b.id === slideId);
+        const currentDraft = prev[slideId] || { ...slide };
+        return {
+          ...prev,
+          [slideId]: {
+            ...currentDraft,
+            ...fields
+          }
+        };
+      });
+    };
+
+    const handleSaveHeroSlide = async (slideId: string) => {
+      const draft = heroDrafts[slideId];
+      if (!draft) return;
+
+      setSavingHeroId(slideId);
       try {
-        await updateHeroBanner(slideId, fields);
-        setHeroBanners(prev => prev.map(b => b.id === slideId ? { ...b, ...fields } : b));
-        showToast('Hero slide updated successfully.', 'success');
-      } catch {
-        showToast('Failed to update hero slide.', 'error');
+        const payload = {
+          heading: draft.heading || '',
+          subtitle: draft.subtitle || '',
+          imageUrl: draft.imageUrl || draft.image_url || '',
+          ctaText: draft.ctaText || draft.cta_text || 'Shop Now',
+          ctaLink: draft.ctaLink || draft.cta_link || '/shop',
+          showTitle: draft.showTitle ?? draft.show_title ?? true,
+          showSubtitle: draft.showSubtitle ?? draft.show_subtitle ?? true,
+          showButton: draft.showButton ?? draft.show_button ?? true,
+          mediaType: draft.mediaType || draft.media_type || 'image',
+          videoUrl: draft.videoUrl || draft.video_url || '',
+          posterUrl: draft.posterUrl || draft.poster_url || '',
+          focalPoint: draft.focalPoint || draft.focal_point || 'center',
+          isPrimary: draft.isPrimary ?? draft.is_primary ?? false,
+        };
+
+        await updateHeroBanner(slideId, payload);
+
+        // Reload hero list to reflect database-level trigger resets
+        const freshBanners = await getHeroBanners();
+        const mapped = freshBanners.map((b: any) => ({
+          ...b,
+          imageUrl: b.image_url || b.imageUrl || '',
+          showTitle: b.show_title ?? b.showTitle ?? true,
+          showSubtitle: b.show_subtitle ?? b.showSubtitle ?? true,
+          showButton: b.show_button ?? b.showButton ?? true,
+          mediaType: b.media_type || b.mediaType || 'image',
+          videoUrl: b.video_url || b.videoUrl || '',
+          posterUrl: b.poster_url || b.posterUrl || '',
+          focalPoint: b.focal_point || b.focalPoint || 'center',
+          isPrimary: b.is_primary ?? b.isPrimary ?? false,
+        }));
+        setHeroBanners(mapped);
+
+        setHeroDrafts(prev => {
+          const copy = { ...prev };
+          delete copy[slideId];
+          return copy;
+        });
+        showToast('Hero slide saved successfully.', 'success');
+      } catch (err) {
+        showToast('Failed to save hero slide.', 'error');
+      } finally {
+        setSavingHeroId(null);
       }
+    };
+
+    const handleCancelHeroDraft = (slideId: string) => {
+      setHeroDrafts(prev => {
+        const copy = { ...prev };
+        delete copy[slideId];
+        return copy;
+      });
+      showToast('Changes discarded.', 'info');
     };
 
     const handleCreateHeroSlide = async () => {
@@ -1737,9 +2667,22 @@ function AdminCoreWorkspace() {
           heading: 'NEW CAMPAIGN',
           subtitle: 'Limited Collection Drop',
           ctaText: 'Shop Collection',
-          ctaLink: '/shop'
+          ctaLink: '/shop',
+          mediaType: 'image'
         });
-        setHeroBanners(prev => [...prev, newBanner]);
+        const mapped = {
+          ...newBanner,
+          imageUrl: newBanner.image_url || newBanner.imageUrl || '',
+          showTitle: newBanner.show_title ?? newBanner.showTitle ?? true,
+          showSubtitle: newBanner.show_subtitle ?? newBanner.showSubtitle ?? true,
+          showButton: newBanner.show_button ?? newBanner.showButton ?? true,
+          mediaType: newBanner.media_type || newBanner.mediaType || 'image',
+          videoUrl: newBanner.video_url || newBanner.videoUrl || '',
+          posterUrl: newBanner.poster_url || newBanner.posterUrl || '',
+          focalPoint: newBanner.focal_point || newBanner.focalPoint || 'center',
+          isPrimary: newBanner.is_primary ?? newBanner.isPrimary ?? false,
+        };
+        setHeroBanners(prev => [...prev, mapped]);
         showToast('New hero slide created.', 'success');
       } catch {
         showToast('Failed to create hero slide.', 'error');
@@ -1751,33 +2694,82 @@ function AdminCoreWorkspace() {
       try {
         await deleteHeroBanner(slideId);
         setHeroBanners(prev => prev.filter(b => b.id !== slideId));
+        setHeroDrafts(prev => {
+          const copy = { ...prev };
+          delete copy[slideId];
+          return copy;
+        });
         showToast('Hero slide deleted.', 'info');
       } catch {
         showToast('Failed to delete hero slide.', 'error');
       }
     };
 
-    const handleHeroImageChange = async (slideId: string, file: File) => {
+    // ─── HOMEPAGE SECTIONS MODERATION ───
+    const handleSectionDraftChange = (secId: string, fields: any) => {
+      setSectionDrafts(prev => {
+        const sec = homeSections.find(s => s.id === secId);
+        const currentDraft = prev[secId] || { ...sec };
+        return {
+          ...prev,
+          [secId]: {
+            ...currentDraft,
+            ...fields
+          }
+        };
+      });
+    };
+
+    const handleSaveSection = async (secId: string) => {
+      const draft = sectionDrafts[secId];
+      if (!draft) return;
+
+      setSavingSectionId(secId);
       try {
-        const url = await uploadMedia(file, 'hero-banners');
-        await updateHeroBanner(slideId, { imageUrl: url });
-        setHeroBanners(prev => prev.map(b => b.id === slideId ? { ...b, image_url: url } : b));
-        showToast('Hero slide media updated.', 'success');
-      } catch {
-        showToast('Failed to upload media.', 'error');
+        const payload = {
+          id: draft.id,
+          title: draft.title || '',
+          subtitle: draft.subtitle || '',
+          bannerImage: draft.bannerImage || draft.banner_image || '',
+          ctaText: draft.ctaText || draft.cta_text || '',
+          ctaLink: draft.ctaLink || draft.cta_link || '',
+          visible: draft.visible ?? true,
+          order: draft.order || 0,
+          featuredProductIds: draft.featuredProductIds || [],
+          showTitle: draft.showTitle ?? draft.show_title ?? true,
+          showSubtitle: draft.showSubtitle ?? draft.show_subtitle ?? true,
+          showButton: draft.showButton ?? draft.show_button ?? true,
+          imageClickRedirect: draft.imageClickRedirect ?? draft.image_click_redirect ?? true,
+          mediaType: draft.mediaType || draft.media_type || 'image',
+          videoUrl: draft.videoUrl || draft.video_url || '',
+          posterUrl: draft.posterUrl || draft.poster_url || '',
+          focalPoint: draft.focalPoint || draft.focal_point || 'center',
+        };
+
+        const updatedSections = homeSections.map(s => s.id === secId ? { ...s, ...payload } : s);
+        await saveHomepageSections(updatedSections);
+        setHomeSections(updatedSections);
+
+        setSectionDrafts(prev => {
+          const copy = { ...prev };
+          delete copy[secId];
+          return copy;
+        });
+        showToast('Section saved successfully.', 'success');
+      } catch (err) {
+        showToast('Failed to save section.', 'error');
+      } finally {
+        setSavingSectionId(null);
       }
     };
 
-    // ─── HOMEPAGE SECTIONS MODERATION ───
-    const handleUpdateSection = async (secId: string, fields: any) => {
-      const updated = homeSections.map(s => s.id === secId ? { ...s, ...fields } : s);
-      setHomeSections(updated);
-      try {
-        await saveHomepageSections(updated);
-        showToast('Section updated successfully.', 'success');
-      } catch {
-        showToast('Failed to update section.', 'error');
-      }
+    const handleCancelSectionDraft = (secId: string) => {
+      setSectionDrafts(prev => {
+        const copy = { ...prev };
+        delete copy[secId];
+        return copy;
+      });
+      showToast('Changes discarded.', 'info');
     };
 
     // ─── LOOKBOOK EDITORIAL JOURNAL MODERATION ───
@@ -1853,159 +2845,194 @@ function AdminCoreWorkspace() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {heroBanners.map((slide, idx) => (
-              <div key={slide.id} className="border border-neutral-soft/80 p-5 bg-bg-luxury flex flex-col gap-4">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-fg-luxury text-[10px] uppercase tracking-wider">Slide #{idx + 1}</span>
-                  <button 
-                    onClick={() => handleDeleteHeroSlide(slide.id)}
-                    className="text-red-700 hover:text-red-800 text-[8px] uppercase tracking-widest"
-                  >
-                    Delete Slide
-                  </button>
-                </div>
+            {heroBanners.map((slide, idx) => {
+              const draft = heroDrafts[slide.id];
+              const isPrimary = draft?.isPrimary ?? slide.isPrimary ?? false;
+              const mediaType = draft?.mediaType ?? slide.mediaType ?? 'image';
+              const imageUrl = draft?.imageUrl ?? slide.imageUrl ?? '';
+              const videoUrl = draft?.videoUrl ?? slide.videoUrl ?? '';
+              const posterUrl = draft?.posterUrl ?? slide.posterUrl ?? '';
+              const focalPoint = draft?.focalPoint ?? slide.focalPoint ?? 'center';
+              const heading = draft?.heading ?? slide.heading ?? '';
+              const subtitle = draft?.subtitle ?? slide.subtitle ?? '';
+              const ctaText = draft?.ctaText ?? slide.ctaText ?? 'Shop Now';
+              const ctaLink = draft?.ctaLink ?? slide.ctaLink ?? '/shop';
+              const showTitle = draft?.showTitle ?? slide.showTitle ?? true;
+              const showSubtitle = draft?.showSubtitle ?? slide.showSubtitle ?? true;
+              const showButton = draft?.showButton ?? slide.showButton ?? true;
 
-                {/* Image/Video Preview & Upload */}
-                <div className="flex gap-4 items-center">
-                  <div className="w-24 h-16 bg-neutral-soft/10 border border-neutral-soft overflow-hidden relative flex items-center justify-center">
-                    {(() => {
-                      const url = slide.image_url || slide.imageUrl || '';
-                      const isVid = url.toLowerCase().endsWith('.mp4') || 
-                                    url.toLowerCase().endsWith('.webm') ||
-                                    url.toLowerCase().endsWith('.mov') ||
-                                    url.includes('video');
-                      if (isVid) {
-                        return <video src={url} className="w-full h-full object-cover" muted />;
-                      }
-                      return <img src={url || '/assets/trench_coat.jpg'} className="w-full h-full object-cover" alt="" />;
-                    })()}
-                  </div>
-                  <label className="btn-editorial py-1.5 px-3 text-[9px] uppercase font-semibold cursor-pointer">
-                    Change Media
-                    <input 
-                      type="file" 
-                      accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.webm"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleHeroImageChange(slide.id, file);
-                      }}
-                      className="hidden" 
-                    />
-                  </label>
-                </div>
+              const isSaving = savingHeroId === slide.id;
 
-                {/* Heading & Subtitle */}
-                <div className="grid grid-cols-1 gap-3">
-                  <div>
-                    <label className="text-[8px] uppercase tracking-widest mb-1 block">Slide Heading</label>
-                    <input 
-                      type="text" 
-                      value={slide.heading || ''} 
-                      onChange={(e) => handleSaveHeroSlide(slide.id, { heading: e.target.value })}
-                      className="input-editorial py-1 px-2 text-xs" 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[8px] uppercase tracking-widest mb-1 block">Subtitle</label>
-                    <input 
-                      type="text" 
-                      value={slide.subtitle || ''} 
-                      onChange={(e) => handleSaveHeroSlide(slide.id, { subtitle: e.target.value })}
-                      className="input-editorial py-1 px-2 text-xs" 
-                    />
-                  </div>
-                </div>
+              const handleMediaUpload = async (type: 'image' | 'video' | 'poster', file: File) => {
+                try {
+                  const url = await uploadMedia(file, 'hero-banners');
+                  if (type === 'image') handleHeroDraftChange(slide.id, { imageUrl: url });
+                  else if (type === 'video') handleHeroDraftChange(slide.id, { videoUrl: url, mediaType: 'video' });
+                  else if (type === 'poster') handleHeroDraftChange(slide.id, { posterUrl: url });
+                  showToast(`${type} uploaded to draft. Save to apply.`, 'success');
+                } catch {
+                  showToast('Failed to upload file.', 'error');
+                }
+              };
 
-                {/* Button Text & Link */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[8px] uppercase tracking-widest mb-1 block">Button Text</label>
-                    <input 
-                      type="text" 
-                      value={slide.cta_text || slide.ctaText || 'Shop Now'} 
-                      onChange={(e) => handleSaveHeroSlide(slide.id, { ctaText: e.target.value })}
-                      className="input-editorial py-1 px-2 text-xs" 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[8px] uppercase tracking-widest mb-1 block">Redirect Destination</label>
-                    <select
-                      value={slide.cta_link || slide.ctaLink || '/shop'}
-                      onChange={(e) => handleSaveHeroSlide(slide.id, { ctaLink: e.target.value })}
-                      className="input-editorial py-1 px-1.5 text-xs bg-bg-luxury font-light uppercase tracking-wider"
-                    >
-                      {redirectOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                      {/* Allow custom fallback */}
-                      {!redirectOptions.find(opt => opt.value === (slide.cta_link || slide.ctaLink)) && (
-                        <option value={slide.cta_link || slide.ctaLink}>{slide.cta_link || slide.ctaLink}</option>
+              return (
+                <div key={slide.id} className="border border-neutral-soft/80 p-5 bg-bg-luxury flex flex-col gap-4 relative">
+                  {/* Status header */}
+                  <div className="flex justify-between items-center border-b border-neutral-soft/20 pb-2">
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-fg-luxury text-[10px] uppercase tracking-wider">Slide #{idx + 1}</span>
+                      {isPrimary && (
+                        <span className="text-[7.5px] uppercase tracking-widest font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-sm">Primary</span>
                       )}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 2. CAMPAIGN HIGHLIGHT SECTIONS MANAGER */}
-        <div className="flex flex-col gap-6 pt-4 border-t border-neutral-soft/30">
-          <h3 className="text-[11px] uppercase tracking-[0.2em] font-semibold text-fg-luxury">2. Campaign Highlight Sections (Men, Women, Accessories, Perfumes)</h3>
-          
-          <div className="flex flex-col gap-4">
-            {homeSections.map((sec) => (
-              <div key={sec.id} className="border border-neutral-soft/80 p-5 bg-bg-luxury flex flex-col gap-4">
-                
-                {/* Header */}
-                <div className="flex justify-between items-center border-b border-neutral-soft/20 pb-2">
-                  <span className="font-semibold text-fg-luxury text-[10px] uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-accent-gold" /> {sec.title || sec.id}
-                  </span>
-                  <button 
-                    onClick={() => handleUpdateSection(sec.id, { visible: !sec.visible })}
-                    className={`py-1 px-2.5 text-[8px] uppercase font-semibold border ${sec.visible ? 'border-neutral-soft text-fg-luxury' : 'border-red-200 text-red-800 bg-red-50'}`}
-                  >
-                    {sec.visible ? 'Hide Section' : 'Show Section'}
-                  </button>
-                </div>
-
-                {/* Body details */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                  
-                  {/* Photo Section */}
-                  <div className="flex gap-4 items-center">
-                    <div className="w-24 h-16 bg-neutral-soft/10 border border-neutral-soft overflow-hidden relative flex-shrink-0">
-                      <img src={sec.bannerImage} className="w-full h-full object-cover" alt="" />
+                      {draft && (
+                        <span className="text-[7.5px] uppercase tracking-widest font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-sm animate-pulse">Unsaved changes</span>
+                      )}
                     </div>
-                    <label className="btn-editorial py-1.5 px-3 text-[9px] uppercase font-semibold cursor-pointer">
-                      Replace Photo
+                    <button 
+                      type="button"
+                      onClick={() => handleDeleteHeroSlide(slide.id)}
+                      className="text-red-700 hover:text-red-800 text-[8px] uppercase tracking-widest font-semibold cursor-pointer"
+                    >
+                      Delete Slide
+                    </button>
+                  </div>
+
+                  {/* Primary & Focal point settings */}
+                  <div className="grid grid-cols-2 gap-3 items-center">
+                    <label className="flex items-center gap-2 cursor-pointer select-none border border-neutral-soft/30 px-3 py-1.5 bg-neutral-soft/5">
                       <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          try {
-                            const url = await uploadMedia(file, 'homepage');
-                            handleUpdateSection(sec.id, { bannerImage: url });
-                          } catch {
-                            showToast('Upload failed.', 'error');
+                        type="checkbox" 
+                        checked={isPrimary} 
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setHeroDrafts(prev => {
+                              const copy = { ...prev };
+                              heroBanners.forEach(b => {
+                                copy[b.id] = { ...(copy[b.id] || b), isPrimary: false };
+                              });
+                              copy[slide.id] = { ...(copy[slide.id] || slide), isPrimary: true };
+                              return copy;
+                            });
+                          } else {
+                            handleHeroDraftChange(slide.id, { isPrimary: false });
                           }
                         }}
-                        className="hidden" 
+                        className="accent-fg-luxury cursor-pointer"
                       />
+                      <span className="text-[8px] uppercase tracking-widest font-semibold text-fg-luxury">Primary Slide</span>
                     </label>
+
+                    <div>
+                      <select 
+                        value={focalPoint} 
+                        onChange={(e) => handleHeroDraftChange(slide.id, { focalPoint: e.target.value })}
+                        className="input-editorial py-1 px-1.5 text-[9px] bg-bg-luxury font-light uppercase tracking-wider w-full"
+                      >
+                        <option value="top">Focal Point: Top</option>
+                        <option value="center">Focal Point: Center</option>
+                        <option value="bottom">Focal Point: Bottom</option>
+                      </select>
+                    </div>
                   </div>
 
-                  {/* Title & Subtitle */}
-                  <div className="grid grid-cols-2 gap-3">
+                  {/* Media uploads and type selection */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-neutral-soft/10 pt-3">
                     <div>
-                      <label className="text-[8px] uppercase tracking-widest mb-1 block">Title / Heading</label>
+                      <label className="text-[8px] uppercase tracking-widest mb-1 block font-semibold">Media Type</label>
+                      <select 
+                        value={mediaType} 
+                        onChange={(e) => handleHeroDraftChange(slide.id, { mediaType: e.target.value })}
+                        className="input-editorial py-1 px-1.5 text-xs bg-bg-luxury font-light uppercase tracking-wider w-full"
+                      >
+                        <option value="image">Image Banner</option>
+                        <option value="video">Video Loop</option>
+                      </select>
+                    </div>
+
+                    <div className="flex gap-4 items-center">
+                      <div className="w-24 h-16 bg-neutral-soft/10 border border-neutral-soft overflow-hidden relative flex items-center justify-center flex-shrink-0">
+                        {mediaType === 'video' ? (
+                          videoUrl ? (
+                            <video src={videoUrl} className="w-full h-full object-cover" muted />
+                          ) : (
+                            <span className="text-[8px] uppercase tracking-widest text-neutral-400">No Video</span>
+                          )
+                        ) : (
+                          <img src={imageUrl || '/assets/trench_coat.jpg'} className="w-full h-full object-cover" alt="" />
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-1 w-full">
+                        <label className="btn-editorial py-1 text-[8px] text-center uppercase font-semibold cursor-pointer block">
+                          {mediaType === 'video' ? 'Upload Video' : 'Upload Image'}
+                          <input 
+                            type="file" 
+                            accept={mediaType === 'video' ? '.mp4,.mov,.webm' : '.jpg,.jpeg,.png,.webp,.gif'}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleMediaUpload(mediaType === 'video' ? 'video' : 'image', file);
+                            }}
+                            className="hidden" 
+                          />
+                        </label>
+
+                        {mediaType === 'video' && videoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => handleHeroDraftChange(slide.id, { videoUrl: '', mediaType: 'image' })}
+                            className="text-red-700 hover:text-red-800 text-[8px] uppercase tracking-widest font-semibold border border-red-200/50 py-1"
+                          >
+                            Remove Video
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Poster Image upload for videos */}
+                  {mediaType === 'video' && (
+                    <div className="flex gap-4 items-center border-t border-neutral-soft/10 pt-3">
+                      <div className="w-24 h-16 bg-neutral-soft/10 border border-neutral-soft overflow-hidden relative flex items-center justify-center flex-shrink-0">
+                        {posterUrl ? (
+                          <img src={posterUrl} className="w-full h-full object-cover" alt="" />
+                        ) : (
+                          <span className="text-[8px] uppercase tracking-widest text-neutral-400">No Poster</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1 w-full">
+                        <label className="btn-editorial py-1 text-[8px] text-center uppercase font-semibold cursor-pointer block">
+                          Upload Poster Image
+                          <input 
+                            type="file" 
+                            accept=".jpg,.jpeg,.png,.webp"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleMediaUpload('poster', file);
+                            }}
+                            className="hidden" 
+                          />
+                        </label>
+                        {posterUrl && (
+                          <button
+                            type="button"
+                            onClick={() => handleHeroDraftChange(slide.id, { posterUrl: '' })}
+                            className="text-red-700 hover:text-red-800 text-[8px] uppercase tracking-widest font-semibold border border-red-200/50 py-1"
+                          >
+                            Remove Poster
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Heading & Subtitle */}
+                  <div className="grid grid-cols-1 gap-3 border-t border-neutral-soft/10 pt-3">
+                    <div>
+                      <label className="text-[8px] uppercase tracking-widest mb-1 block">Slide Heading</label>
                       <input 
                         type="text" 
-                        value={sec.title || ''} 
-                        onChange={(e) => handleUpdateSection(sec.id, { title: e.target.value })}
+                        value={heading} 
+                        onChange={(e) => handleHeroDraftChange(slide.id, { heading: e.target.value })}
                         className="input-editorial py-1 px-2 text-xs" 
                       />
                     </div>
@@ -2013,66 +3040,362 @@ function AdminCoreWorkspace() {
                       <label className="text-[8px] uppercase tracking-widest mb-1 block">Subtitle</label>
                       <input 
                         type="text" 
-                        value={sec.subtitle || ''} 
-                        onChange={(e) => handleUpdateSection(sec.id, { subtitle: e.target.value })}
+                        value={subtitle} 
+                        onChange={(e) => handleHeroDraftChange(slide.id, { subtitle: e.target.value })}
+                        className="input-editorial py-1 px-2 text-xs" 
+                      />
+                    </div>
+                  </div>
+
+                  {/* CMS Visibility Toggles */}
+                  <div className="flex flex-wrap gap-4 py-2 border-y border-neutral-soft/20 my-1">
+                    <label className="flex items-center gap-1.5 text-[8px] uppercase tracking-widest cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={showTitle} 
+                        onChange={(e) => handleHeroDraftChange(slide.id, { showTitle: e.target.checked })}
+                        className="accent-fg-luxury cursor-pointer"
+                      />
+                      Show Heading
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[8px] uppercase tracking-widest cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={showSubtitle} 
+                        onChange={(e) => handleHeroDraftChange(slide.id, { showSubtitle: e.target.checked })}
+                        className="accent-fg-luxury cursor-pointer"
+                      />
+                      Show Subtitle
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[8px] uppercase tracking-widest cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={showButton} 
+                        onChange={(e) => handleHeroDraftChange(slide.id, { showButton: e.target.checked })}
+                        className="accent-fg-luxury cursor-pointer"
+                      />
+                      Show CTA Button
+                    </label>
+                  </div>
+
+                  {/* Button Text & Link */}
+                  <div className="grid grid-cols-2 gap-3 pb-3 border-b border-neutral-soft/20">
+                    <div>
+                      <label className="text-[8px] uppercase tracking-widest mb-1 block">Button Text</label>
+                      <input 
+                        type="text" 
+                        value={ctaText} 
+                        onChange={(e) => handleHeroDraftChange(slide.id, { ctaText: e.target.value })}
+                        className="input-editorial py-1 px-2 text-xs" 
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[8px] uppercase tracking-widest mb-1 block">Redirect Destination</label>
+                      <select
+                        value={ctaLink}
+                        onChange={(e) => handleHeroDraftChange(slide.id, { ctaLink: e.target.value })}
+                        className="input-editorial py-1 px-1.5 text-xs bg-bg-luxury font-light uppercase tracking-wider w-full"
+                      >
+                        {redirectOptions.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                        {!redirectOptions.find(opt => opt.value === ctaLink) && (
+                          <option value={ctaLink}>{ctaLink}</option>
+                        )}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Save and Cancel buttons */}
+                  <div className="flex gap-3 justify-end mt-2">
+                    <button
+                      type="button"
+                      disabled={!draft || isSaving}
+                      onClick={() => handleCancelHeroDraft(slide.id)}
+                      className={`px-3 py-1.5 text-[9px] uppercase tracking-widest border transition-all ${
+                        draft && !isSaving 
+                          ? 'border-neutral-soft text-fg-luxury hover:bg-neutral-soft/10 cursor-pointer' 
+                          : 'border-neutral-soft/30 text-neutral-300 cursor-not-allowed'
+                      }`}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!draft || isSaving}
+                      onClick={() => handleSaveHeroSlide(slide.id)}
+                      className={`px-4 py-1.5 text-[9px] uppercase tracking-widest transition-all font-semibold ${
+                        draft && !isSaving 
+                          ? 'bg-fg-luxury text-bg-luxury hover:bg-accent-gold hover:text-bg-luxury cursor-pointer' 
+                          : 'bg-neutral-soft/20 text-neutral-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {isSaving ? 'Saving...' : 'Save Slide'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 2. DYNAMIC HOMEPAGE SECTIONS CMS MANAGER */}
+        <div className="flex flex-col gap-6 pt-4 border-t border-neutral-soft/30">
+          <h3 className="text-[11px] uppercase tracking-[0.2em] font-semibold text-fg-luxury">2. Homepage CMS Sections Manager</h3>
+          
+          <div className="flex flex-col gap-6">
+            {homeSections.filter(sec => sec.id !== 'hero').map((sec) => {
+              const draft = sectionDrafts[sec.id];
+              const visible = draft?.visible ?? sec.visible ?? true;
+              const mediaType = draft?.mediaType ?? sec.mediaType ?? 'image';
+              const bannerImage = draft?.bannerImage ?? sec.bannerImage ?? '';
+              const videoUrl = draft?.videoUrl ?? sec.videoUrl ?? '';
+              const posterUrl = draft?.posterUrl ?? sec.posterUrl ?? '';
+              const focalPoint = draft?.focalPoint ?? sec.focalPoint ?? 'center';
+              const title = draft?.title ?? sec.title ?? '';
+              const subtitle = draft?.subtitle ?? sec.subtitle ?? '';
+              const ctaText = draft?.ctaText ?? sec.ctaText ?? '';
+              const ctaLink = draft?.ctaLink ?? sec.ctaLink ?? '/shop';
+              const showTitle = draft?.showTitle ?? sec.showTitle ?? true;
+              const showSubtitle = draft?.showSubtitle ?? sec.showSubtitle ?? true;
+              const showButton = draft?.showButton ?? sec.showButton ?? true;
+              const imageClickRedirect = draft?.imageClickRedirect ?? sec.imageClickRedirect ?? true;
+
+              const isSaving = savingSectionId === sec.id;
+
+              const handleMediaUpload = async (type: 'image' | 'video' | 'poster', file: File) => {
+                try {
+                  const url = await uploadMedia(file, 'homepage');
+                  if (type === 'image') handleSectionDraftChange(sec.id, { bannerImage: url });
+                  else if (type === 'video') handleSectionDraftChange(sec.id, { videoUrl: url, mediaType: 'video' });
+                  else if (type === 'poster') handleSectionDraftChange(sec.id, { posterUrl: url });
+                  showToast(`${type} uploaded to draft. Save to apply.`, 'success');
+                } catch {
+                  showToast('Failed to upload file.', 'error');
+                }
+              };
+
+              return (
+                <div key={sec.id} className="border border-neutral-soft/80 p-5 bg-bg-luxury flex flex-col gap-4 relative">
+                  
+                  {/* Header */}
+                  <div className="flex justify-between items-center border-b border-neutral-soft/20 pb-2">
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-fg-luxury text-[10px] uppercase tracking-wider flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${visible ? 'bg-accent-gold' : 'bg-neutral-soft'}`} /> 
+                        {sec.title || sec.id} ({sec.id})
+                      </span>
+                      {!visible && (
+                        <span className="text-[7.5px] uppercase tracking-widest font-bold text-red-800 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-sm">Hidden</span>
+                      )}
+                      {draft && (
+                        <span className="text-[7.5px] uppercase tracking-widest font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-sm animate-pulse">Unsaved changes</span>
+                      )}
+                    </div>
+                    
+                    <button 
+                      type="button"
+                      onClick={() => handleSectionDraftChange(sec.id, { visible: !visible })}
+                      className={`py-1 px-2.5 text-[8px] uppercase font-semibold border transition-colors cursor-pointer ${
+                        visible 
+                          ? 'border-neutral-soft text-fg-luxury hover:bg-neutral-soft/5' 
+                          : 'border-red-200 text-red-800 bg-red-50 hover:bg-red-100'
+                      }`}
+                    >
+                      {visible ? 'Hide Section' : 'Show Section'}
+                    </button>
+                  </div>
+
+                  {/* Media source and type configuration */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
+                    {/* Media upload choice & Preview */}
+                    <div className="flex flex-col gap-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[8px] uppercase tracking-widest mb-1 block font-semibold">Media Type</label>
+                          <select 
+                            value={mediaType} 
+                            onChange={(e) => handleSectionDraftChange(sec.id, { mediaType: e.target.value })}
+                            className="input-editorial py-1 px-1.5 text-xs bg-bg-luxury font-light uppercase tracking-wider w-full"
+                          >
+                            <option value="image">Image Block</option>
+                            <option value="video">Video Loop</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[8px] uppercase tracking-widest mb-1 block font-semibold">Focal Alignment</label>
+                          <select 
+                            value={focalPoint} 
+                            onChange={(e) => handleSectionDraftChange(sec.id, { focalPoint: e.target.value })}
+                            className="input-editorial py-1 px-1.5 text-xs bg-bg-luxury font-light uppercase tracking-wider w-full"
+                          >
+                            <option value="top">Top</option>
+                            <option value="center">Center</option>
+                            <option value="bottom">Bottom</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-4 items-center mt-1">
+                        <div className="w-24 h-16 bg-neutral-soft/10 border border-neutral-soft overflow-hidden relative flex items-center justify-center flex-shrink-0">
+                          {mediaType === 'video' ? (
+                            videoUrl ? (
+                              <video src={videoUrl} className="w-full h-full object-cover" muted />
+                            ) : (
+                              <span className="text-[8px] uppercase tracking-widest text-neutral-400">No Video</span>
+                            )
+                          ) : (
+                            bannerImage ? (
+                              <img src={bannerImage} className="w-full h-full object-cover" alt="" />
+                            ) : (
+                              <span className="text-[8px] uppercase tracking-widest text-neutral-400">No Image</span>
+                            )
+                          )}
+                        </div>
+
+                        <div className="flex flex-col gap-1 w-full">
+                          <label className="btn-editorial py-1 text-[8px] text-center uppercase font-semibold cursor-pointer block">
+                            {mediaType === 'video' ? 'Upload Video' : 'Upload Image'}
+                            <input 
+                              type="file" 
+                              accept={mediaType === 'video' ? '.mp4,.mov,.webm' : '.jpg,.jpeg,.png,.webp,.gif'}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleMediaUpload(mediaType === 'video' ? 'video' : 'image', file);
+                              }}
+                              className="hidden" 
+                            />
+                          </label>
+
+                          {mediaType === 'video' && videoUrl && (
+                            <button
+                              type="button"
+                              onClick={() => handleSectionDraftChange(sec.id, { videoUrl: '', mediaType: 'image' })}
+                              className="text-red-700 hover:text-red-800 text-[8px] uppercase tracking-widest font-semibold border border-red-200/50 py-1"
+                            >
+                              Remove Video
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Poster Image upload (Videos only) */}
+                    {mediaType === 'video' && (
+                      <div className="flex gap-4 items-center mt-auto">
+                        <div className="w-24 h-16 bg-neutral-soft/10 border border-neutral-soft overflow-hidden relative flex items-center justify-center flex-shrink-0">
+                          {posterUrl ? (
+                            <img src={posterUrl} className="w-full h-full object-cover" alt="" />
+                          ) : (
+                            <span className="text-[8px] uppercase tracking-widest text-neutral-400">No Poster</span>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-1 w-full">
+                          <label className="btn-editorial py-1 text-[8px] text-center uppercase font-semibold cursor-pointer block">
+                            Upload Poster Image
+                            <input 
+                              type="file" 
+                              accept=".jpg,.jpeg,.png,.webp"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleMediaUpload('poster', file);
+                              }}
+                              className="hidden" 
+                            />
+                          </label>
+                          {posterUrl && (
+                            <button
+                              type="button"
+                              onClick={() => handleSectionDraftChange(sec.id, { posterUrl: '' })}
+                              className="text-red-700 hover:text-red-800 text-[8px] uppercase tracking-widest font-semibold border border-red-200/50 py-1"
+                            >
+                              Remove Poster
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Title & Subtitle / Description */}
+                  <div className="grid grid-cols-2 gap-3 border-t border-neutral-soft/10 pt-3">
+                    <div>
+                      <label className="text-[8px] uppercase tracking-widest mb-1 block">Title / Heading</label>
+                      <input 
+                        type="text" 
+                        value={title} 
+                        onChange={(e) => handleSectionDraftChange(sec.id, { title: e.target.value })}
+                        className="input-editorial py-1 px-2 text-xs" 
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[8px] uppercase tracking-widest mb-1 block">Subtitle / Description</label>
+                      <input 
+                        type="text" 
+                        value={subtitle} 
+                        onChange={(e) => handleSectionDraftChange(sec.id, { subtitle: e.target.value })}
                         className="input-editorial py-1 px-2 text-xs" 
                       />
                     </div>
                   </div>
 
                   {/* CTA Text & Link */}
-                  <div className="grid grid-cols-2 gap-3 md:col-span-2">
+                  <div className="grid grid-cols-2 gap-3 border-t border-neutral-soft/10 pt-3">
                     <div>
                       <label className="text-[8px] uppercase tracking-widest mb-1 block">Button Text</label>
                       <input 
                         type="text" 
-                        value={sec.ctaText || ''} 
-                        onChange={(e) => handleUpdateSection(sec.id, { ctaText: e.target.value })}
+                        value={ctaText} 
+                        onChange={(e) => handleSectionDraftChange(sec.id, { ctaText: e.target.value })}
                         className="input-editorial py-1 px-2 text-xs" 
                       />
                     </div>
                     <div>
                       <label className="text-[8px] uppercase tracking-widest mb-1 block">Redirect Link</label>
                       <select
-                        value={sec.ctaLink}
-                        onChange={(e) => handleUpdateSection(sec.id, { ctaLink: e.target.value })}
-                        className="input-editorial py-1 px-1.5 text-xs bg-bg-luxury font-light uppercase tracking-wider"
+                        value={ctaLink}
+                        onChange={(e) => handleSectionDraftChange(sec.id, { ctaLink: e.target.value })}
+                        className="input-editorial py-1 px-1.5 text-xs bg-bg-luxury font-light uppercase tracking-wider w-full"
                       >
                         {redirectOptions.map(opt => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
+                        {!redirectOptions.find(opt => opt.value === ctaLink) && (
+                          <option value={ctaLink}>{ctaLink}</option>
+                        )}
                       </select>
                     </div>
                   </div>
 
                   {/* Presentation Toggles */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:col-span-2 border-t border-neutral-soft/10 pt-3 mt-1 text-left">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 border-y border-neutral-soft/10 py-3 my-1 text-left">
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input 
                         type="checkbox" 
-                        checked={sec.showTitle ?? true} 
-                        onChange={(e) => handleUpdateSection(sec.id, { showTitle: e.target.checked })}
-                        className="w-3.5 h-3.5 border-neutral-soft bg-bg-luxury checked:bg-fg-luxury accent-neutral-800"
+                        checked={showTitle} 
+                        onChange={(e) => handleSectionDraftChange(sec.id, { showTitle: e.target.checked })}
+                        className="accent-fg-luxury cursor-pointer"
                       />
-                      <span className="text-[8px] uppercase tracking-widest text-fg-luxury font-medium">Show Title</span>
+                      <span className="text-[8px] uppercase tracking-widest text-fg-luxury font-medium">Show Heading</span>
                     </label>
 
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input 
                         type="checkbox" 
-                        checked={sec.showSubtitle ?? true} 
-                        onChange={(e) => handleUpdateSection(sec.id, { showSubtitle: e.target.checked })}
-                        className="w-3.5 h-3.5 border-neutral-soft bg-bg-luxury checked:bg-fg-luxury accent-neutral-800"
+                        checked={showSubtitle} 
+                        onChange={(e) => handleSectionDraftChange(sec.id, { showSubtitle: e.target.checked })}
+                        className="accent-fg-luxury cursor-pointer"
                       />
-                      <span className="text-[8px] uppercase tracking-widest text-fg-luxury font-medium">Show Subtitle</span>
+                      <span className="text-[8px] uppercase tracking-widest text-fg-luxury font-medium">Show Description</span>
                     </label>
 
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input 
                         type="checkbox" 
-                        checked={sec.showButton ?? true} 
-                        onChange={(e) => handleUpdateSection(sec.id, { showButton: e.target.checked })}
-                        className="w-3.5 h-3.5 border-neutral-soft bg-bg-luxury checked:bg-fg-luxury accent-neutral-800"
+                        checked={showButton} 
+                        onChange={(e) => handleSectionDraftChange(sec.id, { showButton: e.target.checked })}
+                        className="accent-fg-luxury cursor-pointer"
                       />
                       <span className="text-[8px] uppercase tracking-widest text-fg-luxury font-medium">Show Button</span>
                     </label>
@@ -2080,18 +3403,45 @@ function AdminCoreWorkspace() {
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input 
                         type="checkbox" 
-                        checked={sec.imageClickRedirect ?? true} 
-                        onChange={(e) => handleUpdateSection(sec.id, { imageClickRedirect: e.target.checked })}
-                        className="w-3.5 h-3.5 border-neutral-soft bg-bg-luxury checked:bg-fg-luxury accent-neutral-800"
+                        checked={imageClickRedirect} 
+                        onChange={(e) => handleSectionDraftChange(sec.id, { imageClickRedirect: e.target.checked })}
+                        className="accent-fg-luxury cursor-pointer"
                       />
-                      <span className="text-[8px] uppercase tracking-widest text-fg-luxury font-medium">Image Click Redirects</span>
+                      <span className="text-[8px] uppercase tracking-widest text-fg-luxury font-medium">Make Media Clickable</span>
                     </label>
                   </div>
 
-                </div>
+                  {/* Save/Cancel Buttons */}
+                  <div className="flex gap-3 justify-end mt-1">
+                    <button
+                      type="button"
+                      disabled={!draft || isSaving}
+                      onClick={() => handleCancelSectionDraft(sec.id)}
+                      className={`px-3 py-1.5 text-[9px] uppercase tracking-widest border transition-all ${
+                        draft && !isSaving 
+                          ? 'border-neutral-soft text-fg-luxury hover:bg-neutral-soft/10 cursor-pointer' 
+                          : 'border-neutral-soft/30 text-neutral-300 cursor-not-allowed'
+                      }`}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!draft || isSaving}
+                      onClick={() => handleSaveSection(sec.id)}
+                      className={`px-4 py-1.5 text-[9px] uppercase tracking-widest transition-all font-semibold ${
+                        draft && !isSaving 
+                          ? 'bg-fg-luxury text-bg-luxury hover:bg-accent-gold hover:text-bg-luxury cursor-pointer' 
+                          : 'bg-neutral-soft/20 text-neutral-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {isSaving ? 'Saving...' : 'Save Section'}
+                    </button>
+                  </div>
 
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -2197,37 +3547,33 @@ function AdminCoreWorkspace() {
             </div>
 
             {/* Workflow and status buttons */}
-            <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-neutral-soft/20">
-              <span className="text-[8px] uppercase tracking-widest text-text-muted mr-1 font-semibold">Change Status:</span>
+            <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-neutral-soft/20">
+              <span className="text-[8px] uppercase tracking-widest text-text-muted font-semibold">Update Status:</span>
               
-              {(['processing', 'shipped', 'delivered', 'cancelled'] as const).map(status => {
-                if (o.status === status) return null;
-                
-                // Color formatting per status transition
-                const btnStyles = 
-                  status === 'delivered' ? 'border-green-200 text-green-800 hover:bg-green-50' :
-                  status === 'cancelled' ? 'border-red-200 text-red-800 hover:bg-red-50' :
-                  status === 'shipped' ? 'border-blue-200 text-blue-800 hover:bg-blue-50' :
-                  'border-neutral-soft text-text-muted hover:border-fg-luxury';
-
-                return (
-                  <button
-                    key={status}
-                    onClick={async () => {
-                      try {
-                        await updateOrderStatus(o.id, status);
-                        setOrders(prev => prev.map(item => item.id === o.id ? { ...item, status: status as any } : item));
-                        showToast(`Order marked as ${status}.`, 'success');
-                      } catch {
-                        showToast('Update failed.', 'error');
-                      }
-                    }}
-                    className={`text-[8.5px] uppercase font-semibold py-1.5 px-3.5 border cursor-pointer transition-colors ${btnStyles}`}
-                  >
-                    {status === 'processing' ? 'Accept' : status}
-                  </button>
-                );
-              })}
+              <select
+                value={o.status}
+                onChange={async (e) => {
+                  const nextStatus = e.target.value;
+                  try {
+                    await updateOrderStatus(o.id, nextStatus);
+                    setOrders(prev => prev.map(item => item.id === o.id ? { ...item, status: nextStatus as any } : item));
+                    showToast(`Order status updated to ${nextStatus}.`, 'success');
+                  } catch {
+                    showToast('Update failed.', 'error');
+                  }
+                }}
+                className="bg-bg-luxury border border-neutral-soft/80 text-fg-luxury py-1.5 px-3 text-[8.5px] uppercase tracking-widest font-semibold cursor-pointer focus:outline-none"
+              >
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="processing">Processing</option>
+                <option value="packed">Packed</option>
+                <option value="shipped">Shipped</option>
+                <option value="out_for_delivery">Out for Delivery</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="refunded">Refunded</option>
+              </select>
               
               <button 
                 onClick={() => handlePrintInvoice(o)}
@@ -2274,22 +3620,33 @@ function AdminCoreWorkspace() {
   const renderCoupons = () => {
     const handleAddCoupon = async (e: React.FormEvent) => {
       e.preventDefault();
-      const code = (e.target as any).elements.couponCode.value.trim().toUpperCase();
-      const value = Number((e.target as any).elements.couponValue.value);
-      if (!code) return;
+      if (!newCouponForm.code.trim()) return;
+
       try {
-        const now = new Date();
-        const oneYear = new Date(now);
-        oneYear.setFullYear(oneYear.getFullYear() + 1);
         const created = await createCoupon({
-          code,
-          discountPercentage: value,
-          maxUses: 1000,
-          activeFrom: now.toISOString(),
-          activeTo: oneYear.toISOString(),
+          code: newCouponForm.code.trim().toUpperCase(),
+          discountType: newCouponForm.discountType,
+          discountValue: Number(newCouponForm.discountValue || 0),
+          maxUses: Number(newCouponForm.maxUses || 100),
+          activeFrom: new Date(newCouponForm.activeFrom).toISOString(),
+          activeTo: new Date(newCouponForm.activeTo).toISOString(),
+          minOrderAmount: Number(newCouponForm.minOrderAmount || 0),
+          maxDiscountAmount: Number(newCouponForm.maxDiscountAmount || 0),
+          isActive: newCouponForm.isActive,
+          discountPercentage: newCouponForm.discountType === 'percentage' ? Number(newCouponForm.discountValue) : 0,
         });
-        setCoupons(prev => [...prev, { id: created.id, code: created.code, value: created.discountPercentage, enabled: true }]);
-        (e.target as any).reset();
+        setCoupons(prev => [created as any, ...prev]);
+        setNewCouponForm({
+          code: '',
+          discountType: 'percentage',
+          discountValue: 10,
+          maxUses: 100,
+          minOrderAmount: 0,
+          maxDiscountAmount: 0,
+          activeFrom: new Date().toISOString().split('T')[0],
+          activeTo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          isActive: true
+        });
         showToast('Coupon created successfully.', 'success');
       } catch (err) {
         showToast('Failed to create coupon.', 'error');
@@ -2297,6 +3654,7 @@ function AdminCoreWorkspace() {
     };
 
     const handleDeleteCoupon = async (id: string) => {
+      if (!window.confirm('Are you sure you want to delete this coupon?')) return;
       try {
         await deleteCoupon(id);
         setCoupons(prev => prev.filter(c => c.id !== id));
@@ -2306,54 +3664,195 @@ function AdminCoreWorkspace() {
       }
     };
 
+    const handleToggleCouponActive = async (id: string, currentVal: boolean) => {
+      try {
+        await updateCoupon(id, { isActive: !currentVal });
+        setCoupons(prev => prev.map(c => c.id === id ? { ...c, isActive: !currentVal } : c));
+        showToast(`Coupon ${!currentVal ? 'enabled' : 'disabled'} successfully.`, 'success');
+      } catch (err) {
+        showToast('Failed to update coupon status.', 'error');
+      }
+    };
+
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-left text-xs text-text-muted animate-[fadeIn_0.3s_ease-out]">
-        <div className="bg-bg-luxury border border-neutral-soft/80 p-6 flex flex-col gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 text-left text-xs text-text-muted animate-[fadeIn_0.3s_ease-out]">
+        
+        {/* Active Coupons Panel */}
+        <div className="lg:col-span-7 bg-bg-luxury border border-neutral-soft/80 p-6 flex flex-col gap-6">
           <span className="text-[10px] uppercase tracking-widest font-semibold text-fg-luxury pb-2 border-b border-neutral-soft/30">
             Active Discount Coupons
           </span>
-          <div className="flex flex-col gap-2">
-            {coupons.map((c, idx) => (
-              <div key={idx} className="border border-neutral-soft p-3 bg-neutral-soft/5 flex justify-between items-center">
-                <div>
-                  <span className="font-semibold text-fg-luxury uppercase tracking-wider">{c.code}</span>
-                  <span className="text-[9px] text-text-muted ml-3">{c.value}% OFF</span>
-                </div>
-                <button onClick={() => handleDeleteCoupon(c.id)} className="text-red-700 hover:text-red-800"><Trash2 size={13} /></button>
-              </div>
-            ))}
+          <div className="flex flex-col gap-4">
+            {coupons.length === 0 ? (
+              <p className="text-center py-6 text-text-muted italic">No coupons created yet.</p>
+            ) : (
+              coupons.map((c) => {
+                const expired = new Date(c.activeTo) < new Date();
+                return (
+                  <div key={c.id} className="border border-neutral-soft p-4 bg-neutral-soft/5 flex flex-col gap-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="font-semibold text-fg-luxury text-sm uppercase tracking-wider block">
+                          {c.code}
+                        </span>
+                        <span className="text-[10px] text-accent-gold font-medium mt-0.5 block">
+                          {c.discountType === 'percentage' ? `${c.discountValue}% OFF` : `Flat ₹${c.discountValue} OFF`}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input 
+                            type="checkbox"
+                            checked={c.isActive ?? false}
+                            onChange={() => handleToggleCouponActive(c.id, c.isActive ?? false)}
+                            className="accent-fg-luxury cursor-pointer"
+                          />
+                          <span className="text-[8px] uppercase tracking-wider text-fg-luxury">Active</span>
+                        </label>
+                        <button 
+                          onClick={() => handleDeleteCoupon(c.id)} 
+                          className="text-red-700 hover:text-red-800 cursor-pointer"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 text-[9px] text-text-muted border-t border-neutral-soft/10 pt-2 font-light">
+                      <p>Uses: <span className="text-fg-luxury font-medium">{c.currentUses} / {c.maxUses}</span></p>
+                      <p>Min Order: <span className="text-fg-luxury font-medium">₹{c.minOrderAmount ?? 0}</span></p>
+                      <p>Max Disc: <span className="text-fg-luxury font-medium">{(c.maxDiscountAmount ?? 0) > 0 ? `₹${c.maxDiscountAmount}` : '—'}</span></p>
+                      <p className={expired ? 'text-red-700 font-medium' : ''}>
+                        Ends: <span className="font-medium">{new Date(c.activeTo).toLocaleDateString('en-IN')}</span>
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
-        <div className="bg-bg-luxury border border-neutral-soft/80 p-6 flex flex-col gap-6">
+        {/* Create Coupons Panel */}
+        <div className="lg:col-span-5 bg-bg-luxury border border-neutral-soft/80 p-6 flex flex-col gap-6">
           <span className="text-[10px] uppercase tracking-widest font-semibold text-fg-luxury pb-2 border-b border-neutral-soft/30">
             Create Discount Code
           </span>
           <form onSubmit={handleAddCoupon} className="flex flex-col gap-4">
             <div>
-              <label className="text-[9px] uppercase mb-1 block">Coupon Code</label>
+              <label className="text-[9px] uppercase mb-1 block font-medium">Coupon Code</label>
               <input 
-                name="couponCode"
                 type="text" 
-                className="input-editorial text-xs" 
-                placeholder="e.g. SPRING30" 
+                value={newCouponForm.code}
+                onChange={(e) => setNewCouponForm(prev => ({ ...prev, code: e.target.value }))}
+                className="input-editorial text-xs uppercase" 
+                placeholder="e.g. EXTRA15" 
                 required
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[9px] uppercase mb-1 block font-medium">Discount Type</label>
+                <select
+                  value={newCouponForm.discountType}
+                  onChange={(e) => setNewCouponForm(prev => ({ ...prev, discountType: e.target.value as any }))}
+                  className="w-full bg-bg-luxury border border-neutral-soft/80 py-2 px-3 text-[11px] uppercase tracking-wider focus:outline-none"
+                >
+                  <option value="percentage">Percentage (%)</option>
+                  <option value="flat">Flat Value (₹)</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[9px] uppercase mb-1 block font-medium">Discount Value</label>
+                <input 
+                  type="number" 
+                  value={newCouponForm.discountValue}
+                  onChange={(e) => setNewCouponForm(prev => ({ ...prev, discountValue: Number(e.target.value) }))}
+                  className="input-editorial text-xs" 
+                  min="1" 
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[9px] uppercase mb-1 block font-medium">Usage Limit</label>
+                <input 
+                  type="number" 
+                  value={newCouponForm.maxUses}
+                  onChange={(e) => setNewCouponForm(prev => ({ ...prev, maxUses: Number(e.target.value) }))}
+                  className="input-editorial text-xs" 
+                  min="1" 
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase mb-1 block font-medium">Min Order Amount</label>
+                <input 
+                  type="number" 
+                  value={newCouponForm.minOrderAmount}
+                  onChange={(e) => setNewCouponForm(prev => ({ ...prev, minOrderAmount: Number(e.target.value) }))}
+                  className="input-editorial text-xs" 
+                  min="0" 
+                  required
+                />
+              </div>
+            </div>
+
             <div>
-              <label className="text-[9px] uppercase mb-1 block">Discount percentage (%)</label>
+              <label className="text-[9px] uppercase mb-1 block font-medium">Max Discount (Percentage Only)</label>
               <input 
-                name="couponValue"
                 type="number" 
+                value={newCouponForm.maxDiscountAmount}
+                onChange={(e) => setNewCouponForm(prev => ({ ...prev, maxDiscountAmount: Number(e.target.value) }))}
                 className="input-editorial text-xs" 
-                min="5" 
-                max="90" 
+                min="0" 
+                placeholder="0 = No limit"
                 required
               />
             </div>
-            <button type="submit" className="btn-editorial-solid py-2.5 text-[9px] uppercase font-semibold">Publish Coupon</button>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[9px] uppercase mb-1 block font-medium">Active From</label>
+                <input 
+                  type="date" 
+                  value={newCouponForm.activeFrom}
+                  onChange={(e) => setNewCouponForm(prev => ({ ...prev, activeFrom: e.target.value }))}
+                  className="input-editorial text-xs" 
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase mb-1 block font-medium">Active To</label>
+                <input 
+                  type="date" 
+                  value={newCouponForm.activeTo}
+                  onChange={(e) => setNewCouponForm(prev => ({ ...prev, activeTo: e.target.value }))}
+                  className="input-editorial text-xs" 
+                  required
+                />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 cursor-pointer mt-1">
+              <input 
+                type="checkbox" 
+                checked={newCouponForm.isActive}
+                onChange={(e) => setNewCouponForm(prev => ({ ...prev, isActive: e.target.checked }))}
+                className="accent-fg-luxury cursor-pointer"
+              />
+              <span className="text-[9px] uppercase tracking-wider font-semibold text-fg-luxury">Enable Coupon Immediately</span>
+            </label>
+
+            <button type="submit" className="btn-editorial-solid py-2.5 text-[9px] uppercase font-semibold mt-2 cursor-pointer">
+              Publish Coupon
+            </button>
           </form>
         </div>
+
       </div>
     );
   };
@@ -2495,6 +3994,18 @@ function AdminCoreWorkspace() {
       e.preventDefault();
       try {
         await Promise.all([
+          saveSiteSetting('brand_name', brandName),
+          saveSiteSetting('store_email', storeEmail),
+          saveSiteSetting('store_phone', storePhone),
+          saveSiteSetting('store_address', storeAddress),
+          saveSiteSetting('facebook_url', facebookUrl),
+          saveSiteSetting('instagram_url', instagramUrl),
+          saveSiteSetting('twitter_url', twitterUrl),
+          saveSiteSetting('pinterest_url', pinterestUrl),
+          saveSiteSetting('copyright', copyrightText),
+          saveSiteSetting('seo_title', seoTitle),
+          saveSiteSetting('seo_description', seoDescription),
+          saveSiteSetting('footer_info', footerInfo),
           saveSiteSetting('express_delivery_enabled', String(expressDeliveryEnabled)),
           saveSiteSetting('online_payment_enabled', String(onlinePaymentEnabled)),
         ]);
@@ -2506,55 +4017,151 @@ function AdminCoreWorkspace() {
     };
 
     return (
-      <form onSubmit={handleSaveSettings} className="flex flex-col gap-6 text-left max-w-xl bg-bg-luxury border border-neutral-soft/80 p-6 text-xs text-text-muted">
-        <h2 className="text-sm uppercase tracking-widest font-semibold text-fg-luxury border-b border-neutral-soft pb-2">Store Settings</h2>
+      <form onSubmit={handleSaveSettings} className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left text-xs text-text-muted animate-[fadeIn_0.3s_ease-out]">
         
-        <div>
-          <label className="text-[9px] uppercase mb-1 block font-medium">Store Brand Name</label>
-          <input type="text" className="input-editorial text-xs" defaultValue="FREERT" />
-        </div>
-        <div>
-          <label className="text-[9px] uppercase mb-1 block font-medium">Customer Support Email</label>
-          <input type="email" className="input-editorial text-xs" defaultValue="concierge@freert.net" />
-        </div>
-
-        {/* Payment Methods */}
-        <div className="flex flex-col gap-3 pt-4 border-t border-neutral-soft/20">
-          <span className="text-[10px] uppercase tracking-wider font-semibold text-fg-luxury">Payment Options</span>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" defaultChecked disabled className="accent-fg-luxury" />
-            <span>Cash on Delivery (COD)</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
+        {/* Core & Social Settings */}
+        <div className="bg-bg-luxury border border-neutral-soft/80 p-6 flex flex-col gap-5">
+          <h2 className="text-xs uppercase tracking-widest font-semibold text-fg-luxury border-b border-neutral-soft pb-2">Branding & Contact Info</h2>
+          
+          <div>
+            <label className="text-[9px] uppercase mb-1 block font-medium">Store Brand Name</label>
             <input 
-              type="checkbox" 
-              checked={onlinePaymentEnabled} 
-              onChange={(e) => setOnlinePaymentEnabled(e.target.checked)} 
-              className="accent-fg-luxury" 
+              type="text" 
+              value={brandName} 
+              onChange={(e) => setBrandName(e.target.value)} 
+              className="input-editorial text-xs" 
+              required 
             />
-            <span>Online Payment (Coming Soon)</span>
-          </label>
-        </div>
-
-        {/* Delivery Options */}
-        <div className="flex flex-col gap-3 pt-4 border-t border-neutral-soft/20">
-          <span className="text-[10px] uppercase tracking-wider font-semibold text-fg-luxury">Delivery options</span>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" defaultChecked disabled className="accent-fg-luxury" />
-            <span>Standard Delivery (3–5 Business Days)</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
+          </div>
+          <div>
+            <label className="text-[9px] uppercase mb-1 block font-medium">Customer Support Email</label>
             <input 
-              type="checkbox" 
-              checked={expressDeliveryEnabled} 
-              onChange={(e) => setExpressDeliveryEnabled(e.target.checked)} 
-              className="accent-fg-luxury" 
+              type="email" 
+              value={storeEmail} 
+              onChange={(e) => setStoreEmail(e.target.value)} 
+              className="input-editorial text-xs" 
+              required 
             />
-            <span>Express Delivery (1–2 Business Days)</span>
-          </label>
+          </div>
+          <div>
+            <label className="text-[9px] uppercase mb-1 block font-medium">Store Phone Number</label>
+            <input 
+              type="text" 
+              value={storePhone} 
+              onChange={(e) => setStorePhone(e.target.value)} 
+              className="input-editorial text-xs" 
+              required 
+            />
+          </div>
+          <div>
+            <label className="text-[9px] uppercase mb-1 block font-medium">Store Address Details</label>
+            <textarea 
+              value={storeAddress} 
+              onChange={(e) => setStoreAddress(e.target.value)} 
+              rows={2}
+              className="w-full bg-bg-luxury border border-neutral-soft/80 py-2 px-3 text-xs focus:outline-none text-fg-luxury uppercase tracking-wider" 
+              required 
+            />
+          </div>
+
+          <h3 className="text-[10px] uppercase tracking-wider font-semibold text-fg-luxury pt-2 border-t border-neutral-soft/10">Social Links</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[9px] uppercase mb-1 block font-medium">Instagram URL</label>
+              <input 
+                type="text" 
+                value={instagramUrl} 
+                onChange={(e) => setInstagramUrl(e.target.value)} 
+                className="input-editorial text-xs" 
+              />
+            </div>
+            <div>
+              <label className="text-[9px] uppercase mb-1 block font-medium">Pinterest URL</label>
+              <input 
+                type="text" 
+                value={pinterestUrl} 
+                onChange={(e) => setPinterestUrl(e.target.value)} 
+                className="input-editorial text-xs" 
+              />
+            </div>
+          </div>
         </div>
 
-        <button type="submit" className="btn-editorial-solid py-3 text-[9px] flex items-center justify-center gap-1.5"><Save size={13} /> Save Store Settings</button>
+        {/* SEO & Operational Settings */}
+        <div className="bg-bg-luxury border border-neutral-soft/80 p-6 flex flex-col gap-5 justify-between">
+          <div className="flex flex-col gap-5">
+            <h2 className="text-xs uppercase tracking-widest font-semibold text-fg-luxury border-b border-neutral-soft pb-2">SEO & Operations</h2>
+            
+            <div>
+              <label className="text-[9px] uppercase mb-1 block font-medium">SEO Title Template</label>
+              <input 
+                type="text" 
+                value={seoTitle} 
+                onChange={(e) => setSeoTitle(e.target.value)} 
+                className="input-editorial text-xs" 
+                required 
+              />
+            </div>
+            <div>
+              <label className="text-[9px] uppercase mb-1 block font-medium">SEO Meta Description</label>
+              <input 
+                type="text" 
+                value={seoDescription} 
+                onChange={(e) => setSeoDescription(e.target.value)} 
+                className="input-editorial text-xs" 
+                required 
+              />
+            </div>
+            <div>
+              <label className="text-[9px] uppercase mb-1 block font-medium">Footer Info Text</label>
+              <textarea 
+                value={footerInfo} 
+                onChange={(e) => setFooterInfo(e.target.value)} 
+                rows={2}
+                className="w-full bg-bg-luxury border border-neutral-soft/80 py-2 px-3 text-xs focus:outline-none text-fg-luxury uppercase tracking-wider" 
+                required 
+              />
+            </div>
+            <div>
+              <label className="text-[9px] uppercase mb-1 block font-medium">Footer Copyright Statement</label>
+              <input 
+                type="text" 
+                value={copyrightText} 
+                onChange={(e) => setCopyrightText(e.target.value)} 
+                className="input-editorial text-xs" 
+                required 
+              />
+            </div>
+
+            {/* Logistics configurations */}
+            <div className="flex flex-col gap-3 pt-3 border-t border-neutral-soft/20 text-[9px] uppercase tracking-wider">
+              <span className="font-semibold text-fg-luxury text-[10px]">Operations & Delivery</span>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={expressDeliveryEnabled} 
+                  onChange={(e) => setExpressDeliveryEnabled(e.target.checked)} 
+                  className="accent-fg-luxury cursor-pointer" 
+                />
+                <span>Enable Express Logistics option (₹120)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={onlinePaymentEnabled} 
+                  onChange={(e) => setOnlinePaymentEnabled(e.target.checked)} 
+                  className="accent-fg-luxury cursor-pointer" 
+                />
+                <span>Enable Credit Card / Online Checkout Integration</span>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" className="btn-editorial-solid py-3 text-[9px] flex items-center justify-center gap-1.5 mt-4 cursor-pointer">
+            <Save size={13} /> Save Store Settings
+          </button>
+        </div>
+
       </form>
     );
   };
@@ -2655,11 +4262,11 @@ function AdminCoreWorkspace() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-[8px] text-text-muted font-light">
-                      {t.created_at ? new Date(t.created_at).toLocaleString() : '—'}
+                      {t.created_at ? new Date(t.created_at).toLocaleString('en-IN') : '—'}
                     </span>
                     <span className={`text-[8.5px] uppercase tracking-widest font-semibold px-2 py-0.5 border ${
-                      t.status === 'Resolved' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                      t.status === 'Read' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                      t.status === 'Closed' ? 'bg-neutral-800 text-neutral-400 border-neutral-700' :
+                      t.status === 'Replied' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                       'bg-amber-500/10 text-amber-400 border-amber-500/20'
                     }`}>
                       {t.status || 'New'}
@@ -2672,27 +4279,27 @@ function AdminCoreWorkspace() {
                 </p>
 
                 <div className="flex gap-2 pt-2 border-t border-neutral-soft/10">
-                  {t.status !== 'Read' && t.status !== 'Resolved' && (
+                  {t.status !== 'Replied' && t.status !== 'Closed' && (
                     <button
-                      onClick={() => handleUpdateStatus(t.id, 'Read')}
-                      className="text-[8px] uppercase tracking-widest px-2.5 py-1 border border-neutral-soft hover:bg-neutral-soft/10 hover:text-fg-luxury transition-all cursor-pointer font-medium"
+                      onClick={() => handleUpdateStatus(t.id, 'Replied')}
+                      className="text-[8.5px] uppercase tracking-widest px-3 py-1.5 border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 transition-all cursor-pointer font-semibold"
                     >
-                      👁 Mark as Read
+                      Mark as Replied
                     </button>
                   )}
-                  {t.status !== 'Resolved' && (
+                  {t.status !== 'Closed' && (
                     <button
-                      onClick={() => handleUpdateStatus(t.id, 'Resolved')}
-                      className="text-[8px] uppercase tracking-widest px-2.5 py-1 bg-green-900/10 text-green-400 border border-green-500/20 hover:bg-green-900/30 transition-all cursor-pointer font-semibold"
+                      onClick={() => handleUpdateStatus(t.id, 'Closed')}
+                      className="text-[8.5px] uppercase tracking-widest px-3 py-1.5 border border-neutral-soft hover:bg-neutral-soft/10 hover:text-fg-luxury transition-all cursor-pointer font-medium"
                     >
-                      ✓ Mark as Resolved
+                      Close Enquiry
                     </button>
                   )}
                   <button
                     onClick={() => handleDeleteTicket(t.id)}
-                    className="text-[8px] uppercase tracking-widest px-2.5 py-1 text-red-500 hover:text-red-700 transition-colors cursor-pointer font-medium ml-auto"
+                    className="text-[8.5px] uppercase tracking-widest px-3 py-1.5 text-red-500 border border-red-500/10 hover:bg-red-500/10 transition-all cursor-pointer font-medium ml-auto"
                   >
-                    🗑 Delete Permanently
+                    Delete
                   </button>
                 </div>
               </div>
@@ -2722,29 +4329,54 @@ function AdminCoreWorkspace() {
 
   const renderSubscribers = () => {
     const handleExport = () => {
-      const headers = ['Email Address', 'Subscription Date', 'Status'];
+      const headers = ['Email Address', 'Subscription Date', 'Source', 'Status'];
       const rows = subscribers.map(sub => [
         sub.email,
         sub.created_at || sub.createdAt || '',
+        sub.source || 'footer',
         sub.status || 'subscribed'
       ]);
       downloadCSV('freert_subscribers.csv', headers, rows);
       showToast('Exported subscribers CSV.', 'success');
     };
 
+    const handleDeleteSubscriber = async (email: string) => {
+      if (!window.confirm(`Delete subscriber ${email}?`)) return;
+      try {
+        await deleteNewsletterSubscriber(email);
+        setSubscribers(prev => prev.filter(sub => sub.email !== email));
+        showToast('Subscriber deleted.', 'success');
+      } catch {
+        showToast('Failed to delete subscriber.', 'error');
+      }
+    };
+
+    const filtered = subscribers.filter(sub => 
+      sub.email?.toLowerCase().includes(subscriberSearch.toLowerCase())
+    );
+
     return (
       <div className="flex flex-col gap-6 text-left animate-[fadeIn_0.3s_ease-out]">
-        <div className="flex justify-between items-center pb-4 border-b border-neutral-soft/30">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-neutral-soft/30">
           <div>
             <h2 className="text-sm uppercase tracking-[0.2em] font-semibold text-fg-luxury">Newsletter Subscribers</h2>
             <p className="text-[9px] text-text-muted uppercase mt-0.5">Manage email subscriptions for FREERT Dispatch</p>
           </div>
-          <button 
-            onClick={handleExport}
-            className="btn-editorial-solid text-[9px] py-2.5 px-6 tracking-widest uppercase cursor-pointer"
-          >
-            Export Subscriber List
-          </button>
+          <div className="flex flex-wrap gap-3 w-full md:w-auto">
+            <input 
+              type="text" 
+              placeholder="Search Subscriber..." 
+              value={subscriberSearch}
+              onChange={(e) => setSubscriberSearch(e.target.value)}
+              className="bg-bg-luxury border border-neutral-soft/80 py-2 px-3 text-[10px] uppercase tracking-wider w-full md:w-48 placeholder-neutral-400 focus:outline-none"
+            />
+            <button 
+              onClick={handleExport}
+              className="btn-editorial-solid text-[9px] py-2.5 px-6 tracking-widest uppercase cursor-pointer whitespace-nowrap"
+            >
+              Export CSV
+            </button>
+          </div>
         </div>
 
         <div className="border border-neutral-soft/80 bg-bg-luxury overflow-x-auto">
@@ -2752,19 +4384,22 @@ function AdminCoreWorkspace() {
             <thead className="bg-neutral-soft/10 border-b border-neutral-soft/80 text-[8px] font-medium text-text-muted">
               <tr>
                 <th className="py-3.5 px-5 text-left font-semibold">Email Address</th>
+                <th className="py-3.5 px-5 text-left font-semibold">Source</th>
                 <th className="py-3.5 px-5 text-left font-semibold">Joined Date</th>
                 <th className="py-3.5 px-5 text-left font-semibold">Status</th>
+                <th className="py-3.5 px-5 text-right font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody className="font-light divide-y divide-neutral-soft/20">
-              {subscribers.length === 0 ? (
+              {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="py-12 text-center text-text-muted italic">No subscribers yet.</td>
+                  <td colSpan={5} className="py-12 text-center text-text-muted italic">No subscribers found.</td>
                 </tr>
               ) : (
-                subscribers.map((sub, idx) => (
+                filtered.map((sub, idx) => (
                   <tr key={sub.id || idx} className="hover:bg-neutral-soft/5">
                     <td className="py-3.5 px-5 lowercase select-all font-medium text-fg-luxury">{sub.email}</td>
+                    <td className="py-3.5 px-5 text-[9px] font-medium text-accent-gold">{sub.source || 'footer'}</td>
                     <td className="py-3.5 px-5 text-text-muted">
                       {sub.created_at || sub.createdAt ? new Date(sub.created_at || sub.createdAt).toLocaleString('en-IN') : '—'}
                     </td>
@@ -2772,6 +4407,15 @@ function AdminCoreWorkspace() {
                       <span className="bg-green-50 text-green-800 text-[8px] font-semibold py-0.5 px-2.5 rounded-full border border-green-200">
                         {sub.status || 'subscribed'}
                       </span>
+                    </td>
+                    <td className="py-3.5 px-5 text-right">
+                      <button 
+                        onClick={() => handleDeleteSubscriber(sub.email)}
+                        className="text-red-800 hover:text-red-950 p-1 cursor-pointer"
+                        aria-label="Delete subscriber"
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -2785,12 +4429,17 @@ function AdminCoreWorkspace() {
 
   const renderRestockAlerts = () => {
     const handleExport = () => {
-      const headers = ['Product Name', 'Email Address', 'Request Date'];
-      const rows = restockAlerts.map(alert => [
-        alert.product?.name || 'Unknown Product',
-        alert.email,
-        alert.created_at || alert.createdAt || ''
-      ]);
+      const headers = ['Product Name', 'Size/Color Variant', 'Email Address', 'Request Date'];
+      const rows = restockAlerts.map(alert => {
+        const sizeStr = alert.variant?.size || '—';
+        const colorStr = alert.variant?.color || '—';
+        return [
+          alert.product?.name || 'Unknown Product',
+          `${sizeStr} / ${colorStr}`,
+          alert.email,
+          alert.created_at || alert.createdAt || ''
+        ];
+      });
       downloadCSV('freert_restock_alerts.csv', headers, rows);
       showToast('Exported restock alerts CSV.', 'success');
     };
@@ -2814,7 +4463,7 @@ function AdminCoreWorkspace() {
           </div>
           <button 
             onClick={handleExport}
-            className="btn-editorial-solid text-[9px] py-2.5 px-6 tracking-widest uppercase cursor-pointer"
+            className="btn-editorial-solid text-[9px] py-2.5 px-6 tracking-widest uppercase cursor-pointer whitespace-nowrap"
           >
             Export Requests
           </button>
@@ -2825,6 +4474,7 @@ function AdminCoreWorkspace() {
             <thead className="bg-neutral-soft/10 border-b border-neutral-soft/80 text-[8px] font-medium text-text-muted">
               <tr>
                 <th className="py-3.5 px-5 text-left font-semibold">Garment / Product</th>
+                <th className="py-3.5 px-5 text-left font-semibold">Variant Spec</th>
                 <th className="py-3.5 px-5 text-left font-semibold">Customer Email</th>
                 <th className="py-3.5 px-5 text-left font-semibold">Requested Date</th>
                 <th className="py-3.5 px-5 text-right font-semibold">Actions</th>
@@ -2833,12 +4483,15 @@ function AdminCoreWorkspace() {
             <tbody className="font-light divide-y divide-neutral-soft/20">
               {restockAlerts.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-12 text-center text-text-muted italic">No restock requests yet.</td>
+                  <td colSpan={5} className="py-12 text-center text-text-muted italic">No restock requests yet.</td>
                 </tr>
               ) : (
                 restockAlerts.map((alert, idx) => (
                   <tr key={alert.id || idx} className="hover:bg-neutral-soft/5">
                     <td className="py-3.5 px-5 font-medium text-fg-luxury">{alert.product?.name || 'Unknown Product'}</td>
+                    <td className="py-3.5 px-5 font-light text-[9px] text-accent-gold">
+                      {alert.variant?.size || 'One Size'} / {alert.variant?.color || 'Default'}
+                    </td>
                     <td className="py-3.5 px-5 lowercase select-all">{alert.email}</td>
                     <td className="py-3.5 px-5 text-text-muted">
                       {alert.created_at || alert.createdAt ? new Date(alert.created_at || alert.createdAt).toLocaleString('en-IN') : '—'}

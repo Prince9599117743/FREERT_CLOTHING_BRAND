@@ -14,13 +14,21 @@ export default function LoginPage() {
   const { showToast } = useToast();
   
   React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const errorParam = params.get('error');
+    if (errorParam) {
+      showToast(decodeURIComponent(errorParam), 'error');
+      // Clean url parameters to prevent double toasts on reload
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         const role = session.user.app_metadata?.role;
         router.push(role === 'admin' || role === 'superadmin' ? '/admin' : '/');
       }
     });
-  }, [router]);
+  }, [router, showToast]);
 
   // Email state
   const [email, setEmail] = useState('');

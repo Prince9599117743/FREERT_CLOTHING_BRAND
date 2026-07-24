@@ -299,6 +299,9 @@ CREATE TABLE IF NOT EXISTS hero_banners (
     subtitle VARCHAR(255),
     cta_text VARCHAR(100) DEFAULT 'Shop Now',
     cta_link VARCHAR(255) DEFAULT '/shop',
+    show_title BOOLEAN DEFAULT true,
+    show_subtitle BOOLEAN DEFAULT true,
+    show_button BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

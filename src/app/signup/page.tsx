@@ -14,13 +14,20 @@ export default function SignupPage() {
   const { showToast } = useToast();
 
   React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const errorParam = params.get('error');
+    if (errorParam) {
+      showToast(decodeURIComponent(errorParam), 'error');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         const role = session.user.app_metadata?.role;
         router.push(role === 'admin' || role === 'superadmin' ? '/admin' : '/');
       }
     });
-  }, [router]);
+  }, [router, showToast]);
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -48,11 +55,10 @@ export default function SignupPage() {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        phone, // Register phone number in auth.users
         options: {
           data: {
             full_name: fullName,
-            phone: phone // Also write in metadata
+            phone: phone // Write in user metadata only to bypass strict E.164 phone formats
           }
         }
       });
@@ -111,14 +117,13 @@ export default function SignupPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted font-medium">Phone Number</label>
+              <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted font-medium">Phone Number (Optional)</label>
               <input 
                 type="tel" 
-                required 
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="input-editorial text-xs transition-all duration-300 focus:border-fg-luxury focus:ring-1 focus:ring-fg-luxury"
-                placeholder="+91 98765 43210"
+                placeholder="e.g. +91 98765 43210"
               />
             </div>
             

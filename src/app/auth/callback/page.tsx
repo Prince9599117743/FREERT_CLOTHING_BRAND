@@ -13,11 +13,19 @@ function AuthCallbackContent() {
     let subscription: any = null;
 
     const handleCallback = async () => {
+      const error = searchParams.get('error');
+      const errorDescription = searchParams.get('error_description');
+      if (error || errorDescription) {
+        const message = errorDescription || error || 'Authentication failed.';
+        window.location.href = `/login?error=${encodeURIComponent(message)}`;
+        return;
+      }
+
       const code = searchParams.get('code');
       if (code) {
         try {
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) throw error;
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) throw exchangeError;
 
           if (data?.session && active) {
             document.cookie = `sb-access-token=${data.session.access_token}; path=/; max-age=604800; SameSite=Lax; Secure`;

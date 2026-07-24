@@ -13,6 +13,14 @@ export interface HeroSlide {
   ctaText: string;
   ctaLink: string;
   enabled: boolean;
+  showTitle?: boolean;
+  showSubtitle?: boolean;
+  showButton?: boolean;
+  mediaType?: string;
+  videoUrl?: string;
+  posterUrl?: string;
+  focalPoint?: string;
+  isPrimary?: boolean;
 }
 
 const DEFAULT_SLIDES: HeroSlide[] = [
@@ -24,6 +32,47 @@ const DEFAULT_SLIDES: HeroSlide[] = [
   { id: 'hs-6', image: '/assets/cap_1784646670746.png', heading: 'Modern Identity', subtitle: 'Finishing Details for the Modern Wardrobe', ctaText: 'Shop Accessories', ctaLink: '/shop/accessories', enabled: true },
   { id: 'hs-7', image: '/assets/sneakers_1784646656235.png', heading: 'Premium Essentials', subtitle: 'Sandalwood Santal & Intense Scents', ctaText: 'Shop Perfumes', ctaLink: '/shop/perfumes', enabled: true }
 ];
+
+const HeroVideo: React.FC<{
+  src: string;
+  isActive: boolean;
+  poster?: string;
+  focalPoint?: string;
+}> = ({ src, isActive, poster, focalPoint }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (isActive) {
+      video.currentTime = 0; // reset playback to avoid stuck frames
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Ignore autoplay blocks
+        });
+      }
+    } else {
+      video.pause();
+    }
+  }, [isActive, src]);
+
+  // Translate focal point to object-position CSS values
+  const objectPosition = focalPoint || 'center';
+
+  return (
+    <video
+      ref={videoRef}
+      src={src}
+      poster={poster}
+      muted
+      playsInline
+      loop
+      className="w-full h-full object-cover animate-[fadeIn_0.5s_ease-out]"
+      style={{ objectPosition }}
+    />
+  );
+};
 
 export const HeroSlideshow: React.FC = () => {
   const router = useRouter();
@@ -46,8 +95,18 @@ export const HeroSlideshow: React.FC = () => {
             subtitle: b.subtitle || '',
             ctaText: b.cta_text || b.ctaText || 'Shop Now',
             ctaLink: b.cta_link || b.ctaLink || '/shop',
-            enabled: b.enabled ?? true
+            enabled: b.enabled ?? true,
+            showTitle: b.show_title ?? b.showTitle ?? true,
+            showSubtitle: b.show_subtitle ?? b.showSubtitle ?? true,
+            showButton: b.show_button ?? b.showButton ?? true,
+            mediaType: b.media_type || b.mediaType || 'image',
+            videoUrl: b.video_url || b.videoUrl || '',
+            posterUrl: b.poster_url || b.posterUrl || '',
+            focalPoint: b.focal_point || b.focalPoint || 'center',
+            isPrimary: b.is_primary ?? b.isPrimary ?? false,
           }));
+          // In-memory sort fallback to guarantee primary slide is always index 0
+          mapped.sort((a: any, b: any) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0));
           setSlides(mapped);
         }
       } catch (e) {
@@ -103,37 +162,36 @@ export const HeroSlideshow: React.FC = () => {
   return (
     <section 
       className="relative w-full h-[90vh] overflow-hidden bg-neutral-900 text-left select-none"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
       {/* Slides images transitions grid stack */}
       {slides.map((slide, index) => {
         const isActive = index === currentIndex;
-        const isVideo = slide.image.toLowerCase().endsWith('.mp4') || 
+        const isVideo = slide.mediaType === 'video' || 
+                        slide.image.toLowerCase().endsWith('.mp4') || 
                         slide.image.toLowerCase().endsWith('.webm') ||
                         slide.image.toLowerCase().endsWith('.mov') ||
                         slide.image.includes('video');
+        
         return (
           <div 
             key={slide.id}
             className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${isActive ? 'opacity-80 z-0' : 'opacity-0 -z-10'}`}
           >
             {isVideo ? (
-              <video 
-                src={slide.image} 
-                autoPlay 
-                muted 
-                loop 
-                playsInline
-                className="w-full h-full object-cover"
+              <HeroVideo 
+                src={slide.videoUrl || slide.image} 
+                isActive={isActive} 
+                poster={slide.posterUrl} 
+                focalPoint={slide.focalPoint}
               />
             ) : (
               <img 
                 src={slide.image} 
                 alt={slide.heading}
-                className="w-full h-full object-cover object-[center_15%]"
+                className="w-full h-full object-cover animate-[fadeIn_0.5s_ease-out]"
+                style={{ objectPosition: slide.focalPoint || 'center 15%' }}
                 {...(index === 0 ? { fetchpriority: 'high' } : { loading: 'lazy' })}
               />
             )}
@@ -147,18 +205,24 @@ export const HeroSlideshow: React.FC = () => {
       {/* Campaign Copy Content Box */}
       <div className="absolute inset-0 z-20 container-editorial flex flex-col justify-center items-start text-white">
         <div className="max-w-2xl flex flex-col gap-6 animate-[fadeIn_0.8s_ease-out]">
-          <p className="text-[9px] uppercase tracking-[0.4em] text-neutral-300 font-light">
-            {currentSlide.subtitle}
-          </p>
-          <h1 className="text-5xl md:text-7xl font-light tracking-[0.15em] uppercase leading-tight text-white drop-shadow-sm">
-            {currentSlide.heading}
-          </h1>
-          <button 
-            onClick={() => router.push(currentSlide.ctaLink)}
-            className="bg-white text-fg-luxury hover:bg-accent-gold hover:text-bg-luxury transition-all duration-500 text-[10px] uppercase tracking-[0.25em] font-medium py-4 px-12 cursor-pointer border border-white w-fit mt-4"
-          >
-            {currentSlide.ctaText}
-          </button>
+          {(currentSlide.showSubtitle ?? true) && currentSlide.subtitle && (
+            <p className="text-[9px] uppercase tracking-[0.4em] text-neutral-300 font-light">
+              {currentSlide.subtitle}
+            </p>
+          )}
+          {(currentSlide.showTitle ?? true) && currentSlide.heading && (
+            <h1 className="text-5xl md:text-7xl font-light tracking-[0.15em] uppercase leading-tight text-white drop-shadow-sm">
+              {currentSlide.heading}
+            </h1>
+          )}
+          {(currentSlide.showButton ?? true) && currentSlide.ctaText && (
+            <button 
+              onClick={() => router.push(currentSlide.ctaLink)}
+              className="bg-white text-fg-luxury hover:bg-accent-gold hover:text-bg-luxury transition-all duration-500 text-[10px] uppercase tracking-[0.25em] font-medium py-4 px-12 cursor-pointer border border-white w-fit mt-4"
+            >
+              {currentSlide.ctaText}
+            </button>
+          )}
         </div>
       </div>
 

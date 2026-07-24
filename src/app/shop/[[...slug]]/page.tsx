@@ -8,7 +8,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/CartDrawer';
 import { ProductCard } from '@/components/ProductCard';
-import { SlidersHorizontal, ArrowUpDown } from 'lucide-react';
+import { SlidersHorizontal, ArrowUpDown, ChevronDown } from 'lucide-react';
 
 export default function ShopPage() {
   const params = useParams();
@@ -21,6 +21,7 @@ export default function ShopPage() {
   const [dbCategories, setDbCategories] = useState<Category[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [sortBy, setSortBy] = useState<'default' | 'price-low' | 'price-high' | 'rating'>('default');
+  const [isSortOpen, setIsSortOpen] = useState(false);
   const [priceRange, setPriceRange] = useState<number>(20000);
   const [dbError, setDbError] = useState(false);
   
@@ -246,24 +247,53 @@ export default function ShopPage() {
           <div className="lg:col-span-9 flex flex-col gap-8">
             
             {/* Toolbar */}
-            <div className="flex justify-between items-center bg-neutral-soft/10 p-4 border border-neutral-soft/30">
+            <div className="flex justify-between items-center bg-bg-luxury p-4 border border-neutral-soft/50">
               <div className="flex items-center gap-2">
-                <SlidersHorizontal size={14} className="text-fg-luxury" />
-                <span className="text-[10px] uppercase tracking-widest text-fg-luxury font-medium">Sorting Parameters</span>
+                <SlidersHorizontal size={12} className="text-fg-luxury" />
+                <span className="text-[10px] uppercase tracking-widest text-fg-luxury font-medium">Filter Parameters</span>
               </div>
               
-              <div className="flex items-center gap-2">
-                <ArrowUpDown size={12} className="text-text-muted" />
-                <select
-                  value={sortBy}
-                  onChange={(e: any) => setSortBy(e.target.value)}
-                  className="bg-transparent text-[10px] uppercase tracking-wider text-fg-luxury font-light border-0 focus:outline-none focus:ring-0 cursor-pointer"
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsSortOpen(!isSortOpen)}
+                  className="flex items-center gap-2 bg-transparent text-[10px] uppercase tracking-widest text-fg-luxury font-medium border border-neutral-soft/80 py-2 px-4 hover:border-fg-luxury transition-all cursor-pointer focus:outline-none select-none"
                 >
-                  <option value="default">Default Sort</option>
-                  <option value="price-low">Price: Low to High</option>
-                  <option value="price-high">Price: High to Low</option>
-                  <option value="rating">Top Rated</option>
-                </select>
+                  <ArrowUpDown size={10} className="text-text-muted" />
+                  <span>
+                    {sortBy === 'default' ? 'Default Sort' :
+                     sortBy === 'price-low' ? 'Price: Low to High' :
+                     sortBy === 'price-high' ? 'Price: High to Low' :
+                     'Top Rated'}
+                  </span>
+                  <ChevronDown size={10} className={`text-text-muted transition-transform duration-300 ${isSortOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isSortOpen && (
+                  <>
+                    <div className="fixed inset-0 z-20" onClick={() => setIsSortOpen(false)} />
+                    <div className="absolute right-0 mt-1 bg-bg-luxury border border-neutral-soft shadow-xl z-30 min-w-[180px] flex flex-col py-1 animate-[fadeIn_0.15s_ease-out] select-none text-left">
+                      {[
+                        { value: 'default', label: 'Default Sort' },
+                        { value: 'price-low', label: 'Price: Low to High' },
+                        { value: 'price-high', label: 'Price: High to Low' },
+                        { value: 'rating', label: 'Top Rated' }
+                      ].map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => {
+                            setSortBy(opt.value as any);
+                            setIsSortOpen(false);
+                          }}
+                          className={`text-[9px] uppercase tracking-wider text-left py-2.5 px-4 hover:bg-neutral-soft/30 hover:text-accent-gold transition-colors ${sortBy === opt.value ? 'text-accent-gold font-semibold bg-neutral-soft/10' : 'text-text-muted'}`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

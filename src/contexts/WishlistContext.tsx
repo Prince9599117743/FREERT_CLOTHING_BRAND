@@ -21,6 +21,23 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     const loadWishlist = async () => {
       if (user) {
+        // Merge guest wishlist to database if it exists
+        const saved = localStorage.getItem('freert_wishlist');
+        if (saved) {
+          try {
+            const localIds: string[] = JSON.parse(saved);
+            if (localIds && localIds.length > 0) {
+              for (const id of localIds) {
+                await addToWishlist(user.id, id);
+              }
+            }
+          } catch (e) {
+            console.error('Failed to merge wishlist:', e);
+          } finally {
+            localStorage.removeItem('freert_wishlist');
+          }
+        }
+
         try {
           const dbWish = await getWishlist(user.id);
           setWishlist(dbWish.map(item => item.product_id));

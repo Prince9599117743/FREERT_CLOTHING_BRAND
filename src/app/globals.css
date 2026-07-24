@@ -155,3 +155,62 @@ h1, h2, h3, h4, h5, h6 {
   outline: 1px dashed var(--accent-gold);
   outline-offset: 4px;
 }
+
+/* Premium rich-text typography styling rules */
+.prose {
+  font-family: var(--font-clean);
+  color: var(--text-muted-luxury);
+  line-height: 1.6;
+}
+
+.prose strong {
+  color: var(--foreground-luxury);
+  font-weight: 500;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  color: var(--foreground-luxury);
+  font-family: var(--font-editorial);
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.prose h1 { font-size: 1.15rem; }
+.prose h2 { font-size: 1.05rem; }
+.prose h3 { font-size: 0.9rem; }
+.prose h4 { font-size: 0.8rem; }
+
+.prose p {
+  margin-top: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+
+.prose ul {
+  list-style-type: disc;
+  padding-left: 1.15rem;
+  margin-top: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+
+.prose ol {
+  list-style-type: decimal;
+  padding-left: 1.15rem;
+  margin-top: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+
+.prose li {
+  margin-bottom: 0.2rem;
+}
+
+.prose a {
+  color: var(--accent-gold);
+  text-decoration: underline;
+}
+
+.prose em {
+  font-style: italic;
+}

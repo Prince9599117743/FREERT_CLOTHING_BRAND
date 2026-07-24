@@ -81,6 +81,7 @@ export interface Product {
   maxStock?: number;
   warehouse?: string;
   status?: 'draft' | 'published' | 'hidden' | 'archived' | 'coming-soon' | 'pre-order' | 'out-of-stock';
+  trackQuantity?: boolean;
   brand?: string;
   barcode?: string;
   sku?: string;
@@ -92,6 +93,7 @@ export interface Product {
   canonicalUrl?: string;
   availableSizes?: string[];
   availableColors?: { name: string; hex: string }[];
+  colors?: any[];
 }
 
 export interface ProductVariant {
@@ -114,6 +116,7 @@ export interface CartItem {
   createdAt: string;
   updatedAt: string;
   variant?: ProductVariant & { product?: Product };
+  priceOverride?: number;
 }
 
 export interface Order {
@@ -162,6 +165,11 @@ export interface Coupon {
   activeFrom: string;
   activeTo: string;
   createdAt: string;
+  discountType?: string;
+  discountValue?: number;
+  minOrderAmount?: number;
+  maxDiscountAmount?: number;
+  isActive?: boolean;
 }
 
 export interface Review {

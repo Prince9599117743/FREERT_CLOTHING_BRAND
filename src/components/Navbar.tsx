@@ -11,12 +11,18 @@ import { MegaMenu } from './MegaMenu';
 import { SearchOverlay } from './SearchOverlay';
 import { MobileMenu } from './MobileMenu';
 
+import { useSettings } from '@/contexts/SettingsContext';
+import { getCategories } from '@/services/database';
+
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { cart, setIsCartOpen } = useCart();
   const { user, logout, updateProfile } = useAuth();
   const { showToast } = useToast();
+  const { getSetting } = useSettings();
+
+  const brandName = getSetting('brand_name', 'FREERT');
   
   const [isMegaOpen, setIsMegaOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -28,36 +34,29 @@ export const Navbar: React.FC = () => {
   const [modalPhone, setModalPhone] = useState('');
   const [modalSubmitting, setModalSubmitting] = useState(false);
 
+  const [navDepts, setNavDepts] = useState<any[]>([]);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Show modal if user is logged in but profile phone is empty
-    if (user && !user.phone) {
-      setModalName(user.fullName || '');
-      setModalPhone('');
+    // Show modal if user is logged in but profile fullName is empty
+    if (user && !user.fullName) {
+      setModalName('');
+      setModalPhone(user.phone || '');
       setShowProfileModal(true);
     } else {
       setShowProfileModal(false);
     }
   }, [user]);
 
-  const handleProfileComplete = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!modalName.trim() || !modalPhone.trim()) {
-      showToast('Please fill all required details.', 'error');
-      return;
-    }
-    setModalSubmitting(true);
-    try {
-      await updateProfile(modalName.trim(), modalPhone.trim());
-      showToast('Profile completed successfully.', 'success');
-      setShowProfileModal(false);
-    } catch (err: any) {
-      showToast(err.message || 'Failed to update profile.', 'error');
-    } finally {
-      setModalSubmitting(false);
-    }
-  };
+  useEffect(() => {
+    getCategories()
+      .then(list => {
+        const depts = list.filter((c: any) => !c.parentCategory);
+        setNavDepts(depts);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -70,6 +69,24 @@ export const Navbar: React.FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  const handleProfileComplete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!modalName.trim()) {
+      showToast('Please fill your name.', 'error');
+      return;
+    }
+    setModalSubmitting(true);
+    try {
+      await updateProfile(modalName.trim(), modalPhone.trim());
+      showToast('Profile updated successfully.', 'success');
+      setShowProfileModal(false);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update profile.', 'error');
+    } finally {
+      setModalSubmitting(false);
+    }
+  };
 
   const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
 
@@ -84,6 +101,13 @@ export const Navbar: React.FC = () => {
     const active = pathname === path ? 'text-accent-gold after:content-[""] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[1px] after:bg-accent-gold' : 'text-fg-luxury';
     return `${base} ${active}`;
   };
+
+  const activeDepts = navDepts.length > 0 ? navDepts : [
+    { slug: 'men', name: 'MEN' },
+    { slug: 'women', name: 'WOMEN' },
+    { slug: 'accessories', name: 'ACCESSORIES' },
+    { slug: 'perfumes', name: 'PERFUMES' }
+  ];
 
   return (
     <>
@@ -100,24 +124,19 @@ export const Navbar: React.FC = () => {
           </button>
           
           <Link href="/" className="text-xl font-editorial tracking-[0.25em] font-semibold text-fg-luxury hover:opacity-80 transition-opacity">
-            FREERT
+            {brandName}
           </Link>
         </div>
 
         {/* Nav Menu (Desktop) */}
         <nav className="hidden md:flex gap-8 text-[10px] uppercase tracking-[0.25em] font-light">
-          <div onMouseEnter={() => setIsMegaOpen(true)} className="relative py-1 cursor-pointer">
-            <Link href="/shop/men" className="text-fg-luxury hover:text-accent-gold transition-colors">MEN</Link>
-          </div>
-          <div onMouseEnter={() => setIsMegaOpen(true)} className="relative py-1 cursor-pointer">
-            <Link href="/shop/women" className="text-fg-luxury hover:text-accent-gold transition-colors">WOMEN</Link>
-          </div>
-          <div onMouseEnter={() => setIsMegaOpen(true)} className="relative py-1 cursor-pointer">
-            <Link href="/shop/accessories" className="text-fg-luxury hover:text-accent-gold transition-colors">ACCESSORIES</Link>
-          </div>
-          <div onMouseEnter={() => setIsMegaOpen(true)} className="relative py-1 cursor-pointer">
-            <Link href="/shop/perfumes" className="text-fg-luxury hover:text-accent-gold transition-colors">PERFUMES</Link>
-          </div>
+          {activeDepts.map((dept) => (
+            <div key={dept.slug || dept.id} onMouseEnter={() => setIsMegaOpen(true)} className="relative py-1 cursor-pointer">
+              <Link href={`/shop/${dept.slug}`} className="text-fg-luxury hover:text-accent-gold transition-colors">
+                {dept.name}
+              </Link>
+            </div>
+          ))}
           <Link href="/shop/new-arrivals" className={linkStyle('/shop/new-arrivals')}>
             NEW DROP
           </Link>
@@ -265,14 +284,13 @@ export const Navbar: React.FC = () => {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted font-semibold">Phone Number</label>
+                <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted font-semibold">Phone Number (Optional)</label>
                 <input 
                   type="tel"
-                  required
                   value={modalPhone}
                   onChange={(e) => setModalPhone(e.target.value)}
                   className="input-editorial text-xs transition-all focus:border-fg-luxury focus:ring-1 focus:ring-fg-luxury"
-                  placeholder="+91 98765 43210"
+                  placeholder="e.g. +91 98765 43210"
                 />
               </div>
 
