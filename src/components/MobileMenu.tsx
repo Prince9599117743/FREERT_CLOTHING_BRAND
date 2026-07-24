@@ -50,10 +50,10 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
 
   const getSubs = (parentSlug: string) => {
     const subs = dbCategories.filter(c => c.parentCategory === parentSlug);
-    if (subs.length > 0) {
+    if (dbCategories.length > 0) {
       return subs.map(s => ({ name: s.name, href: `/shop/${parentSlug}/${s.slug}` }));
     }
-    // Fallback static arrays
+    // Fallback static arrays only if database categories are completely unpopulated
     let fallbacks: string[] = [];
     if (parentSlug === 'men') fallbacks = ['Oversized T-Shirts', 'Regular T-Shirts', 'Shirts', 'Hoodies', 'Sweatshirts', 'Jeans', 'Cargo Pants'];
     else if (parentSlug === 'women') fallbacks = ['T-Shirts', 'Oversized', 'Tops', 'Hoodies', 'Jeans', 'Dresses'];

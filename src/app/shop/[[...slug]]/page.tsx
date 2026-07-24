@@ -97,11 +97,11 @@ export default function ShopPage() {
   const getSubcategories = (): { name: string; slug: string }[] => {
     const parent = parentParam.toLowerCase();
     const filtered = dbCategories.filter(c => c.parentCategory === parent);
-    if (filtered.length > 0) {
+    if (dbCategories.length > 0) {
       return filtered.map(c => ({ name: c.name, slug: c.slug }));
     }
     
-    // Fallback static arrays
+    // Fallback static arrays only if database categories are completely unpopulated
     let fallbackNames: string[] = [];
     if (parent === 'men') {
       fallbackNames = ['Oversized T-Shirts', 'Regular T-Shirts', 'Shirts', 'Hoodies', 'Sweatshirts', 'Jeans', 'Cargo Pants', 'Joggers', 'Shorts', 'Jackets'];
@@ -161,8 +161,8 @@ export default function ShopPage() {
 
         {/* Horizontal scrollbar subcategory index filter bar */}
         {parentParam && activeSubcategories.length > 0 && (
-          <div className="mb-8 border-b border-neutral-soft/20 pb-4 overflow-x-auto whitespace-nowrap scrollbar-none">
-            <div className="flex gap-3 text-[9px] uppercase tracking-widest">
+          <div className="mb-8 border-b border-neutral-soft/20 pb-4 w-full max-w-full overflow-x-auto scrollbar-none block">
+            <div className="flex gap-3 text-[9px] uppercase tracking-widest min-w-max pb-1">
               <button
                 onClick={() => router.push(`/shop/${parentParam}`)}
                 className={`px-4 py-2 border transition-all cursor-pointer ${
@@ -357,7 +357,10 @@ export default function ShopPage() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-10">
+              <div 
+                key={`${parentParam || 'shop'}-${subParam || 'all'}-${sortBy}-${priceRange}`}
+                className="grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-10 animate-catalog-fade"
+              >
                 {filteredProducts.map((p) => (
                   <ProductCard key={p.id} product={p} />
                 ))}

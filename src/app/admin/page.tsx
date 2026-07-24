@@ -273,6 +273,7 @@ function AdminCoreWorkspace() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryParent, setNewCategoryParent] = useState('');
   const [newCategoryBanner, setNewCategoryBanner] = useState('/assets/trench_coat.jpg');
+  const [isProcessingCategory, setIsProcessingCategory] = useState(false);
 
   // Collections state
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -2429,7 +2430,8 @@ function AdminCoreWorkspace() {
   const renderCategories = () => {
     const handleAddCat = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!newCategoryName) return;
+      if (!newCategoryName || isProcessingCategory) return;
+      setIsProcessingCategory(true);
       try {
         const slug = newCategoryName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
         let bannerUrl = newCategoryBanner;
@@ -2453,22 +2455,30 @@ function AdminCoreWorkspace() {
         showToast('Category created successfully.', 'success');
       } catch (err) {
         showToast('Failed to create category.', 'error');
+      } finally {
+        setIsProcessingCategory(false);
       }
     };
 
     const handleDeleteCat = async (id: string) => {
+      if (isProcessingCategory) return;
+      if (!window.confirm('Are you sure you want to delete this category?')) return;
+      setIsProcessingCategory(true);
       try {
         await deleteCategory(id);
         setCategories(prev => prev.filter(c => c.id !== id));
         showToast('Category removed.', 'info');
       } catch (err) {
         showToast('Failed to delete category.', 'error');
+      } finally {
+        setIsProcessingCategory(false);
       }
     };
 
     const handleBannerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (!file) return;
+      if (!file || isProcessingCategory) return;
+      setIsProcessingCategory(true);
       try {
         const url = await uploadMedia(file, 'categories');
         setNewCategoryBanner(url);
@@ -2477,6 +2487,8 @@ function AdminCoreWorkspace() {
         // Fallback: use blob URL for preview
         setNewCategoryBanner(URL.createObjectURL(file));
         showToast('Banner queued for upload.', 'info');
+      } finally {
+        setIsProcessingCategory(false);
       }
     };
 
@@ -2502,7 +2514,13 @@ function AdminCoreWorkspace() {
                     )}
                   </span>
                 </div>
-                <button onClick={() => handleDeleteCat(cat.id)} className="text-red-700 hover:text-red-800"><Trash2 size={13} /></button>
+                <button 
+                  disabled={isProcessingCategory} 
+                  onClick={() => handleDeleteCat(cat.id)} 
+                  className={`text-red-700 hover:text-red-800 transition-opacity ${isProcessingCategory ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <Trash2 size={13} />
+                </button>
               </div>
             ))}
           </div>
@@ -2519,7 +2537,8 @@ function AdminCoreWorkspace() {
                 type="text" 
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
-                className="input-editorial text-xs" 
+                disabled={isProcessingCategory}
+                className="input-editorial text-xs disabled:opacity-50" 
                 placeholder="e.g. Lounge Wear" 
                 required
               />
@@ -2529,7 +2548,8 @@ function AdminCoreWorkspace() {
               <select 
                 value={newCategoryParent} 
                 onChange={(e) => setNewCategoryParent(e.target.value)}
-                className="w-full bg-bg-luxury border border-neutral-soft/80 py-2 px-3 text-[11px] uppercase tracking-wider focus:outline-none"
+                disabled={isProcessingCategory}
+                className="w-full bg-bg-luxury border border-neutral-soft/80 py-2 px-3 text-[11px] uppercase tracking-wider focus:outline-none disabled:opacity-50"
               >
                 <option value="">🏠 None → New Top-Level Department</option>
                 {categories.filter(c => !c.parentCategory).map(dept => (
@@ -2543,18 +2563,32 @@ function AdminCoreWorkspace() {
                 <div className="w-12 h-16 bg-neutral-soft/20 border border-neutral-soft overflow-hidden">
                   <img src={newCategoryBanner} className="w-full h-full object-cover" alt="" />
                 </div>
-                <label className="btn-editorial py-2 px-4 text-[9px] uppercase font-semibold cursor-pointer">
+                <label className={`btn-editorial py-2 px-4 text-[9px] uppercase font-semibold transition-opacity ${isProcessingCategory ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                   Change Photo
                   <input 
                     type="file" 
                     accept="image/*" 
+                    disabled={isProcessingCategory}
                     onChange={handleBannerFileChange} 
                     className="hidden" 
                   />
                 </label>
               </div>
             </div>
-            <button type="submit" className="btn-editorial-solid py-2.5 text-[9px] uppercase font-semibold mt-2">Publish Category</button>
+            <button 
+              type="submit" 
+              disabled={isProcessingCategory}
+              className="btn-editorial-solid py-2.5 text-[9px] uppercase font-semibold mt-2 flex justify-center items-center gap-2"
+            >
+              {isProcessingCategory ? (
+                <>
+                  <div className="w-3 h-3 border border-stone-400 border-t-stone-900 rounded-full animate-spin"></div>
+                  Processing...
+                </>
+              ) : (
+                'Publish Category'
+              )}
+            </button>
           </form>
         </div>
       </div>
