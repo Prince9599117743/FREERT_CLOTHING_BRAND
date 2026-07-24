@@ -55,6 +55,9 @@ export const metadata: Metadata = {
     ],
     shortcut: '/freert-logo.svg',
   },
+  verification: {
+    google: '8ZLo-97WUAnNtqH1R-FHP5bGUKrsWaCDiaycwHxZcWc',
+  },
 };
 
 export default function RootLayout({
