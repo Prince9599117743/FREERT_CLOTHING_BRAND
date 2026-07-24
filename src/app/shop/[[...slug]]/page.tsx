@@ -31,9 +31,26 @@ export default function ShopPage() {
   const [activeSub, setActiveSub] = useState(slug?.[1] || '');
 
   useEffect(() => {
-    setActiveParent(slug?.[0] || '');
-    setActiveSub(slug?.[1] || '');
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    const pathParent = parts[1] || '';
+    const pathSub = parts[2] || '';
+    if (pathParent !== activeParent || pathSub !== activeSub) {
+      setActiveParent(pathParent);
+      setActiveSub(pathSub);
+    }
   }, [slug]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const parts = window.location.pathname.split('/').filter(Boolean);
+      if (parts[0] === 'shop') {
+        setActiveParent(parts[1] || '');
+        setActiveSub(parts[2] || '');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activeParent, activeSub]);
 
   useEffect(() => {
     const loadData = async () => {
