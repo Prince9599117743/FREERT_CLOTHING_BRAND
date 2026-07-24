@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { X, ChevronDown, ChevronRight, User, ShoppingBag, Heart, HelpCircle, Package } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -75,8 +76,9 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
         
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-5 border-b border-neutral-soft/30">
-          <Link href="/" onClick={onClose} className="text-sm font-semibold tracking-[0.25em] uppercase text-fg-luxury">
-            FREERT
+          <Link href="/" onClick={onClose} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+            <Image src="/freert-logo.jpg" alt="FREERT" width={24} height={24} className="object-contain rounded-sm" />
+            <span className="text-sm font-semibold tracking-[0.25em] uppercase text-fg-luxury">FREERT</span>
           </Link>
           <button 
             onClick={onClose}

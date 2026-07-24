@@ -7,6 +7,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { ShoppingBag, User, Search, Menu, Heart, ClipboardList, Settings, LogOut, ChevronRight, X } from 'lucide-react';
+import Image from 'next/image';
 import { MegaMenu } from './MegaMenu';
 import { SearchOverlay } from './SearchOverlay';
 import { MobileMenu } from './MobileMenu';
@@ -151,8 +152,18 @@ export const Navbar: React.FC = () => {
             <Menu size={18} strokeWidth={1.5} />
           </button>
           
-          <Link href="/" className="text-xl font-editorial tracking-[0.25em] font-semibold text-fg-luxury hover:opacity-80 transition-opacity">
-            {brandName}
+          <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity duration-300 group">
+            <Image
+              src="/freert-logo.jpg"
+              alt="FREERT"
+              width={28}
+              height={28}
+              className="object-contain rounded-sm"
+              priority
+            />
+            <span className="text-xl font-editorial tracking-[0.25em] font-semibold text-fg-luxury">
+              {brandName}
+            </span>
           </Link>
         </div>
 

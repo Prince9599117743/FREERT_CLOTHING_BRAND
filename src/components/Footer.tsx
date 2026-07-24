@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useToast } from '@/contexts/ToastContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { getCategories } from '@/services/database';
@@ -56,10 +57,19 @@ export const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20 text-left">
         
         {/* Brand Block */}
-        <div className="flex flex-col gap-6">
-          <div className="text-sm font-semibold tracking-[0.25em] text-fg-luxury uppercase">
-            {brandName}
-          </div>
+        <div className="flex flex-col gap-5">
+          <Link href="/" className="flex items-center gap-3 group hover:opacity-80 transition-opacity">
+            <Image
+              src="/freert-logo-light.png"
+              alt="FREERT"
+              width={48}
+              height={48}
+              className="object-contain"
+            />
+            <span className="text-sm font-semibold tracking-[0.3em] text-fg-luxury uppercase">
+              {brandName}
+            </span>
+          </Link>
           <p className="text-[11px] text-text-muted leading-relaxed font-light max-w-xs">
             {footerInfo}
           </p>

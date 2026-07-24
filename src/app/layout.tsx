@@ -46,6 +46,16 @@ export const metadata: Metadata = {
     description: 'BE YOU. BE BOLD. BE FREERT.',
     images: ['/assets/trench_coat.jpg'],
   },
+  icons: {
+    icon: [
+      { url: '/freert-logo.jpg', sizes: '32x32', type: 'image/jpeg' },
+      { url: '/freert-logo.jpg', sizes: '16x16', type: 'image/jpeg' },
+    ],
+    apple: [
+      { url: '/freert-logo-light.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/freert-logo.jpg',
+  },
 };
 
 export default function RootLayout({
