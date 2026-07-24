@@ -236,7 +236,9 @@ export default function CheckoutPage() {
           qty: item.qty,
           price: item.priceOverride || (item.variant?.product?.basePrice || 0) + (item.variant?.additionalPrice || 0),
           size: item.variant?.size || 'One Size',
-          color: item.variant?.color || 'Default'
+          color: item.variant?.color || 'Default',
+          image: item.variant?.product?.images?.[0] || '/assets/trench_coat.jpg',
+          slug: item.variant?.product?.slug || ''
         }))
       };
 
@@ -271,7 +273,9 @@ export default function CheckoutPage() {
             qty: item.qty,
             price: item.variant?.product?.basePrice || 0,
             size: item.variant?.size || 'M',
-            color: item.variant?.color || 'Black'
+            color: item.variant?.color || 'Black',
+            image: item.variant?.product?.images?.[0] || '/assets/trench_coat.jpg',
+            slug: item.variant?.product?.slug || ''
           }))
         };
         setPlacedOrderDetails(fallbackOrder);

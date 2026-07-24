@@ -294,19 +294,21 @@ export default function OrderDetailsPage() {
               </h3>
               <div className="flex flex-col gap-4">
                 {order.items?.map((item: any, idx: number) => {
-                  const name = item.variant?.product?.name || 'Garment Detail';
+                  const name = item.product?.name || item.variant?.product?.name || 'Garment Detail';
                   const price = item.unit_price || 0;
                   const qty = item.qty || 1;
-                  const size = item.variant?.size || 'One Size';
-                  const color = item.variant?.color || 'Default';
+                  const size = item.size || item.variant?.size || 'One Size';
+                  const color = item.color || item.variant?.color || 'Default';
+                  const slug = item.product?.slug || item.variant?.product?.slug || '';
+                  const itemImg = item.product?.images?.[0] || item.variant?.product?.images?.[0] || '/assets/trench_coat.jpg';
                   
-                  return (
-                    <div key={idx} className="border border-neutral-soft/30 p-4 bg-neutral-soft/5 flex justify-between items-center gap-6">
+                  const ItemContent = () => (
+                    <div className="border border-neutral-soft/30 p-4 bg-neutral-soft/5 flex justify-between items-center gap-6 hover:border-neutral-soft transition-colors duration-300">
                       <div className="flex items-center gap-4">
                         <img 
-                          src={item.variant?.product?.images?.[0] || '/assets/trench_coat.jpg'} 
+                          src={itemImg} 
                           className="w-12 h-16 object-cover border border-neutral-soft/30" 
-                          alt="" 
+                          alt={name} 
                         />
                         <div className="flex flex-col gap-1 text-left">
                           <span className="text-xs uppercase tracking-wider font-semibold text-fg-luxury">{name}</span>
@@ -322,6 +324,16 @@ export default function OrderDetailsPage() {
                           ₹{price.toLocaleString('en-IN')} × {qty}
                         </span>
                       </div>
+                    </div>
+                  );
+
+                  return slug ? (
+                    <Link key={idx} href={`/product/${slug}`} className="block cursor-pointer">
+                      <ItemContent />
+                    </Link>
+                  ) : (
+                    <div key={idx}>
+                      <ItemContent />
                     </div>
                   );
                 })}

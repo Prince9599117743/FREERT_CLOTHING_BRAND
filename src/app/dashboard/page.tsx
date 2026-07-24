@@ -40,6 +40,7 @@ interface OrderLog {
   cancelRequested?: boolean;
   cancelReason?: string;
   cancelRequestStatus?: string;
+  cancelAdminNotes?: string;
   items: OrderItemLog[];
 }
 
@@ -118,14 +119,17 @@ function DashboardContent() {
             totalAmount: o.totalAmount,
             status: o.status,
             paymentMethod: o.paymentMethod,
+            cancelRequested: o.cancelRequested || o.cancel_requested || false,
+            cancelReason: o.cancelReason || o.cancel_reason || '',
+            cancelRequestStatus: o.cancelRequestStatus || o.cancel_request_status || 'none',
             items: o.items ? o.items.map((i: any) => ({
               name: i.name,
               qty: i.qty,
               price: i.price,
               size: i.size,
               color: i.color,
-              image: '/assets/trench_coat.jpg',
-              slug: ''
+              image: i.image || '/assets/trench_coat.jpg',
+              slug: i.slug || ''
             })) : []
           })));
         } catch (e) {
@@ -151,14 +155,15 @@ function DashboardContent() {
         cancelRequested: o.cancel_requested,
         cancelReason: o.cancel_reason,
         cancelRequestStatus: o.cancel_request_status,
+        cancelAdminNotes: o.cancel_admin_notes,
         items: o.items ? o.items.map((i: any) => ({
-          name: i.variant?.product?.name || 'Garment Article',
+          name: i.product?.name || i.variant?.product?.name || 'Garment Article',
           qty: i.qty,
           price: Number(i.unit_price || 0),
-          size: i.variant?.size || 'One Size',
-          color: i.variant?.color || 'Default',
-          image: i.variant?.product?.images?.[0] || '/assets/trench_coat.jpg',
-          slug: i.variant?.product?.slug || ''
+          size: i.size || i.variant?.size || 'One Size',
+          color: i.color || i.variant?.color || 'Default',
+          image: i.product?.images?.[0] || i.variant?.product?.images?.[0] || '/assets/trench_coat.jpg',
+          slug: i.product?.slug || i.variant?.product?.slug || ''
         })) : []
       }));
       setOrders(mapped);
@@ -247,11 +252,31 @@ function DashboardContent() {
 
     setIsSubmittingCancellation(true);
     try {
-      await updateOrderDetails(cancellationOrderId, {
-        cancelRequested: true,
-        cancelReason: finalReason,
-        cancelRequestStatus: 'pending'
-      });
+      if (!user) {
+        // Guest user: Update local storage log
+        const localLogs = localStorage.getItem('freert_orders_log');
+        if (localLogs) {
+          const list = JSON.parse(localLogs);
+          const updated = list.map((item: any) => {
+            if (String(item.id) === cancellationOrderId || String(item.rawId) === cancellationOrderId) {
+              return { 
+                ...item, 
+                cancelRequested: true, 
+                cancelReason: finalReason, 
+                cancelRequestStatus: 'pending' 
+              };
+            }
+            return item;
+          });
+          localStorage.setItem('freert_orders_log', JSON.stringify(updated));
+        }
+      } else {
+        await updateOrderDetails(cancellationOrderId, {
+          cancelRequested: true,
+          cancelReason: finalReason,
+          cancelRequestStatus: 'pending'
+        });
+      }
       showToast('Cancellation request submitted.', 'success');
       setCancellationOrderId(null);
       setCustomReason('');
@@ -487,26 +512,77 @@ function DashboardContent() {
 
                       {/* Items details nested list (with photos) */}
                       <div className="flex flex-col gap-4">
-                        {order.items.map((item, idx) => (
-                          <div key={idx} className="flex justify-between items-center gap-6">
-                            <div className="flex items-center gap-4">
-                              <img src={item.image} className="w-10 h-14 object-cover border border-neutral-soft/40" alt="" />
-                              <div className="flex flex-col gap-0.5">
-                                <Link href={`/product/${item.slug}`} className="text-[11px] uppercase tracking-wider font-semibold text-fg-luxury hover:text-accent-gold transition-colors">
-                                  {item.name}
-                                </Link>
-                                <span className="text-[8px] uppercase text-text-muted tracking-widest font-light">
-                                  Size: {item.size} · Color: {item.color}
-                                </span>
+                        {order.items.map((item, idx) => {
+                          const itemLink = item.slug ? `/product/${item.slug}` : '';
+                          
+                          const ImageMarkup = () => (
+                            <img 
+                              src={item.image} 
+                              className="w-10 h-14 object-cover border border-neutral-soft/40 hover:opacity-85 transition-opacity" 
+                              alt={item.name} 
+                            />
+                          );
+
+                          return (
+                            <div key={idx} className="flex justify-between items-center gap-6">
+                              <div className="flex items-center gap-4">
+                                {itemLink ? (
+                                  <Link href={itemLink} className="cursor-pointer">
+                                    <ImageMarkup />
+                                  </Link>
+                                ) : (
+                                  <ImageMarkup />
+                                )}
+                                <div className="flex flex-col gap-0.5">
+                                  {itemLink ? (
+                                    <Link href={itemLink} className="text-[11px] uppercase tracking-wider font-semibold text-fg-luxury hover:text-accent-gold transition-colors">
+                                      {item.name}
+                                    </Link>
+                                  ) : (
+                                    <span className="text-[11px] uppercase tracking-wider font-semibold text-fg-luxury">{item.name}</span>
+                                  )}
+                                  <span className="text-[8px] uppercase text-text-muted tracking-widest font-light">
+                                    Size: {item.size} · Color: {item.color}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end gap-0.5">
+                                <span className="text-xs font-semibold text-fg-luxury">₹{item.price.toLocaleString('en-IN')}</span>
+                                <span className="text-[8.5px] uppercase tracking-widest text-text-muted font-light">Qty: {item.qty}</span>
                               </div>
                             </div>
-                            <div className="flex flex-col items-end gap-0.5">
-                              <span className="text-xs font-semibold text-fg-luxury">₹{item.price.toLocaleString('en-IN')}</span>
-                              <span className="text-[8.5px] uppercase tracking-widest text-text-muted font-light">Qty: {item.qty}</span>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
+
+                      {/* Cancellation status display (Amazon/Flipkart style) */}
+                      {order.cancelRequested && (
+                        <div className="border border-red-700/60 bg-red-50/5 p-4 text-left flex flex-col gap-2 rounded animate-[fadeIn_0.3s_ease-out] mt-2">
+                          <div className="flex justify-between items-center border-b border-red-200/20 pb-1.5">
+                            <span className="text-[9px] uppercase tracking-[0.15em] font-semibold text-red-700">Cancellation Request Info</span>
+                            <span className={`text-[8.5px] uppercase tracking-widest font-bold ${
+                              order.cancelRequestStatus === 'approved' 
+                                ? 'text-green-700' 
+                                : order.cancelRequestStatus === 'rejected' 
+                                ? 'text-red-700' 
+                                : 'text-amber-700 animate-pulse'
+                            }`}>
+                              Status: {order.cancelRequestStatus || 'Pending'}
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-text-muted leading-relaxed flex flex-col gap-1">
+                            <p>
+                              <strong className="text-fg-luxury">Reason:</strong> &ldquo;{order.cancelReason || 'Client initiated'}&rdquo;
+                            </p>
+                            {order.cancelAdminNotes && (
+                              <p className="border-l border-red-200 pl-2 mt-1 italic text-red-700 bg-red-50/10 py-1 px-2 rounded">
+                                <strong className="text-fg-luxury not-italic uppercase tracking-widest text-[8px] block mb-0.5">Admin Response Note:</strong>
+                                {order.cancelAdminNotes}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Tracking timeline details (if dispatch setup) */}
                       {order.status !== 'cancelled' && (
