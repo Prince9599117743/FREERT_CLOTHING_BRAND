@@ -283,7 +283,7 @@ export const getOrders = async (userId: string): Promise<Order[]> => {
   verifyConnection();
   const { data, error } = await supabase
     .from('orders')
-    .select(`*, items:order_items(*, variant:product_variants(*, product:products(*))), payment:payments(*)`)
+    .select(`*, items:order_items(*, product:products(*), variant:product_variants(*, product:products(*))), payment:payments(*)`)
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
   if (error) throw error;
@@ -297,7 +297,7 @@ export const getAllOrders = async (): Promise<any[]> => {
     .select(`
       *,
       user:users(id, email, full_name, phone),
-      items:order_items(*, variant:product_variants(*, product:products(name))),
+      items:order_items(*, product:products(name, images), variant:product_variants(*, product:products(name, images))),
       payment:payments(provider, status)
     `)
     .order('created_at', { ascending: false });
@@ -337,7 +337,7 @@ export const getOrderById = async (orderId: string): Promise<any> => {
     .select(`
       *,
       user:users(id, email, full_name, phone),
-      items:order_items(*, variant:product_variants(*, product:products(*))),
+      items:order_items(*, product:products(*), variant:product_variants(*, product:products(*))),
       payment:payments(*),
       address:shipping_address_id(*)
     `)
@@ -351,7 +351,7 @@ export const getOrderById = async (orderId: string): Promise<any> => {
         .select(`
           *,
           user:users(id, email, full_name, phone),
-          items:order_items(*, variant:product_variants(*, product:products(*))),
+          items:order_items(*, product:products(*), variant:product_variants(*, product:products(*))),
           payment:payments(*),
           address:shipping_address_id(*)
         `)
@@ -359,8 +359,8 @@ export const getOrderById = async (orderId: string): Promise<any> => {
         .maybeSingle();
       if (numErr) throw numErr;
       return numData;
+      }
     }
-  }
   return data;
 };
 
@@ -427,12 +427,23 @@ export const createOrder = async (
   if (error) throw error;
 
   if (items && items.length > 0) {
-    const itemsPayload = items.map((item: any) => ({
-      order_id: data.id,
-      variant_id: (item.variantId && !item.variantId.startsWith('virtual-') && item.variantId !== 'guest') ? item.variantId : null,
-      qty: item.qty || 1,
-      unit_price: item.priceOverride || item.price_override || (item.variant?.product?.basePrice || 0) + (item.variant?.additionalPrice || 0) || item.price || 0,
-    }));
+    const itemsPayload = items.map((item: any) => {
+      const variantId = item.variantId || item.variant?.id;
+      const productId = item.variant?.productId || item.variant?.product?.id || item.productId || null;
+      const size = item.variant?.size || item.size || 'One Size';
+      const color = item.variant?.color || item.color || 'Default';
+      const unitPrice = item.priceOverride || item.price_override || (item.variant?.product?.basePrice || 0) + (item.variant?.additionalPrice || 0) || item.price || 0;
+
+      return {
+        order_id: data.id,
+        variant_id: (variantId && !variantId.startsWith('virtual-') && variantId !== 'guest') ? variantId : null,
+        product_id: productId,
+        size,
+        color,
+        qty: item.qty || 1,
+        unit_price: unitPrice,
+      };
+    });
     const { error: itemsError } = await supabase.from('order_items').insert(itemsPayload);
     if (itemsError) throw itemsError;
   }
@@ -1255,7 +1266,7 @@ export const getOrderForTracking = async (query: string): Promise<any> => {
   verifyConnection();
   let dbQuery = supabase
     .from('orders')
-    .select(`*, items:order_items(*, variant:product_variants(*, product:products(*))), payment:payments(*)`);
+    .select(`*, items:order_items(*, product:products(*), variant:product_variants(*, product:products(*))), payment:payments(*)`);
     
   if (query.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/)) {
     dbQuery = dbQuery.eq('id', query);

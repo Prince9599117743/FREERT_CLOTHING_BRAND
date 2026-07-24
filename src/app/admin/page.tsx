@@ -29,7 +29,7 @@ import {
   Save, Plus, Trash2, Copy, Upload, ArrowRight, Star, Heart, Check, 
   HelpCircle, Trash, RotateCcw, AlertTriangle, Eye, ShieldAlert, Settings, 
   FileText, Search, ChevronRight, X, Grid, List, Printer, AlertCircle, Sparkles,
-  ArrowUp, ArrowDown, Edit, ToggleLeft, ToggleRight
+  ArrowUp, ArrowDown, Edit, ToggleLeft, ToggleRight, ExternalLink
 } from 'lucide-react';
 
 interface HeroSlide {
@@ -367,6 +367,9 @@ function AdminCoreWorkspace() {
               ? `${o.shipping_street}, ${o.shipping_city}, ${o.shipping_state} - ${o.shipping_postal_code}`
               : '—',
             shippingAddress: {
+              fullName: o.shipping_name || o.user?.full_name || '—',
+              phone: o.shipping_phone || o.user?.phone || '—',
+              email: o.shipping_email || o.user?.email || '—',
               street: o.shipping_street || '—',
               city: o.shipping_city || '—',
               state: o.shipping_state || '—',
@@ -376,9 +379,9 @@ function AdminCoreWorkspace() {
             date: o.created_at?.split('T')[0] || '—',
             status: o.status,
             items: o.items?.map((i: any) => {
-              const name = i.variant?.product?.name || 'Item';
-              const size = i.variant?.size || 'One Size';
-              const color = i.variant?.color || 'Default';
+              const name = i.product?.name || i.variant?.product?.name || 'Item';
+              const size = i.size || i.variant?.size || 'One Size';
+              const color = i.color || i.variant?.color || 'Default';
               return `${name} (${size}/${color}) x${i.qty}`;
             }).join(', ') || '—',
             rawItems: o.items || [],
@@ -3947,9 +3950,12 @@ function AdminCoreWorkspace() {
                   </div>
                 </div>
                 <div className="border border-neutral-soft/30 p-4 rounded-sm bg-neutral-soft/5">
-                  <h4 className="text-[8px] uppercase tracking-[0.2em] font-bold text-fg-luxury mb-2 border-b border-neutral-soft/20 pb-1.5">Delivery Location</h4>
+                  <h4 className="text-[8px] uppercase tracking-[0.2em] font-bold text-fg-luxury mb-2 border-b border-neutral-soft/20 pb-1.5">Delivery Address</h4>
                   <div className="text-[9.5px] text-text-muted leading-relaxed flex flex-col gap-1">
-                    <p><span className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mr-1">Street:</span> {selectedAdminOrder.shippingAddress?.street}</p>
+                    <p><span className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mr-1">Recipient:</span> {selectedAdminOrder.shippingAddress?.fullName || selectedAdminOrder.customer}</p>
+                    <p><span className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mr-1">Phone:</span> {selectedAdminOrder.shippingAddress?.phone || selectedAdminOrder.phone}</p>
+                    <p><span className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mr-1">Email:</span> {selectedAdminOrder.shippingAddress?.email || selectedAdminOrder.email}</p>
+                    <p className="mt-1"><span className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mr-1">Street:</span> {selectedAdminOrder.shippingAddress?.street}</p>
                     <p><span className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mr-1">City:</span> {selectedAdminOrder.shippingAddress?.city}</p>
                     <p><span className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mr-1">State:</span> {selectedAdminOrder.shippingAddress?.state}</p>
                     <p><span className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mr-1">Pincode:</span> {selectedAdminOrder.shippingAddress?.postalCode}</p>
@@ -3961,21 +3967,68 @@ function AdminCoreWorkspace() {
               {/* Items Ordered Detailed list */}
               <div>
                 <h4 className="text-[8.5px] uppercase tracking-[0.2em] font-bold text-fg-luxury mb-3 pb-1 border-b border-neutral-soft/30">Items Ordered ({selectedAdminOrder.rawItems?.length || 0})</h4>
-                <div className="flex flex-col gap-2.5 max-h-48 overflow-y-auto pr-1">
+                <div className="flex flex-col gap-3 max-h-64 overflow-y-auto pr-1">
                   {selectedAdminOrder.rawItems?.map((item: any, idx: number) => {
-                    const name = item.variant?.product?.name || 'Garment';
-                    const size = item.variant?.size || 'One Size';
-                    const color = item.variant?.color || 'Default';
+                    // Resolve name: direct product first, then via variant
+                    const name = item.product?.name || item.variant?.product?.name || 'Garment';
+                    // Resolve size: direct column first (saved at checkout), then via variant join
+                    const size = item.size || item.variant?.size || 'One Size';
+                    // Resolve color: direct column first, then via variant join
+                    const color = item.color || item.variant?.color || 'Default';
+                    // Resolve product slug for the clickable link
+                    const productSlug = item.product?.slug || item.variant?.product?.slug || null;
+                    // Resolve thumbnail: direct product images first, then via variant
+                    const thumbnail = item.product?.images?.[0] || item.variant?.product?.images?.[0] || null;
                     const price = item.unit_price || item.priceOverride || 0;
                     return (
-                      <div key={idx} className="flex justify-between items-center text-[9.5px] text-text-muted border-b border-neutral-soft/10 pb-2">
-                        <div className="flex flex-col text-left">
-                          <span className="font-semibold text-fg-luxury">{name}</span>
-                          <span className="text-[7.5px] uppercase tracking-wider text-text-muted mt-0.5">
-                            Size: {size} | Color: {color} | Qty: {item.qty}
+                      <div key={idx} className="flex items-start gap-3 border-b border-neutral-soft/10 pb-3 last:border-0 last:pb-0">
+                        {/* Product Thumbnail */}
+                        {thumbnail ? (
+                          <img
+                            src={thumbnail}
+                            alt={name}
+                            className="w-12 h-16 object-cover border border-neutral-soft/30 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-12 h-16 bg-neutral-soft/20 border border-neutral-soft/30 flex-shrink-0 flex items-center justify-center text-[7px] text-text-muted uppercase tracking-wider font-semibold">
+                            No Img
+                          </div>
+                        )}
+
+                        <div className="flex-1 flex flex-col gap-1 text-left">
+                          {/* Product name with optional clickable link */}
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-fg-luxury text-[9.5px] uppercase tracking-wide">{name}</span>
+                            {productSlug && (
+                              <a
+                                href={`/product/${productSlug}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-accent-gold hover:text-fg-luxury transition-colors"
+                                title="View product page"
+                              >
+                                <ExternalLink size={9} strokeWidth={2} />
+                              </a>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap gap-1.5 mt-0.5">
+                            <span className="text-[7px] uppercase tracking-widest bg-neutral-soft/30 text-fg-luxury px-2 py-0.5 font-bold">
+                              Size: {size}
+                            </span>
+                            <span className="text-[7px] uppercase tracking-widest bg-neutral-soft/20 text-text-muted px-2 py-0.5 font-medium">
+                              Color: {color}
+                            </span>
+                            <span className="text-[7px] uppercase tracking-widest bg-neutral-soft/20 text-text-muted px-2 py-0.5 font-medium">
+                              Qty: {item.qty}
+                            </span>
+                          </div>
+
+                          <span className="text-[8px] font-semibold text-fg-luxury mt-0.5">
+                            ₹{(price * item.qty).toLocaleString('en-IN')}
+                            <span className="text-text-muted font-light ml-1">(₹{price.toLocaleString('en-IN')} × {item.qty})</span>
                           </span>
                         </div>
-                        <span className="font-medium text-fg-luxury">₹{(price * item.qty).toLocaleString('en-IN')}</span>
                       </div>
                     );
                   })}
