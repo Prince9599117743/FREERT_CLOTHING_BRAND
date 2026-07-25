@@ -98,6 +98,45 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
+    // Send instant alert email copy to admin (freertofficial@gmail.com)
+    await sendTransactionalEmail({
+      to: [{ email: 'freertofficial@gmail.com', name: 'FREERT Admin' }],
+      subject: `[NEW ORDER] ${emailData.orderNumber} — ${emailData.customerName}`,
+      htmlContent: `
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e8e0d6; background-color: #fdfaf6; max-width: 600px; margin-bottom: 30px;">
+          <h2 style="color: #1a1a1a; font-weight: 300; border-bottom: 1px solid #e8e0d6; padding-bottom: 10px; margin-top: 0; letter-spacing: 0.1em; text-transform: uppercase; font-size: 16px;">New Order Alert</h2>
+          <p style="font-size: 12px; color: #6b6b6b;">An order was successfully placed by a customer. Below are the packing and coordinates details:</p>
+          
+          <table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 11px; color: #1a1a1a;">
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #f0ebe3; width: 30%;">Order ID:</td>
+              <td style="padding: 6px 0; border-bottom: 1px solid #f0ebe3; font-family: monospace; font-size: 12px;">${emailData.orderNumber}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #f0ebe3;">Customer Name:</td>
+              <td style="padding: 6px 0; border-bottom: 1px solid #f0ebe3;">${emailData.customerName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #f0ebe3;">Phone Number:</td>
+              <td style="padding: 6px 0; border-bottom: 1px solid #f0ebe3;">${emailData.customerPhone}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #f0ebe3;">Payment Method:</td>
+              <td style="padding: 6px 0; border-bottom: 1px solid #f0ebe3; font-weight: bold; color: #c8a96e;">${emailData.paymentMethod}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #f0ebe3; vertical-align: top;">Shipping Address:</td>
+              <td style="padding: 6px 0; border-bottom: 1px solid #f0ebe3; line-height: 1.4;">
+                ${emailData.shippingAddress.street}<br/>
+                ${emailData.shippingAddress.city}, ${emailData.shippingAddress.state} — ${emailData.shippingAddress.postalCode}
+              </td>
+            </tr>
+          </table>
+        </div>
+        ${html}
+      `
+    }).catch((e) => console.error('[AdminEmailAlert] Failed:', e.message));
+
     return NextResponse.json({ success: true, orderNumber: emailData.orderNumber });
 
   } catch (err: any) {
