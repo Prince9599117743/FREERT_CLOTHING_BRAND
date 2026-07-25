@@ -371,7 +371,7 @@ export const getAllOrders = async (): Promise<any[]> => {
     .select(`
       *,
       user:users(id, email, full_name, phone),
-      items:order_items(*, product:products(name, images), variant:product_variants(*, product:products(name, images))),
+      items:order_items(*, product:products(name, images, slug), variant:product_variants(*, product:products(name, images, slug))),
       payment:payments(provider, status)
     `)
     .order('created_at', { ascending: false });

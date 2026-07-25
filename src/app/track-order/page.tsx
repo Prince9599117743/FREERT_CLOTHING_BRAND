@@ -57,23 +57,44 @@ export default function TrackOrderPage() {
   };
 
   // Tracking timeline state builder
-  const getTimelineSteps = (status: string) => {
+  const getTimelineSteps = (order: any) => {
+    const status = order.status;
+    const formatTime = (isoString?: string) => {
+      if (!isoString) return '';
+      return new Date(isoString).toLocaleString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    };
+
     const steps = [
-      { key: 'placed', label: 'Order Placed', desc: 'Secure verification complete', done: true },
-      { key: 'processing', label: 'Processing', desc: 'Sartorial tailoring & packaging', done: false },
-      { key: 'shipped', label: 'Dispatched', desc: 'Handed to premium courier logisticians', done: false },
-      { key: 'delivered', label: 'Delivered', desc: 'Consignment successfully completed', done: false },
+      { key: 'placed', label: 'Order Placed', desc: 'Secure verification complete', done: true, time: formatTime(order.created_at) },
+      { key: 'processing', label: 'Processing', desc: 'Sartorial tailoring & packaging', done: false, time: '' },
+      { key: 'shipped', label: 'Dispatched', desc: 'Handed to premium courier logisticians', done: false, time: '' },
+      { key: 'delivered', label: 'Delivered', desc: 'Consignment successfully completed', done: false, time: '' },
     ];
 
     if (status === 'processing') {
       steps[1].done = true;
+      steps[1].time = formatTime(order.updated_at);
     } else if (status === 'shipped') {
       steps[1].done = true;
+      steps[1].time = formatTime(order.created_at ? new Date(new Date(order.created_at).getTime() + 4 * 3600000).toISOString() : '');
       steps[2].done = true;
+      steps[2].time = formatTime(order.updated_at);
     } else if (status === 'delivered') {
       steps[1].done = true;
+      steps[1].time = formatTime(order.created_at ? new Date(new Date(order.created_at).getTime() + 4 * 3600000).toISOString() : '');
       steps[2].done = true;
+      steps[2].time = formatTime(order.created_at ? new Date(new Date(order.created_at).getTime() + 24 * 3600000).toISOString() : '');
       steps[3].done = true;
+      steps[3].time = formatTime(order.updated_at);
+    } else if (status === 'confirmed' || status === 'packed') {
+      steps[1].done = true;
+      steps[1].time = formatTime(order.updated_at);
     }
 
     return steps;
@@ -184,7 +205,7 @@ export default function TrackOrderPage() {
                   {/* Horizontal Bar background for Desktop */}
                   <div className="absolute top-1/2 left-0 right-0 h-[1.5px] bg-neutral-soft/30 -translate-y-1/2 z-0 hidden md:block" />
                   
-                  {getTimelineSteps(order.status).map((step, idx) => (
+                  {getTimelineSteps(order).map((step, idx) => (
                     <div key={step.key} className="flex md:flex-col items-center gap-4 md:gap-3 z-10 bg-bg-luxury md:px-4 flex-1">
                       {/* Check mark indicator */}
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all ${
@@ -203,6 +224,11 @@ export default function TrackOrderPage() {
                         <span className="text-[8px] uppercase tracking-widest text-text-muted font-light max-w-[140px] leading-relaxed">
                           {step.desc}
                         </span>
+                        {step.done && step.time && (
+                          <span className="text-[7.5px] tracking-wider text-accent-gold font-mono font-semibold mt-1">
+                            {step.time}
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}

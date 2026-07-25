@@ -13,7 +13,7 @@ export default function InvoicePage() {
   const { showToast } = useToast();
   const { getSetting } = useSettings();
   const brandName = getSetting('brand_name', 'FREERT');
-  const storeEmail = getSetting('store_email', 'contact@freert.com');
+  const storeEmail = getSetting('store_email', 'freert8468017123@gmail.com');
   const storeAddress = getSetting('store_address', 'New Delhi');
   const orderId = params?.id as string;
   
@@ -158,7 +158,7 @@ export default function InvoicePage() {
               {/* Store Details and GSTIN */}
               <div className="text-[9px] text-neutral-500 leading-relaxed font-light mt-1 uppercase tracking-wider">
                 <p>{storeAddress}</p>
-                <p>Tel: +91 95991 17743 &bull; Email: concierge@freert.in</p>
+                <p>Tel: +91 84680 17123 &bull; Email: freert8468017123@gmail.com</p>
                 <p className="font-semibold text-neutral-800 mt-1 font-mono tracking-widest text-[9.5px]">
                   GSTIN: 09AAGCF1797C1ZJ
                 </p>

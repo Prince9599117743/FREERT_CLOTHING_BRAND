@@ -17,31 +17,31 @@ interface InfoPageContent {
 const DEFAULT_PAGES: Record<string, InfoPageContent> = {
   about: {
     title: 'About FREERT',
-    content: 'FREERT was founded in 2026 as a contemporary, minimal clothing label. We believe in designing structure for the space between identity and expression. Our pieces are cut from organic flax fabrics, raw silk weaves, and premium knit materials, manufactured in small, ethical batches of 50 units. Zero clutter. Pure form.'
+    content: 'FREERT is a contemporary luxury design house founded on the principles of structural minimalism and organic materiality. We curate architectural clothing cut from organic flax linen, handspun cotton weaves, and raw mulberry silks. Every silhouette is designed in-house, balancing fluid geometries with clean, structured forms. Designed for the modern wardrobe workspace, our garments are manufactured in small, slow-batch runs of under 50 articles per design, eliminating excessive retail waste. Our mission is pure form, zero clutter. Be you. Be bold. Be FREERT.'
   },
   'privacy-policy': {
     title: 'Privacy Policy',
-    content: 'We take data integrity seriously. This policy describes how we collect, store, and manage your contact parameters during site navigation. We only capture standard logs needed to process delivery dispatches and secure checkout payments. Your data is encrypted using SSL handshakes and is never shared.'
+    content: 'We take data integrity seriously. This policy describes how we collect, store, and manage your contact parameters during site navigation. We only capture standard logs needed to process delivery dispatches and secure checkout payments. Your data is encrypted using SSL handshakes and is never shared. For data queries, contact us at freert8468017123@gmail.com.'
   },
   'terms-conditions': {
     title: 'Terms & Conditions',
-    content: 'By accessing this platform, you agree to comply with our interface guidelines. All custom tailoring structures, typography systems, and visual lookbooks are copyrighted. Orders are processed based on available batch inventory limits. We reserve the right to configure or terminate links at our discretion.'
+    content: 'All visual lookbooks, product designs, textiles, photography, codebases, and brand graphics on this platform are protected under intellectual property and copyright laws. All rights reserved by FREERT. Orders are processed based on available batch inventory limits. We reserve the right to configure or terminate links at our discretion.'
   },
   'shipping-policy': {
     title: 'Shipping Policy',
-    content: 'All orders are dispatched from our Tokyo or Delhi fulfillment centers. We provide complimentary express shipping for orders above ₹15,000 INR. Below this threshold, a flat delivery fee of ₹500 INR applies. Packages are typically dispatched within 48 hours and arrive within 3 to 5 business days.'
+    content: 'All orders are dispatched from our regional fulfillment centers. We provide complimentary express shipping for all orders. Packages are typically dispatched within 48 hours and arrive within 3 to 5 business days. A tracking number will be sent to your registered coordinates as soon as the courier partner scans the parcel.'
   },
   'refund-policy': {
     title: 'Refund Policy',
-    content: 'Refunds are processed back to the original payment source within 7 working days of return package validation. For COD orders, refunds are credited directly to your registered bank account. Shipping fees are non-refundable.'
+    content: 'We offer a strict 7-day return and exchange window from the date of consignment delivery. In order to process an exchange or refund, the customer must coordinate and schedule the return shipping back to our logistics hub. Items must be returned in their original, pristine condition: unworn, unwashed, with all original security tags intact, and in their original packaging box. Any products that are returned damaged, worn, or with missing tags will not be eligible for a refund. To initiate a return, email us at freert8468017123@gmail.com or call +91 84680 17123.'
   },
   'return-exchange': {
     title: 'Return & Exchange Policy',
-    content: 'We offer a complimentary 14-day return and exchange window. To submit a return request, navigate to your order history panel in the dashboard. Return packages must be unworn, unwashed, and in their original packaging. Our logistics partner will coordinate a courier collection at your doorstep.'
+    content: 'We offer a strict 7-day return and exchange window. To submit a return request, navigate to your order history panel in the dashboard or contact our concierge. Return packages must be unworn, unwashed, and in their original packaging. The customer must coordinate the return delivery back to our Delhi headquarters.'
   },
   'cancellation-policy': {
     title: 'Cancellation Policy',
-    content: 'Orders can be cancelled directly from the user dashboard before dispatch operations begin (typically within 12 hours of placing the order). Once an order has been marked as shipped, cancellations are no longer possible, and the standard 14-day return protocol must be followed.'
+    content: 'Orders can be cancelled directly from the user dashboard before dispatch operations begin (typically within 12 hours of placing the order). Once an order has been marked as shipped, cancellations are no longer possible, and the standard 7-day return protocol must be followed.'
   },
   'care-guide': {
     title: 'Garment Care Guide',
@@ -230,11 +230,11 @@ export default function InfoPage() {
                 </li>
                 <li className="flex items-start gap-3">
                   <Mail size={16} className="text-accent-gold mt-0.5 flex-shrink-0" />
-                  <span>concierge@freert.in</span>
+                  <span>freert8468017123@gmail.com</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Phone size={16} className="text-accent-gold mt-0.5 flex-shrink-0" />
-                  <span>+91 95991 17743</span>
+                  <span>+91 84680 17123</span>
                 </li>
               </ul>
             </div>

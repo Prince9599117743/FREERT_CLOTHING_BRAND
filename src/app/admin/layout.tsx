@@ -5,7 +5,7 @@ import Link from 'next/link';
 import NextImage from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { 
-  Home, LayoutDashboard, Tag, FolderTree, Image, ClipboardList, Users, Percent, Star, Settings, HelpCircle, Mail, Bell, XCircle
+  Home, LayoutDashboard, Tag, FolderTree, Image, ClipboardList, Users, Percent, Star, Settings, HelpCircle, Mail, Bell, XCircle, ShoppingCart
 } from 'lucide-react';
 
 const links = [
@@ -15,6 +15,7 @@ const links = [
   { name: 'Homepage', view: 'homepage', icon: <Image size={13} /> },
   { name: 'Orders', view: 'orders', icon: <ClipboardList size={13} /> },
   { name: 'Cancellations', view: 'cancellations', icon: <XCircle size={13} className="text-red-700" /> },
+  { name: 'Abandoned Carts', view: 'abandoned_carts', icon: <ShoppingCart size={13} /> },
   { name: 'Customers', view: 'customers', icon: <Users size={13} /> },
   { name: 'Coupons', view: 'coupons', icon: <Percent size={13} /> },
   { name: 'Reviews', view: 'reviews', icon: <Star size={13} /> },
