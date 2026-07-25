@@ -175,6 +175,18 @@ export const updateProduct = async (id: string, updates: Partial<Product>): Prom
 export const deleteProduct = async (id: string): Promise<void> => {
   verifyConnection();
   
+  // Clean up physical media in Supabase Storage
+  try {
+    const { data: prod } = await supabase.from('products').select('images').eq('id', id).maybeSingle();
+    if (prod && Array.isArray(prod.images)) {
+      for (const imgUrl of prod.images) {
+        await deleteMedia(imgUrl);
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to delete product images from storage:', err);
+  }
+  
   // Clean up references to avoid constraint violations
   try {
     await supabase.from('combo_offers').delete().or(`product_a_id.eq.${id},product_b_id.eq.${id}`);
@@ -927,6 +939,14 @@ export const updateHeroBanner = async (id: string, updates: any): Promise<any> =
 
 export const deleteHeroBanner = async (id: string): Promise<void> => {
   verifyConnection();
+  try {
+    const { data: slide } = await supabase.from('hero_banners').select('image').eq('id', id).maybeSingle();
+    if (slide && slide.image) {
+      await deleteMedia(slide.image);
+    }
+  } catch (err) {
+    console.warn('Failed to delete hero banner image from storage:', err);
+  }
   const { error } = await supabase.from('hero_banners').delete().eq('id', id);
   if (error) throw error;
 };
@@ -1017,6 +1037,14 @@ export const saveEditorialJournalItem = async (item: { id?: string; imageUrl: st
 
 export const deleteEditorialJournalItem = async (id: string): Promise<void> => {
   verifyConnection();
+  try {
+    const { data: item } = await supabase.from('editorial_journal').select('image').eq('id', id).maybeSingle();
+    if (item && item.image) {
+      await deleteMedia(item.image);
+    }
+  } catch (err) {
+    console.warn('Failed to delete editorial journal image from storage:', err);
+  }
   const { error } = await supabase
     .from('editorial_journal')
     .delete()
