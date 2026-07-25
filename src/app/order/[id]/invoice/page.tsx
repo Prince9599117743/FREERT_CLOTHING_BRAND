@@ -177,9 +177,12 @@ export default function InvoicePage() {
                 <p className="text-neutral-500 text-[10px] font-light">
                   Order Date: <span className="font-medium text-neutral-800">{creationDate}</span>
                 </p>
-                <p className="text-neutral-500 text-[10px] font-light">
-                  Payment Mode: <span className="font-medium uppercase tracking-wider text-neutral-800">{order.payment_provider || order.payment?.provider || 'Cash on Delivery (COD)'}</span>
-                </p>
+                  Payment Mode: <span className="font-medium uppercase tracking-wider text-neutral-800">
+                    {(() => {
+                      const p = order.payment?.provider || order.payment_provider || 'cod';
+                      return p.toLowerCase() === 'cod' ? 'Cash on Delivery (COD)' : 'Online Payment (Razorpay)';
+                    })()}
+                  </span>
               </div>
             </div>
           </div>
@@ -256,7 +259,10 @@ export default function InvoicePage() {
               * This is a computer generated tax receipt document. No physical signature is required under IGST Act regulations. All items include combined SGST + CGST values (5% total).
             </p>
             <div className="flex items-center gap-1.5 text-neutral-800 font-semibold uppercase tracking-wider text-[8px] mt-1 bg-neutral-100 p-2 rounded-sm w-fit">
-              <ShieldCheck size={12} className="text-emerald-700" /> Settled via {order.payment_provider || order.payment?.provider || 'COD'}
+              <ShieldCheck size={12} className="text-emerald-700" /> Settled via {(() => {
+                 const p = order.payment?.provider || order.payment_provider || 'cod';
+                 return p.toLowerCase() === 'cod' ? 'COD' : 'RAZORPAY';
+               })()}
             </div>
           </div>
 
