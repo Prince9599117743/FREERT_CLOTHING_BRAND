@@ -44,8 +44,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
     }
 
-    const customerEmail = order.user?.email || order.shipping_address?.email;
-    const customerName = order.user?.full_name || order.shipping_address?.fullName || 'Valued Customer';
+    const customerEmail = order.user?.email || order.shipping_email;
+    const customerName = order.user?.full_name || order.shipping_name || 'Valued Customer';
 
     if (!customerEmail) {
       return NextResponse.json({ error: 'Customer email not found for this order.' }, { status: 400 });
