@@ -232,6 +232,7 @@ export default function CheckoutPage() {
         discountAmount: discountAmount,
         couponId: appliedCoupon?.id || undefined,
         status: 'pending',
+        paymentMethod: paymentMethod, // 'cod' or 'razorpay'
         shippingAddress: {
           fullName,
           email,
@@ -241,7 +242,7 @@ export default function CheckoutPage() {
           state: stateName,
           postalCode
         }
-      }, cart);
+      } as any, cart);
 
       const placedOrder = {
         id: getCleanOrderNumber(dbOrder.id),

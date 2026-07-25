@@ -521,6 +521,18 @@ export const createOrder = async (
     if (itemsError) throw itemsError;
   }
 
+  // Create a record in payments table
+  const paymentProvider = (order as any).paymentMethod || 'cod';
+  const { error: paymentError } = await supabase.from('payments').insert({
+    order_id: data.id,
+    provider: paymentProvider,
+    status: paymentProvider === 'cod' ? 'pending' : 'completed',
+    amount: order.totalAmount
+  });
+  if (paymentError) {
+    console.error('Failed to create payment record:', paymentError);
+  }
+
   // Increment coupon usage counter if coupon was applied
   if (order.couponId) {
     try {

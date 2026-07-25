@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'orderId and customerEmail are required.' }, { status: 400 });
     }
 
-    // Fetch full order with items from DB
+    // Fetch full order with items and payments from DB
     const { data: order, error } = await supabaseAdmin
       .from('orders')
       .select(`
@@ -34,7 +34,8 @@ export async function POST(request: Request) {
           *,
           product:products(name, images, slug),
           variant:product_variants(size, color)
-        )
+        ),
+        payment:payments(*)
       `)
       .eq('id', orderId)
       .single();
@@ -43,7 +44,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
     }
 
-    const shippingAddr = order.shipping_address || {};
     const orderDate = new Date(order.created_at).toLocaleString('en-IN', {
       day: '2-digit', month: 'long', year: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: true,
@@ -54,30 +54,35 @@ export async function POST(request: Request) {
       name: item.product?.name || item.variant?.product?.name || 'FREERT Garment',
       size: item.variant?.size || 'One Size',
       color: item.variant?.color || 'Default',
-      qty: item.quantity || item.qty || 1,
-      price: item.unit_price || item.price || 0,
+      qty: item.qty || 1,
+      price: item.unit_price || 0,
       image: item.product?.images?.[0] || null
     }));
+
+    const rawPayment = order.payment?.[0];
+    const paymentMethodLabel = (rawPayment?.provider === 'cod') 
+      ? 'Cash on Delivery' 
+      : 'Online Payment (Razorpay)';
 
     const emailData: OrderEmailData = {
       orderId: order.id,
       orderNumber: getCleanOrderNumber(order.id),
       orderDate,
-      customerName: customerName || shippingAddr.fullName || shippingAddr.full_name || 'Valued Customer',
+      customerName: customerName || order.shipping_name || 'Valued Customer',
       customerEmail,
-      customerPhone: shippingAddr.phone || '',
+      customerPhone: order.shipping_phone || '',
       items,
       subtotal: (order.total_amount || 0) + (order.discount_amount || 0),
       discount: order.discount_amount || 0,
       total: order.total_amount || 0,
-      paymentMethod: order.payment_method === 'cod' ? 'Cash on Delivery' : 'Online Payment (Razorpay)',
+      paymentMethod: paymentMethodLabel,
       shippingAddress: {
-        fullName: shippingAddr.fullName || shippingAddr.full_name || customerName || 'Customer',
-        street: shippingAddr.street || shippingAddr.address || '',
-        city: shippingAddr.city || '',
-        state: shippingAddr.state || '',
-        postalCode: shippingAddr.postalCode || shippingAddr.postal_code || '',
-        phone: shippingAddr.phone || ''
+        fullName: order.shipping_name || customerName || 'Customer',
+        street: order.shipping_street || '',
+        city: order.shipping_city || '',
+        state: order.shipping_state || '',
+        postalCode: order.shipping_postal_code || '',
+        phone: order.shipping_phone || ''
       }
     };
 
