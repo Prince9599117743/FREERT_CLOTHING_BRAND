@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
-import { ShoppingBag, User, Search, Menu, Heart, ClipboardList, Settings, LogOut, ChevronRight, X } from 'lucide-react';
+import { ShoppingBag, User, Search, Menu, Heart, ClipboardList, Settings, LogOut, ChevronRight, X, Truck, MapPin, Tag, CreditCard, Phone, HelpCircle } from 'lucide-react';
 import Image from 'next/image';
 import { MegaMenu } from './MegaMenu';
 import { SearchOverlay } from './SearchOverlay';
@@ -78,9 +78,16 @@ export const Navbar: React.FC = () => {
         setIsAccountDropdownOpen(false);
       }
     }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsAccountDropdownOpen(false);
+      }
+    }
     document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
@@ -212,62 +219,150 @@ export const Navbar: React.FC = () => {
             {isAccountDropdownOpen && (
               <>
                 <style>{`
-                  @keyframes slideDownFade {
-                    from { transform: translateY(-10px); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
+                  @keyframes luxuryDropdownFadeIn {
+                    from {
+                      opacity: 0;
+                      transform: scale(0.96) translateY(-10px);
+                    }
+                    to {
+                      opacity: 1;
+                      transform: scale(1) translateY(0);
+                    }
+                  }
+                  @keyframes luxuryItemSlideIn {
+                    from {
+                      opacity: 0;
+                      transform: translateY(5px);
+                    }
+                    to {
+                      opacity: 1;
+                      transform: translateY(0);
+                    }
+                  }
+                  .animate-stagger-item {
+                    animation: luxuryItemSlideIn 240ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+                    opacity: 0;
                   }
                 `}</style>
-                <div className="absolute right-0 top-full mt-7 w-64 bg-bg-luxury/95 backdrop-blur-lg border border-neutral-soft/90 p-6 shadow-[0_25px_60px_rgba(0,0,0,0.15)] z-50 animate-[slideDownFade_0.25s_ease-out] flex flex-col text-left rounded-sm">
-                  {/* Pointing Arrow (Styled to bridge the gap cleanly) */}
-                  <div className="absolute -top-[5px] right-3.5 w-2.5 h-2.5 bg-bg-luxury border-t border-l border-neutral-soft/90 transform rotate-45 z-50"></div>
-                  
+                <div className="absolute right-[-45px] sm:right-0 top-full mt-4 w-[310px] sm:w-[340px] bg-[#FFFCF8] border border-neutral-soft/20 rounded-[20px] shadow-[0_20px_50px_rgba(26,26,26,0.06),_0_1px_3px_rgba(0,0,0,0.02)] p-6 z-50 animate-[luxuryDropdownFadeIn_200ms_cubic-bezier(0.22,1,0.36,1)_forwards] backdrop-blur-[12px] flex flex-col text-left origin-top-right">
                   {user ? (
-                    <div className="flex flex-col gap-4 text-[9px] uppercase tracking-widest text-text-muted font-light">
-                      <div className="pb-4 border-b border-neutral-soft/30 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-neutral-soft/20 text-fg-luxury flex items-center justify-center font-semibold text-[10px] border border-neutral-soft/30">
-                          {user.fullName?.substring(0, 2).toUpperCase() || 'US'}
+                    <div className="flex flex-col">
+                      {/* Logged In Layout Header */}
+                      <div className="pb-4 border-b border-neutral-200/50 flex items-center gap-3.5">
+                        <div className="w-9 h-9 rounded-full bg-[#FFF9F2] text-neutral-800 flex items-center justify-center font-medium text-xs border border-neutral-200/60 shadow-sm flex-shrink-0">
+                          {user.fullName?.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() || 'U'}
                         </div>
                         <div className="truncate flex-1">
-                          <p className="font-semibold text-fg-luxury truncate max-w-[140px] tracking-widest">{user.fullName || 'User Profile'}</p>
-                          <p className="text-[7.5px] text-text-muted lowercase truncate max-w-[140px] mt-0.5 tracking-normal">{user.email}</p>
+                          <p className="font-serif text-sm text-neutral-900 font-normal tracking-wide truncate max-w-[170px]">{user.fullName || 'User Profile'}</p>
+                          <p className="text-[9px] text-neutral-500 font-light truncate max-w-[170px] mt-0.5 tracking-wider">{user.email}</p>
                         </div>
                       </div>
-                      <Link href="/dashboard?tab=profile" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2.5 py-1 text-fg-luxury hover:text-accent-gold transition-all hover:translate-x-1 duration-200">
-                        <User size={12} strokeWidth={1.5} /> My Profile
-                      </Link>
-                      <Link href="/dashboard?tab=orders" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2.5 py-1 text-fg-luxury hover:text-accent-gold transition-all hover:translate-x-1 duration-200">
-                        <ClipboardList size={12} strokeWidth={1.5} /> My Orders
-                      </Link>
-                      <Link href="/wishlist" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2.5 py-1 text-fg-luxury hover:text-accent-gold transition-all hover:translate-x-1 duration-200">
-                        <Heart size={12} strokeWidth={1.5} /> Wishlist
-                      </Link>
-                      <Link href="/dashboard?tab=addresses" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center gap-2.5 py-1 text-fg-luxury hover:text-accent-gold transition-all hover:translate-x-1 duration-200">
-                        <Settings size={12} strokeWidth={1.5} /> Saved Addresses
-                      </Link>
+
+                      {/* Logged In Items */}
+                      <div className="flex flex-col gap-1 mt-4">
+                        {[
+                          { name: 'My Orders', href: '/dashboard?tab=orders', icon: <ClipboardList size={12} strokeWidth={1.5} /> },
+                          { name: 'Wishlist', href: '/wishlist', icon: <Heart size={12} strokeWidth={1.5} /> },
+                          { name: 'Saved Addresses', href: '/dashboard?tab=addresses', icon: <MapPin size={12} strokeWidth={1.5} /> },
+                          { name: 'Coupons', href: '/dashboard?tab=coupons', icon: <Tag size={12} strokeWidth={1.5} /> },
+                          { name: 'Account Settings', href: '/dashboard?tab=profile', icon: <Settings size={12} strokeWidth={1.5} /> },
+                          { name: 'Saved Payments', href: '/dashboard?tab=payments', icon: <CreditCard size={12} strokeWidth={1.5} /> }
+                        ].map((item, index) => {
+                          const isActive = pathname === item.href;
+                          return (
+                            <Link
+                              key={item.name}
+                              href={item.href}
+                              onClick={() => setIsAccountDropdownOpen(false)}
+                              className={`group flex items-center justify-between py-2 px-3 rounded-[8px] transition-all duration-300 cursor-pointer animate-stagger-item ${
+                                isActive ? 'bg-[#FFF9F2] text-neutral-950 font-normal' : 'hover:bg-[#FFF9F2]/75 text-neutral-600 hover:text-neutral-900'
+                              }`}
+                              style={{ animationDelay: `${(index + 1) * 30}ms` }}
+                            >
+                              <span className="flex items-center gap-3 text-[10.5px] uppercase tracking-wider font-light">
+                                <span className="text-neutral-400 group-hover:text-neutral-800 transition-transform duration-300 group-hover:translate-x-[2px] flex items-center justify-center">
+                                  {item.icon}
+                                </span>
+                                {item.name}
+                              </span>
+                              <ChevronRight size={10} className="text-neutral-300 group-hover:text-neutral-800 transition-transform duration-300 group-hover:translate-x-[2px]" />
+                            </Link>
+                          );
+                        })}
+                      </div>
+
+                      {/* Divider */}
+                      <div className="h-[1px] bg-neutral-200/50 w-full my-4" />
+
+                      {/* Sign Out Button */}
                       <button 
                         onClick={() => { handleLogoutClick(); setIsAccountDropdownOpen(false); }}
-                        className="flex items-center gap-2.5 hover:text-red-700 transition-colors text-left w-full mt-2 pt-3.5 border-t border-neutral-soft/30 cursor-pointer uppercase text-[9px] tracking-widest font-medium"
+                        className="group flex items-center gap-3 py-2 px-3 hover:bg-red-50/50 rounded-[8px] text-left w-full cursor-pointer transition-all duration-300 uppercase text-[10px] tracking-widest font-medium text-neutral-700 hover:text-red-700 animate-stagger-item"
+                        style={{ animationDelay: `210ms` }}
                       >
-                        <LogOut size={12} strokeWidth={1.5} /> Logout
+                        <span className="text-neutral-400 group-hover:text-red-600 transition-transform duration-300 group-hover:translate-x-[2px] flex items-center justify-center">
+                          <LogOut size={12} strokeWidth={1.5} />
+                        </span>
+                        Sign Out
                       </button>
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-4 text-[9px] uppercase tracking-widest text-text-muted font-light">
-                      <Link href="/login" onClick={() => setIsAccountDropdownOpen(false)} className="btn-editorial-solid text-center py-3 text-[9px] font-semibold tracking-[0.25em] transition-all hover:opacity-90">
-                        Sign In
-                      </Link>
-                      <Link href="/signup" onClick={() => setIsAccountDropdownOpen(false)} className="btn-editorial text-center py-3 text-[9px] font-semibold tracking-[0.25em] transition-all hover:bg-neutral-soft/10">
-                        Create Account
-                      </Link>
-                      <div className="border-t border-neutral-soft/30 pt-4 flex flex-col gap-3">
-                        <Link href="/wishlist" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center justify-between text-fg-luxury hover:text-accent-gold hover:translate-x-1 transition-transform duration-200 py-1">
-                          <span className="flex items-center gap-2.5"><Heart size={12} strokeWidth={1.5} /> Wishlist</span>
-                          <ChevronRight size={10} />
+                    <div className="flex flex-col">
+                      {/* Logged Out Header */}
+                      <div className="pb-4">
+                        <h3 className="font-serif text-sm font-normal tracking-wide text-neutral-900 mb-1">
+                          Welcome to FREERT
+                        </h3>
+                        <p className="text-[10px] text-neutral-500 font-light leading-relaxed tracking-wider">
+                          Sign in to manage your orders, wishlist and account.
+                        </p>
+                      </div>
+
+                      {/* Auth Buttons */}
+                      <div className="flex flex-col gap-2 mt-2">
+                        <Link 
+                          href="/login" 
+                          onClick={() => setIsAccountDropdownOpen(false)}
+                          className="w-full bg-[#1a1a1a] text-[#FFFCF8] font-medium uppercase tracking-[0.2em] text-[9.5px] py-3 text-center transition-all hover:bg-neutral-800 duration-300 rounded-[10px] shadow-sm cursor-pointer"
+                        >
+                          Sign In
                         </Link>
-                        <Link href="/track-order" onClick={() => setIsAccountDropdownOpen(false)} className="flex items-center justify-between text-fg-luxury hover:text-accent-gold hover:translate-x-1 transition-transform duration-200 py-1">
-                          <span className="flex items-center gap-2.5"><ClipboardList size={12} strokeWidth={1.5} /> Track Order</span>
-                          <ChevronRight size={10} />
+                        <Link 
+                          href="/signup" 
+                          onClick={() => setIsAccountDropdownOpen(false)}
+                          className="w-full border border-neutral-200 text-neutral-800 font-medium uppercase tracking-[0.2em] text-[9.5px] py-3 text-center transition-all hover:border-neutral-950 duration-300 rounded-[10px] cursor-pointer bg-transparent"
+                        >
+                          Create Account
                         </Link>
+                      </div>
+
+                      {/* Divider */}
+                      <div className="h-[1px] bg-neutral-200/50 w-full my-4" />
+
+                      {/* Logged Out Items */}
+                      <div className="flex flex-col gap-1">
+                        {[
+                          { name: 'Wishlist', href: '/wishlist', icon: <Heart size={12} strokeWidth={1.5} /> },
+                          { name: 'Track Order', href: '/track-order', icon: <Truck size={12} strokeWidth={1.5} /> },
+                          { name: 'Help Center', href: '/support', icon: <HelpCircle size={12} strokeWidth={1.5} /> },
+                          { name: 'Contact Support', href: '/support', icon: <Phone size={12} strokeWidth={1.5} /> }
+                        ].map((item, index) => (
+                          <Link
+                            key={item.name}
+                            href={item.href}
+                            onClick={() => setIsAccountDropdownOpen(false)}
+                            className="group flex items-center justify-between py-2 px-3 hover:bg-[#FFF9F2] rounded-[8px] transition-all duration-300 cursor-pointer animate-stagger-item"
+                            style={{ animationDelay: `${(index + 1) * 35}ms` }}
+                          >
+                            <span className="flex items-center gap-3 text-[10.5px] uppercase tracking-wider text-neutral-600 font-light group-hover:text-neutral-950">
+                              <span className="text-neutral-400 group-hover:text-neutral-800 transition-transform duration-300 group-hover:translate-x-[2px] flex items-center justify-center">
+                                {item.icon}
+                              </span>
+                              {item.name}
+                            </span>
+                            <ChevronRight size={10} className="text-neutral-300 group-hover:text-neutral-800 transition-transform duration-300 group-hover:translate-x-[2px]" />
+                          </Link>
+                        ))}
                       </div>
                     </div>
                   )}
