@@ -424,7 +424,7 @@ function DashboardContent() {
   return (
     <main className="flex-1 container-editorial py-12 md:py-20">
       <h1 className="text-2xl md:text-3xl font-light uppercase tracking-widest text-left mb-12 text-fg-luxury">My Account</h1>
-      <div className="flex border-b border-neutral-soft/20 pb-4 mb-10 overflow-x-auto gap-8 text-[9.5px] uppercase tracking-[0.2em] text-text-muted font-light justify-start no-scrollbar">
+      <div className="flex flex-wrap gap-x-8 gap-y-3 border-b border-neutral-soft/20 pb-4 mb-10 text-[9.5px] uppercase tracking-[0.2em] text-text-muted font-light justify-start">
         {[
           { key: 'profile', label: 'Personal Profile', icon: <User size={12} strokeWidth={1.5} /> },
           { key: 'orders', label: `My Orders (${orders.length})`, icon: <Package size={12} strokeWidth={1.5} /> },
