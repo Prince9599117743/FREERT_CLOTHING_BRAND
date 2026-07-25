@@ -5026,22 +5026,13 @@ function AdminCoreWorkspace() {
           </div>
 
           <h3 className="text-[10px] uppercase tracking-wider font-semibold text-fg-luxury pt-2 border-t border-neutral-soft/10">Social Links</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-3">
             <div>
               <label className="text-[9px] uppercase mb-1 block font-medium">Instagram URL</label>
               <input 
                 type="text" 
                 value={instagramUrl} 
                 onChange={(e) => setInstagramUrl(e.target.value)} 
-                className="input-editorial text-xs" 
-              />
-            </div>
-            <div>
-              <label className="text-[9px] uppercase mb-1 block font-medium">Pinterest URL</label>
-              <input 
-                type="text" 
-                value={pinterestUrl} 
-                onChange={(e) => setPinterestUrl(e.target.value)} 
                 className="input-editorial text-xs" 
               />
             </div>

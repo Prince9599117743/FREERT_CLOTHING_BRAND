@@ -137,8 +137,14 @@ export const Footer: React.FC = () => {
           {copyrightText}
         </div>
         <div className="flex gap-6">
-          <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="hover:text-accent-gold transition-colors duration-300">Instagram</a>
-          <a href={pinterestUrl} target="_blank" rel="noopener noreferrer" className="hover:text-accent-gold transition-colors duration-300">Pinterest</a>
+          <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="hover:text-accent-gold transition-colors duration-300 flex items-center gap-1.5 normal-case font-medium text-xs">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="text-fg-luxury hover:text-accent-gold transition-colors duration-300">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+            </svg>
+            <span className="uppercase tracking-[0.2em] text-[9px] font-semibold text-text-muted">Instagram</span>
+          </a>
         </div>
       </div>
     </footer>
