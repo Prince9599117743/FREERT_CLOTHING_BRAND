@@ -324,7 +324,8 @@ export default function CheckoutPage() {
           body: JSON.stringify({
             orderId: dbOrder.id,
             customerEmail: emailAddr,
-            customerName: fullName || user?.fullName || 'Valued Customer'
+            customerName: fullName || user?.fullName || 'Valued Customer',
+            paymentMethod: paymentMethod // 'cod' or 'razorpay'
           })
         }).catch(() => {}); // Fire-and-forget, never block checkout
       }

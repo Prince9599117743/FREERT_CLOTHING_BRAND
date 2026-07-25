@@ -20,7 +20,7 @@ function getCleanOrderNumber(uuid: string): string {
 
 export async function POST(request: Request) {
   try {
-    const { orderId, customerEmail, customerName } = await request.json();
+    const { orderId, customerEmail, customerName, paymentMethod } = await request.json();
     if (!orderId || !customerEmail) {
       return NextResponse.json({ error: 'orderId and customerEmail are required.' }, { status: 400 });
     }
@@ -44,6 +44,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
     }
 
+    // Server-side self-healing: if no payment record exists, insert it using admin client
+    let paymentsList = order.payment || [];
+    if (paymentsList.length === 0) {
+      const selectedProvider = paymentMethod || 'cod';
+      const { data: newPayment, error: payInsertError } = await supabaseAdmin
+        .from('payments')
+        .insert({
+          order_id: order.id,
+          provider: selectedProvider,
+          status: selectedProvider === 'cod' ? 'pending' : 'completed',
+          amount: order.total_amount
+        })
+        .select();
+
+      if (!payInsertError && newPayment) {
+        paymentsList = newPayment;
+      } else if (payInsertError) {
+        console.error('[Email/OrderConfirmation] Self-healing payment creation failed:', payInsertError.message);
+      }
+    }
+
     const orderDate = new Date(order.created_at).toLocaleString('en-IN', {
       day: '2-digit', month: 'long', year: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: true,
@@ -59,7 +80,7 @@ export async function POST(request: Request) {
       image: item.product?.images?.[0] || null
     }));
 
-    const rawPayment = order.payment?.[0];
+    const rawPayment = paymentsList[0];
     const paymentMethodLabel = (rawPayment?.provider === 'cod') 
       ? 'Cash on Delivery' 
       : 'Online Payment (Razorpay)';
