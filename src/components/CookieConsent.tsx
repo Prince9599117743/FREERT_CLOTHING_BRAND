@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, X } from 'lucide-react';
 
-const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-XXXXXXXXXX';
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-VPREWNQ88F';
 
 const loadGoogleAnalytics = (gaId: string) => {
   if (typeof window === 'undefined') return;
