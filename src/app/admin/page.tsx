@@ -4049,6 +4049,12 @@ function AdminCoreWorkspace() {
                           });
                           setOrders(prev => prev.map(item => item.id === o.id ? { ...item, cancelRequestStatus: 'approved', status: 'cancelled' } : item));
                           showToast('Cancellation approved successfully.', 'success');
+                          // Send cancellation email (non-blocking)
+                          fetch('/api/email/order-cancellation', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ orderId: o.id })
+                          }).catch(() => {});
                         } catch {
                           showToast('Failed to approve cancellation.', 'error');
                         }
@@ -4485,6 +4491,12 @@ function AdminCoreWorkspace() {
                             });
                             setOrders(prev => prev.map(item => item.id === o.id ? { ...item, cancelRequestStatus: 'approved', status: 'cancelled' } : item));
                             showToast('Cancellation approved successfully.', 'success');
+                            // Send cancellation email (non-blocking)
+                            fetch('/api/email/order-cancellation', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ orderId: o.id })
+                            }).catch(() => {});
                           } catch {
                             showToast('Failed to approve cancellation.', 'error');
                           }

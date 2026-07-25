@@ -313,6 +313,20 @@ export default function CheckoutPage() {
       sessionStorage.removeItem('freert_discount_active');
       showToast('Order successfully placed.', 'success');
       setCurrentStep(4);
+
+      // Fire order confirmation email (non-blocking)
+      const emailAddr = email || user?.email;
+      if (emailAddr && dbOrder?.id) {
+        fetch('/api/email/order-confirmation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: dbOrder.id,
+            customerEmail: emailAddr,
+            customerName: fullName || user?.fullName || 'Valued Customer'
+          })
+        }).catch(() => {}); // Fire-and-forget, never block checkout
+      }
     } catch (err: any) {
       isSubmittingRef.current = false;
       if (err.message === 'DATABASE_CONNECTION_ERROR') {
