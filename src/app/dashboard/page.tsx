@@ -9,7 +9,7 @@ import { CartDrawer } from '@/components/CartDrawer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { 
-  getOrders, getAddresses, saveAddress, deleteAddress, updateOrderDetails 
+  getOrders, getAddresses, saveAddress, deleteAddress, updateOrderDetails, getCleanOrderNumber
 } from '@/services/database';
 import type { Order, Address } from '@/types';
 import { 
@@ -215,7 +215,7 @@ function DashboardContent() {
     try {
       const data = await getOrders(user.id);
       const mapped: OrderLog[] = data.map((o: any) => ({
-        id: o.order_number ? String(o.order_number) : o.id.slice(0, 8),
+        id: getCleanOrderNumber(o.id).replace('#', ''),
         rawId: o.id,
         date: o.created_at?.split('T')[0] || '—',
         totalAmount: Number(o.total_amount || 0),

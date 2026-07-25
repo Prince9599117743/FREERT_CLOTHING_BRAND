@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/CartDrawer';
-import { getOrderForTracking } from '@/services/database';
+import { getOrderForTracking, getCleanOrderNumber } from '@/services/database';
 import { useToast } from '@/contexts/ToastContext';
 import { Search, Compass, Package, Truck, CheckCircle2, Clipboard, ShieldAlert, AlertCircle, Copy, Check } from 'lucide-react';
 import Link from 'next/link';
@@ -132,17 +132,11 @@ export default function TrackOrderPage() {
           <div className="flex flex-col gap-10 animate-[fadeIn_0.5s_ease-out]">
             
             {/* Timeline Header Card */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border border-neutral-soft/50 p-6 bg-neutral-soft/5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border border-neutral-soft/50 p-6 bg-neutral-soft/5">
               <div className="flex flex-col gap-1">
                 <span className="text-[8px] uppercase tracking-widest text-text-muted font-semibold">Delivery Reference</span>
                 <span className="text-xs font-semibold text-fg-luxury uppercase tracking-wider">
-                  Order #{order.order_number || order.id.slice(0, 8)}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[8px] uppercase tracking-widest text-text-muted font-semibold">Logistic Courier</span>
-                <span className="text-xs font-semibold text-fg-luxury uppercase tracking-wider">
-                  {order.courier_name || 'Blue Dart Logistics'}
+                  {getCleanOrderNumber(order.id)}
                 </span>
               </div>
               <div className="flex flex-col gap-1">
@@ -153,8 +147,8 @@ export default function TrackOrderPage() {
               </div>
             </div>
 
-            {/* Tracking ID and copy details */}
-            {order.tracking_number && (
+            {/* Hiding mock AWB details copy block until shipping API is integrated */}
+            {false && order.tracking_number && (
               <div className="flex justify-between items-center bg-bg-luxury border border-neutral-soft/40 px-6 py-4">
                 <div className="flex items-center gap-2">
                   <span className="text-[9px] uppercase tracking-widest text-text-muted">Awb Tracking ID:</span>

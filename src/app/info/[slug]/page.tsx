@@ -226,15 +226,15 @@ export default function InfoPage() {
               <ul className="space-y-4 font-light leading-relaxed">
                 <li className="flex items-start gap-3">
                   <Compass size={16} className="text-accent-gold mt-0.5 flex-shrink-0" />
-                  <span>Sector-7, Shibuya District, Tokyo 150-0002</span>
+                  <span>FREERT Headquarters, New Delhi, India</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Mail size={16} className="text-accent-gold mt-0.5 flex-shrink-0" />
-                  <span>comms@freert.in</span>
+                  <span>concierge@freert.in</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Phone size={16} className="text-accent-gold mt-0.5 flex-shrink-0" />
-                  <span>+91 94412 81177</span>
+                  <span>+91 95991 17743</span>
                 </li>
               </ul>
             </div>

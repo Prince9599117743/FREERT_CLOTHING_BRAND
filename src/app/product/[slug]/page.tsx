@@ -567,9 +567,9 @@ export default function ProductDetailPage() {
     : (isClothing ? ['S', 'M', 'L', 'XL'] : ['One Size']);
 
   const selectedColorway = colorsConfig.find((col: any) => col.color_name === selectedColor);
-  const activeMedia = (selectedColorway && selectedColorway.images && selectedColorway.images.length > 0)
-    ? [...(selectedColorway.images || []), ...(selectedColorway.videos || [])]
-    : (product.images || []);
+  const colorwayMedia = selectedColorway ? [...(selectedColorway.images || []), ...(selectedColorway.videos || [])] : [];
+  const generalMedia = (product.images || []).filter(img => !colorwayMedia.includes(img));
+  const activeMedia = colorwayMedia.length > 0 ? [...colorwayMedia, ...generalMedia] : (product.images || []);
 
   const totalStock = product.variants && product.variants.length > 0 ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 0);
   const isOutOfStock = product.status === 'out-of-stock' || (product.trackQuantity !== false && totalStock === 0);
@@ -584,6 +584,7 @@ export default function ProductDetailPage() {
   const activeMrp = product.mrp ? (Number(product.mrp) + Number(selectedVariant?.additionalPrice || 0)) : undefined;
 
   const defaultAccordionSections = [
+    ...(product.description ? [{ title: 'Overview', content: product.description }] : []),
     { title: 'Material & Fabric', content: product.material ? `Composed of 100% premium ${product.material}. Hand-woven in small batches to preserve luxury texture.` : 'Tailored from organic raw fibers. Finished with fine editorial stitching.' },
     { title: 'Care Guide', content: 'Our garments are made to last. We recommend professional dry clean only or gentle hand wash in cold water. Do not bleach. Air dry in the shade. Iron on low heat.' },
     { title: 'Complimentary Shipping & Returns', content: 'We offer complimentary express delivery for all domestic orders above ₹499 INR. Below this, a standard courier rate of ₹80 INR applies. Returns are accepted within 14 days of receipt.' }
@@ -1022,6 +1023,13 @@ export default function ProductDetailPage() {
                 Inclusive of all taxes &middot; GST calculated at checkout
               </span>
             </div>
+
+            {/* Description Paragraph */}
+            {product.description && (
+              <p className="text-[11.5px] text-[#555555] font-light leading-relaxed tracking-wide border-b border-[#E5E5E0] pb-4.5 mb-2 mt-1">
+                {product.description}
+              </p>
+            )}
 
             {/* Config: Colors & Size Selector */}
             <div className="flex flex-col gap-6">

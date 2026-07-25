@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getOrderById } from '@/services/database';
-import { Printer, ArrowLeft, ShieldCheck, Mail, Phone, MapPin } from 'lucide-react';
+import { getOrderById, getCleanOrderNumber } from '@/services/database';
+import { Printer, ArrowLeft, ShieldCheck, Mail, Phone, MapPin, Globe } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { useSettings } from '@/contexts/SettingsContext';
 
@@ -101,14 +101,19 @@ export default function InvoicePage() {
     );
   }
 
-  const creationDate = order.created_at?.split('T')[0] || new Date().toISOString().split('T')[0];
-  const displayId = order.order_number ? `#${order.order_number}` : order.id.slice(0, 8).toUpperCase();
-  const address = order.address || {
-    street: 'Guest Address Coordinates',
-    city: 'New Delhi',
-    state: 'Delhi',
+  const creationDate = order.created_at 
+    ? new Date(order.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) 
+    : new Date().toLocaleDateString('en-IN');
+  const displayId = getCleanOrderNumber(order.id);
+  const address = {
+    street: order.shipping_street || order.address?.street || 'Guest Coordinates',
+    city: order.shipping_city || order.address?.city || 'New Delhi',
+    state: order.shipping_state || order.address?.state || 'Delhi',
     country: 'India',
-    postal_code: '110001'
+    postal_code: order.shipping_postal_code || order.address?.postal_code || '110001',
+    name: order.shipping_name || order.user?.full_name || 'Guest Receiver',
+    phone: order.shipping_phone || order.user?.phone || '—',
+    email: order.shipping_email || order.user?.email || '—'
   };
 
   const itemsSubtotal = order.items?.reduce((sum: number, item: any) => sum + (item.unit_price * item.qty), 0) || 0;
@@ -138,11 +143,14 @@ export default function InvoicePage() {
       <div className="w-full max-w-4xl border border-neutral-300 p-8 md:p-12 bg-white flex flex-col gap-10 shadow-sm text-left relative">
         {/* Top Header Section */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 border-b border-neutral-300 pb-8">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-xl font-semibold tracking-[0.2em] uppercase text-neutral-900">
-              {brandName}
-            </h1>
-            <span className="text-[7.5px] uppercase tracking-[0.25em] text-neutral-500 font-medium">Concierge Division &bull; {storeAddress}</span>
+          <div className="flex items-center gap-3">
+            <img src="/freert-logo.svg" alt="FREERT" className="w-9 h-9 object-contain" />
+            <div className="flex flex-col gap-0.5 text-left">
+              <h1 className="text-xl font-semibold tracking-[0.2em] uppercase text-neutral-900 leading-none">
+                {brandName}
+              </h1>
+              <span className="text-[7.5px] uppercase tracking-[0.25em] text-neutral-500 font-medium mt-1">Concierge Division &bull; {storeAddress}</span>
+            </div>
           </div>
           <div className="text-right sm:text-right flex flex-col gap-0.5 text-xs">
             <span className="text-[11px] uppercase tracking-widest text-neutral-400">Tax Invoice Receipt</span>
@@ -157,9 +165,9 @@ export default function InvoicePage() {
           <div className="flex flex-col gap-3">
             <span className="text-[9px] uppercase tracking-wider font-bold text-neutral-800 border-b border-neutral-200 pb-1.5">Recipient Particulars</span>
             <div className="flex flex-col gap-1.5">
-              <p className="font-semibold text-neutral-950 uppercase tracking-wide text-xs">{order.user?.full_name || 'Guest Receiver'}</p>
-              <p className="flex items-center gap-1.5"><Mail size={11} /> {order.user?.email || order.email || '—'}</p>
-              <p className="flex items-center gap-1.5"><Phone size={11} /> {order.user?.phone || order.phone || '—'}</p>
+              <p className="font-semibold text-neutral-950 uppercase tracking-wide text-xs">{address.name}</p>
+              <p className="flex items-center gap-1.5"><Mail size={11} /> {address.email}</p>
+              <p className="flex items-center gap-1.5"><Phone size={11} /> {address.phone}</p>
             </div>
           </div>
 
@@ -187,16 +195,17 @@ export default function InvoicePage() {
             </thead>
             <tbody>
               {order.items?.map((item: any, idx: number) => {
-                const name = item.variant?.product?.name || 'Garment Detail';
+                const name = item.product?.name || item.variant?.product?.name || 'Garment Detail';
+                const image = item.product?.images?.[0] || item.variant?.product?.images?.[0] || '/assets/trench_coat.jpg';
                 const price = item.unit_price || 0;
                 const qty = item.qty || 1;
-                const size = item.variant?.size || 'One Size';
-                const color = item.variant?.color || 'Default';
+                const size = item.size || item.variant?.size || 'One Size';
+                const color = item.color || item.variant?.color || 'Default';
                 
                 return (
                   <tr key={idx} className="border-b border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-colors">
                     <td className="py-4 px-4 flex items-center gap-3">
-                      <img src={item.variant?.product?.images?.[0] || '/assets/trench_coat.jpg'} className="w-8 h-10 object-cover border border-neutral-200" alt="" />
+                      <img src={image} className="w-8 h-10 object-cover border border-neutral-200" alt="" />
                       <div className="flex flex-col gap-0.5 text-left">
                         <span className="font-semibold text-neutral-950 uppercase tracking-wide">{name}</span>
                         <span className="text-[8.5px] text-neutral-500 uppercase tracking-widest font-light">Size: {size} · Color: {color}</span>

@@ -6,7 +6,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { supabase } from '@/lib/supabase';
 import { 
   getProducts, createProduct, updateProduct, deleteProduct,
-  getAllOrders, updateOrderStatus, updateOrderDetails, getAllCustomers,
+  getAllOrders, updateOrderStatus, updateOrderDetails, getAllCustomers, getCleanOrderNumber,
   getCoupons, createCoupon, updateCoupon, deleteCoupon,
   getAdminReviews, deleteReview, approveReview, rejectReview,
   getAdminSupportTickets, updateTicketStatus,
@@ -298,6 +298,7 @@ function AdminCoreWorkspace() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewTab, setReviewTab] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+  const [cancelFilter, setCancelFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
   const [dashboardStats, setDashboardStats] = useState({ totalRevenue: 0, totalOrders: 0, totalCustomers: 0, totalProducts: 0, lowStockCount: 0, pendingOrders: 0 });
 
@@ -3791,7 +3792,7 @@ function AdminCoreWorkspace() {
             <div className="flex justify-between items-start">
               <div>
                 <span className="font-semibold text-fg-luxury uppercase tracking-wider">
-                  {o.orderNumber ? `#${o.orderNumber}` : o.id}
+                  {getCleanOrderNumber(o.id)}
                 </span>
                 <span className="text-[8px] text-text-muted font-light ml-3">{o.date}</span>
               </div>
@@ -4077,6 +4078,152 @@ function AdminCoreWorkspace() {
       )}
     </div>
   );
+
+  // 5B. Cancellations Portal Render
+  const renderCancellations = () => {
+    const cancelOrdersList = orders.filter(o => {
+      if (!o.cancelRequested) return false;
+      if (cancelFilter === 'all') return true;
+      return (o.cancelRequestStatus || 'pending') === cancelFilter;
+    });
+
+    return (
+      <div className="flex flex-col gap-6 text-left text-xs text-text-muted animate-[fadeIn_0.3s_ease-out]">
+        <div className="flex justify-between items-center border-b border-neutral-soft pb-2 flex-wrap gap-4">
+          <h2 className="text-sm uppercase tracking-widest font-semibold text-fg-luxury">Order Cancellations Portal</h2>
+          
+          {/* Sub-tabs for filters */}
+          <div className="flex gap-2 text-[9px] uppercase tracking-widest font-semibold">
+            {['pending', 'approved', 'rejected', 'all'].map((tabVal) => (
+              <button
+                key={tabVal}
+                type="button"
+                onClick={() => setCancelFilter(tabVal as any)}
+                className={`py-1.5 px-3 border cursor-pointer transition-colors ${
+                  cancelFilter === tabVal 
+                    ? 'bg-fg-luxury text-bg-luxury border-fg-luxury' 
+                    : 'bg-transparent text-text-muted border-neutral-soft hover:bg-neutral-soft/30'
+                }`}
+              >
+                {tabVal} ({orders.filter(o => o.cancelRequested && (tabVal === 'all' || (o.cancelRequestStatus || 'pending') === tabVal)).length})
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {cancelOrdersList.length === 0 ? (
+          <div className="py-16 border border-dashed border-neutral-soft text-center text-xs text-text-muted uppercase tracking-widest font-light">
+            No cancellation requests found under "{cancelFilter}" filter.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {cancelOrdersList.map(o => (
+              <div key={o.id} className="border border-neutral-soft p-6 bg-bg-luxury flex flex-col gap-4 justify-between">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="font-semibold text-fg-luxury uppercase tracking-wider">
+                      {getCleanOrderNumber(o.id)}
+                    </span>
+                    <span className="text-[8px] text-text-muted font-light ml-3">{o.date}</span>
+                  </div>
+                  <span className={`text-[9.5px] uppercase font-semibold py-1 px-3 border border-neutral-soft ${
+                    o.cancelRequestStatus === 'approved' 
+                      ? 'bg-green-50 text-green-800 border-green-200' 
+                      : o.cancelRequestStatus === 'rejected' 
+                      ? 'bg-red-50 text-red-800 border-red-200' 
+                      : 'bg-amber-50 text-amber-800 border-amber-200'
+                  }`}>
+                    Request: {o.cancelRequestStatus || 'Pending'}
+                  </span>
+                </div>
+                
+                <div className="text-[10px] text-text-muted font-light flex flex-col gap-1.5">
+                  <div>
+                    <strong className="text-fg-luxury block text-[8px] uppercase tracking-wider">Customer Info:</strong>
+                    <p className="font-medium text-neutral-800">{o.customer} ({o.email})</p>
+                    <p className="mt-0.5">Phone: {o.phone}</p>
+                  </div>
+                  
+                  <div className="border-t border-neutral-100 pt-2">
+                    <strong className="text-fg-luxury block text-[8px] uppercase tracking-wider">Items Ordered:</strong>
+                    <p className="italic text-neutral-700 font-medium">{o.items}</p>
+                  </div>
+
+                  <div className="border-t border-neutral-100 pt-2">
+                    <strong className="text-red-700 block text-[8.5px] uppercase tracking-wider font-bold">Cancellation Reason:</strong>
+                    <p className="text-neutral-700 bg-red-50/10 p-2 border border-red-100/50 rounded mt-1">
+                      &ldquo;{o.cancelReason || 'Client initiated cancellation request.'}&rdquo;
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action buttons panel */}
+                <div className="flex flex-col gap-3 pt-3 border-t border-neutral-soft/20 mt-2">
+                  {(o.cancelRequestStatus || 'pending') === 'pending' && (
+                    <div className="flex gap-2 text-[8.5px] uppercase font-semibold tracking-wider">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const confirm = window.confirm('Are you sure you want to approve this cancellation request? This will mark the order as cancelled.');
+                          if (!confirm) return;
+                          try {
+                            await updateOrderDetails(o.id, {
+                              cancelRequestStatus: 'approved',
+                              status: 'cancelled'
+                            });
+                            setOrders(prev => prev.map(item => item.id === o.id ? { ...item, cancelRequestStatus: 'approved', status: 'cancelled' } : item));
+                            showToast('Cancellation approved successfully.', 'success');
+                          } catch {
+                            showToast('Failed to approve cancellation.', 'error');
+                          }
+                        }}
+                        className="bg-red-800 text-white hover:bg-red-900 py-1.5 px-3 border border-red-700 cursor-pointer transition-colors"
+                      >
+                        Approve & Cancel Order
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const notes = window.prompt('Enter reason or admin notes for rejecting this request:');
+                          if (notes === null) return;
+                          try {
+                            await updateOrderDetails(o.id, {
+                              cancelRequestStatus: 'rejected',
+                              cancelAdminNotes: notes
+                            });
+                            setOrders(prev => prev.map(item => item.id === o.id ? { ...item, cancelRequestStatus: 'rejected', cancelAdminNotes: notes } : item));
+                            showToast('Cancellation request rejected.', 'info');
+                          } catch {
+                            showToast('Failed to reject cancellation.', 'error');
+                          }
+                        }}
+                        className="bg-transparent text-fg-luxury hover:bg-neutral-soft/20 py-1.5 px-3 border border-neutral-soft/60 cursor-pointer transition-colors"
+                      >
+                        Reject Request
+                      </button>
+                    </div>
+                  )}
+
+                  {o.cancelRequestStatus === 'rejected' && o.cancelAdminNotes && (
+                    <div className="text-[9px] text-red-700 bg-red-50/10 p-2 border border-red-100 rounded">
+                      <span className="font-semibold block uppercase tracking-widest text-[7.5px] not-italic mb-0.5 text-text-muted">Rejection Notes:</span>
+                      <p className="italic">&ldquo;{o.cancelAdminNotes}&rdquo;</p>
+                    </div>
+                  )}
+                  {o.cancelRequestStatus === 'approved' && (
+                    <div className="text-[9px] text-green-700 bg-green-50/10 p-2 border border-green-100 rounded">
+                      <p className="font-semibold uppercase tracking-widest text-[7.5px]">Cancellation Approved</p>
+                      <p className="mt-0.5 font-light">Order status updated to Cancelled, customer has been notified.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // 6. Customers Render
   const renderCustomers = () => (
@@ -5012,6 +5159,7 @@ function AdminCoreWorkspace() {
       case 'categories': return renderCategories();
       case 'homepage': return renderHomepage();
       case 'orders': return renderOrders();
+      case 'cancellations': return renderCancellations();
       case 'customers': return renderCustomers();
       case 'coupons': return renderCoupons();
       case 'reviews': return renderReviews();

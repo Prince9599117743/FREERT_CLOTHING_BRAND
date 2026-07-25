@@ -14,7 +14,7 @@ export default function SupportPage() {
   const { getSetting } = useSettings();
   const storeEmail = getSetting('store_email', 'concierge@freert.in');
   const storePhone = getSetting('store_phone', '+91 95991 17743');
-  const storeAddress = getSetting('store_address', 'Sector-7, Shibuya District, Tokyo, Japan 150-0002');
+  const storeAddress = getSetting('store_address', 'FREERT Headquarters, New Delhi, India');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');

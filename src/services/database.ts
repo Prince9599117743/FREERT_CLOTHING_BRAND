@@ -330,6 +330,17 @@ export const deleteAddress = async (id: string): Promise<void> => {
 // 5. ORDERS
 // ─────────────────────────────────────────────
 
+export const getCleanOrderNumber = (uuid: string): string => {
+  if (!uuid) return '';
+  if (/^\d+$/.test(uuid)) return `#${uuid}`;
+  let hash = 0;
+  for (let i = 0; i < uuid.length; i++) {
+    hash = uuid.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const code = 10000 + Math.abs(hash % 90000);
+  return `#${code}`;
+};
+
 export const getOrders = async (userId: string): Promise<Order[]> => {
   verifyConnection();
   const { data, error } = await supabase

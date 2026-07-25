@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { getOrderById, updateOrderDetails } from '@/services/database';
+import { getOrderById, updateOrderDetails, getCleanOrderNumber } from '@/services/database';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/CartDrawer';
@@ -191,7 +191,7 @@ export default function OrderDetailsPage() {
   }
 
   const creationDate = order.created_at?.split('T')[0] || '—';
-  const displayId = order.order_number ? `#${order.order_number}` : order.id.slice(0, 8).toUpperCase();
+  const displayId = getCleanOrderNumber(order.id);
   const itemsSubtotal = order.items?.reduce((sum: number, item: any) => sum + (item.unit_price * item.qty), 0) || 0;
   const shippingCost = Math.max(0, order.total_amount - itemsSubtotal + (order.discount_amount || 0));
   const expectedDateText = order.expected_delivery_date ? new Date(order.expected_delivery_date).toDateString() : '3-5 Business Days';
@@ -278,7 +278,8 @@ export default function OrderDetailsPage() {
                   ))}
                 </div>
                 
-                {order.tracking_number && (
+                {/* Hiding mock AWB consignment info until real shipping API is integrated */}
+                {false && order.tracking_number && (
                   <div className="mt-6 pt-4 border-t border-neutral-soft/10 flex justify-between items-center text-[9px] uppercase tracking-wider text-text-muted font-light">
                     <span>AWB Courier Partner: {order.courier_name || 'Logistics Provider'}</span>
                     <span>AWB Consignment Ref: <strong className="text-fg-luxury select-all ml-1 font-semibold">{order.tracking_number}</strong></span>

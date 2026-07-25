@@ -298,21 +298,7 @@ export default function CartPage() {
         )}
       </main>
 
-      {/* Sticky Bottom Checkout Panel (Mobile only) */}
-      {cart.length > 0 && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-bg-luxury/95 backdrop-blur-md border-t border-neutral-soft shadow-lg px-6 py-4 z-40 flex justify-between items-center no-print">
-          <div className="flex flex-col text-left">
-            <span className="text-[8px] uppercase tracking-widest text-text-muted">Total Billing</span>
-            <span className="text-sm font-semibold text-fg-luxury">₹{grandTotal.toLocaleString('en-IN')}</span>
-          </div>
-          <button 
-            onClick={() => router.push('/checkout')}
-            className="btn-editorial-solid py-3 px-6 text-[9.5px] uppercase tracking-[0.2em] font-medium flex items-center gap-2"
-          >
-            Checkout <ArrowRight size={13} />
-          </button>
-        </div>
-      )}
+      {/* Sticky Bottom Checkout Panel removed to prevent duplicate buttons on mobile */}
 
       <CartDrawer />
       <Footer />
