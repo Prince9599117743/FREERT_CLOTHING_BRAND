@@ -320,7 +320,7 @@ function AdminCoreWorkspace() {
 
   // Dynamic Store settings states
   const [brandName, setBrandName] = useState('FREERT');
-  const [storeEmail, setStoreEmail] = useState('freert8468017123@gmail.com');
+  const [storeEmail, setStoreEmail] = useState('freertofficial@gmail.com');
   const [storePhone, setStorePhone] = useState('+91 84680 17123');
   const [storeAddress, setStoreAddress] = useState('FREERT Headquarters, New Delhi, India');
   const [facebookUrl, setFacebookUrl] = useState('https://facebook.com');
@@ -504,7 +504,7 @@ function AdminCoreWorkspace() {
           setExpressDeliveryEnabled(vals['express_delivery_enabled'] !== 'false');
           setOnlinePaymentEnabled(vals['online_payment_enabled'] === 'true');
           setBrandName(vals['brand_name'] || 'FREERT');
-          setStoreEmail(vals['store_email'] || 'freert8468017123@gmail.com');
+          setStoreEmail(vals['store_email'] || 'freertofficial@gmail.com');
           setStorePhone(vals['store_phone'] || '+91 84680 17123');
           setStoreAddress(vals['store_address'] || 'FREERT Headquarters, New Delhi, India');
           setFacebookUrl(vals['facebook_url'] || 'https://facebook.com');

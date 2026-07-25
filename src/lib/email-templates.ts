@@ -39,7 +39,7 @@ const baseWrapper = (content: string) => `
           <tr>
             <td style="padding:24px 40px;border-top:1px solid #E8E0D6;text-align:center;background:#F5F0EA;">
               <p style="margin:0 0 6px;font-size:9px;letter-spacing:0.18em;color:#9B9B9B;text-transform:uppercase;">Need help? Contact us at</p>
-              <p style="margin:0 0 4px;font-size:9px;color:#6B6B6B;">freert8468017123@gmail.com</p>
+              <p style="margin:0 0 4px;font-size:9px;color:#6B6B6B;">freertofficial@gmail.com</p>
               <p style="margin:0 0 12px;font-size:9px;color:#6B6B6B;">+91 84680 17123</p>
               <p style="margin:0;font-size:8px;letter-spacing:0.12em;color:#B0B0B0;text-transform:uppercase;">© ${new Date().getFullYear()} FREERT. All rights reserved.</p>
             </td>
@@ -254,7 +254,7 @@ export function orderCancellationTemplate(data: {
     <td style="padding:24px 40px 32px;text-align:center;">
       <p style="margin:0 0 6px;font-size:10px;color:#6B6B6B;">If you paid online, your refund will be processed within 5–7 business days.</p>
       <p style="margin:0 0 20px;font-size:10px;color:#6B6B6B;">To dispute this cancellation or place a new order, contact us:</p>
-      <a href="mailto:freert8468017123@gmail.com" style="display:inline-block;border:1px solid #1A1A1A;color:#1A1A1A;text-decoration:none;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;padding:12px 28px;">Contact Support</a>
+      <a href="mailto:freertofficial@gmail.com" style="display:inline-block;border:1px solid #1A1A1A;color:#1A1A1A;text-decoration:none;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;padding:12px 28px;">Contact Support</a>
     </td>
   </tr>
   `;

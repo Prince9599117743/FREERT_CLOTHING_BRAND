@@ -21,7 +21,7 @@ const DEFAULT_PAGES: Record<string, InfoPageContent> = {
   },
   'privacy-policy': {
     title: 'Privacy Policy',
-    content: 'We take data integrity seriously. This policy describes how we collect, store, and manage your contact parameters during site navigation. We only capture standard logs needed to process delivery dispatches and secure checkout payments. Your data is encrypted using SSL handshakes and is never shared. For data queries, contact us at freert8468017123@gmail.com.'
+    content: 'We take data integrity seriously. This policy describes how we collect, store, and manage your contact parameters during site navigation. We only capture standard logs needed to process delivery dispatches and secure checkout payments. Your data is encrypted using SSL handshakes and is never shared. For data queries, contact us at freertofficial@gmail.com.'
   },
   'terms-conditions': {
     title: 'Terms & Conditions',
@@ -33,7 +33,7 @@ const DEFAULT_PAGES: Record<string, InfoPageContent> = {
   },
   'refund-policy': {
     title: 'Refund Policy',
-    content: 'We offer a strict 7-day return and exchange window from the date of consignment delivery. In order to process an exchange or refund, the customer must coordinate and schedule the return shipping back to our logistics hub. Items must be returned in their original, pristine condition: unworn, unwashed, with all original security tags intact, and in their original packaging box. Any products that are returned damaged, worn, or with missing tags will not be eligible for a refund. To initiate a return, email us at freert8468017123@gmail.com or call +91 84680 17123.'
+    content: 'We offer a strict 7-day return and exchange window from the date of consignment delivery. In order to process an exchange or refund, the customer must coordinate and schedule the return shipping back to our logistics hub. Items must be returned in their original, pristine condition: unworn, unwashed, with all original security tags intact, and in their original packaging box. Any products that are returned damaged, worn, or with missing tags will not be eligible for a refund. To initiate a return, email us at freertofficial@gmail.com or call +91 84680 17123.'
   },
   'return-exchange': {
     title: 'Return & Exchange Policy',
@@ -230,7 +230,7 @@ export default function InfoPage() {
                 </li>
                 <li className="flex items-start gap-3">
                   <Mail size={16} className="text-accent-gold mt-0.5 flex-shrink-0" />
-                  <span>freert8468017123@gmail.com</span>
+                  <span>freertofficial@gmail.com</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Phone size={16} className="text-accent-gold mt-0.5 flex-shrink-0" />

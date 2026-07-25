@@ -12,7 +12,7 @@ import { Mail, Compass, HelpCircle, AlertTriangle } from 'lucide-react';
 export default function SupportPage() {
   const { showToast } = useToast();
   const { getSetting } = useSettings();
-  const storeEmail = getSetting('store_email', 'freert8468017123@gmail.com');
+  const storeEmail = getSetting('store_email', 'freertofficial@gmail.com');
   const storePhone = getSetting('store_phone', '+91 84680 17123');
   const storeAddress = getSetting('store_address', 'FREERT Headquarters, New Delhi, India');
   const [name, setName] = useState('');
