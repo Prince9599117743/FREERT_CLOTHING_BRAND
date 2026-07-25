@@ -20,7 +20,7 @@ export async function sendTransactionalEmail(payload: EmailPayload): Promise<{ s
 
   const body = {
     sender: payload.sender || {
-      email: 'freert8468017123@gmail.com',
+      email: 'freertofficial@gmail.com',
       name: 'FREERT'
     },
     to: payload.to,
