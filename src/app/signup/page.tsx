@@ -71,7 +71,7 @@ export default function SignupPage() {
     e.preventDefault();
     if (loading) return;
 
-    if (phone && !/^[6-9]\d{9}$/.test(phone)) {
+    if (!phone || !/^[6-9]\d{9}$/.test(phone)) {
       showToast('Please enter a valid 10-digit Indian mobile number.', 'error');
       return;
     }
@@ -95,7 +95,7 @@ export default function SignupPage() {
         return;
       }
 
-      // Send OTP
+      // Send OTP via Brevo
       const res = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -104,7 +104,7 @@ export default function SignupPage() {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        showToast(data.error || 'Failed to send OTP. Please try again.', 'error');
+        showToast(data.error || 'Failed to send verification code. Please try again.', 'error');
       } else {
         setOtp(['', '', '', '', '', '']);
         setOtpError('');
@@ -174,7 +174,7 @@ export default function SignupPage() {
     setOtpError('');
 
     try {
-      // Verify OTP
+      // Verify OTP against our Brevo-sent OTP in DB
       const verRes = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -184,29 +184,33 @@ export default function SignupPage() {
 
       if (!verData.valid) {
         const msgs: Record<string, string> = {
-          expired: 'This OTP has expired. Please request a new one.',
-          invalid: 'Incorrect OTP. Please try again.',
-          not_found: 'OTP not found. Please request a new one.'
+          expired: 'This code has expired. Please request a new one.',
+          invalid: 'Incorrect code. Please check and try again.',
+          not_found: 'Code not found. Please request a new one.'
         };
-        setOtpError(msgs[verData.reason] || 'Invalid OTP. Please try again.');
+        setOtpError(msgs[verData.reason] || 'Invalid code. Please try again.');
         setOtp(['', '', '', '', '', '']);
         otpRefs[0].current?.focus();
         setLoading(false);
         return;
       }
 
-      // OTP valid — Create Supabase account
-      const { data, error } = await supabase.auth.signUp({
-        email: email.toLowerCase().trim(),
-        password,
-        options: {
-          data: { full_name: fullName, phone }
-        }
+      // OTP verified ✅ — Create account via server route (skips Supabase confirmation email)
+      const signupRes = await fetch('/api/auth/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.toLowerCase().trim(),
+          password,
+          fullName,
+          phone
+        })
       });
+      const signupData = await signupRes.json();
 
-      if (error) {
-        setOtpError(error.message);
-      } else if (data.user) {
+      if (!signupRes.ok || !signupData.success) {
+        setOtpError(signupData.error || 'Account creation failed. Please try again.');
+      } else {
         setStep('success');
       }
     } catch {
@@ -302,13 +306,14 @@ export default function SignupPage() {
                 </div>
 
                 <div>
-                  <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-1.5 block font-medium">Mobile Number <span className="text-[8px] text-text-muted font-light normal-case">(Optional)</span></label>
+                  <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted mb-1.5 block font-medium">Mobile Number</label>
                   <input
                     type="tel"
+                    required
                     value={phone}
                     onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     className="input-editorial text-xs"
-                    placeholder="10-digit number"
+                    placeholder="10-digit Indian mobile number"
                     autoComplete="tel"
                   />
                 </div>
