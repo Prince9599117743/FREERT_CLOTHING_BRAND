@@ -424,65 +424,32 @@ function DashboardContent() {
   return (
     <main className="flex-1 container-editorial py-12 md:py-20">
       <h1 className="text-2xl md:text-3xl font-light uppercase tracking-widest text-left mb-12 text-fg-luxury">My Account</h1>
+      <div className="flex border-b border-neutral-soft/20 pb-4 mb-10 overflow-x-auto gap-8 text-[9.5px] uppercase tracking-[0.2em] text-text-muted font-light justify-start no-scrollbar">
+        {[
+          { key: 'profile', label: 'Personal Profile', icon: <User size={12} strokeWidth={1.5} /> },
+          { key: 'orders', label: `My Orders (${orders.length})`, icon: <Package size={12} strokeWidth={1.5} /> },
+          { key: 'addresses', label: `Saved Addresses (${addresses.length})`, icon: <MapPin size={12} strokeWidth={1.5} /> },
+          { key: 'coupons', label: 'My Coupons', icon: <Tag size={12} strokeWidth={1.5} /> },
+          { key: 'payments', label: 'Saved Payments', icon: <CreditCard size={12} strokeWidth={1.5} /> },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => { setActiveTab(tab.key as any); router.push(`/dashboard?tab=${tab.key}`); }}
+            className={`flex items-center gap-2 pb-2 transition-all duration-300 border-b cursor-pointer whitespace-nowrap ${
+              activeTab === tab.key 
+                ? 'border-fg-luxury text-fg-luxury font-semibold' 
+                : 'border-transparent hover:text-fg-luxury'
+            }`}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-        
-        {/* Left Side: Navigation Links & Initials Avatar card */}
-        <div className="lg:col-span-3 bg-neutral-soft/10 p-6 border border-neutral-soft/40 flex flex-col gap-6 text-left">
-          <div className="flex items-center gap-3.5 pb-5 border-b border-neutral-soft/20">
-            <div className="w-10 h-10 bg-fg-luxury text-bg-luxury rounded-full flex items-center justify-center font-editorial font-semibold text-sm">
-              {user ? user.fullName?.charAt(0).toUpperCase() || 'U' : 'C'}
-            </div>
-            <div className="truncate">
-              <h3 className="text-xs uppercase tracking-widest font-semibold text-fg-luxury truncate max-w-[150px]">
-                {user ? user.fullName || 'Registered client' : 'User Account'}
-              </h3>
-              <p className="text-[8.5px] text-text-muted lowercase truncate max-w-[150px] mt-0.5">{user?.email}</p>
-            </div>
-          </div>
-
-          <nav className="flex flex-col gap-4 text-[9.5px] uppercase tracking-[0.2em] text-text-muted font-light">
-            <button 
-              onClick={() => { setActiveTab('profile'); router.push('/dashboard?tab=profile'); }}
-              className={`flex items-center gap-2.5 transition-colors cursor-pointer text-left ${activeTab === 'profile' ? 'text-accent-gold font-semibold' : 'hover:text-fg-luxury'}`}
-            >
-              <User size={12} strokeWidth={1.5} /> Personal Profile
-            </button>
-            <button 
-              onClick={() => { setActiveTab('orders'); router.push('/dashboard?tab=orders'); }}
-              className={`flex items-center gap-2.5 transition-colors cursor-pointer text-left ${activeTab === 'orders' ? 'text-accent-gold font-semibold' : 'hover:text-fg-luxury'}`}
-            >
-              <Package size={12} strokeWidth={1.5} /> My Orders ({orders.length})
-            </button>
-            <button 
-              onClick={() => { setActiveTab('addresses'); router.push('/dashboard?tab=addresses'); }}
-              className={`flex items-center gap-2.5 transition-colors cursor-pointer text-left ${activeTab === 'addresses' ? 'text-accent-gold font-semibold' : 'hover:text-fg-luxury'}`}
-            >
-              <MapPin size={12} strokeWidth={1.5} /> Saved Addresses ({addresses.length})
-            </button>
-            <button 
-              onClick={() => { setActiveTab('coupons'); router.push('/dashboard?tab=coupons'); }}
-              className={`flex items-center gap-2.5 transition-colors cursor-pointer text-left ${activeTab === 'coupons' ? 'text-accent-gold font-semibold' : 'hover:text-fg-luxury'}`}
-            >
-              <Tag size={12} strokeWidth={1.5} /> My Coupons
-            </button>
-            <button 
-              onClick={() => { setActiveTab('payments'); router.push('/dashboard?tab=payments'); }}
-              className={`flex items-center gap-2.5 transition-colors cursor-pointer text-left ${activeTab === 'payments' ? 'text-accent-gold font-semibold' : 'hover:text-fg-luxury'}`}
-            >
-              <CreditCard size={12} strokeWidth={1.5} /> Saved Payments
-            </button>
-            <button 
-              onClick={handleSignOutClick}
-              className="flex items-center gap-2.5 transition-colors hover:text-red-700 cursor-pointer text-left border-t border-neutral-soft/20 pt-4 mt-2"
-            >
-              <LogOut size={12} strokeWidth={1.5} /> Sign Out
-            </button>
-          </nav>
-        </div>
-
-        {/* Right Side: Dynamic Content Tab */}
-        <div className="lg:col-span-9 text-left">
+      {/* Main Dynamic Content area */}
+      <div className="w-full text-left">
           
           {/* TAB 1: PROFILE TAB */}
           {activeTab === 'profile' && (
@@ -1085,7 +1052,6 @@ function DashboardContent() {
           )}
 
         </div>
-      </div>
 
       {/* Cancellation Request Modal dialog popup */}
       {cancellationOrderId && (
