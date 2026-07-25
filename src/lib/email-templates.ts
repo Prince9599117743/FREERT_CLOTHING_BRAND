@@ -174,8 +174,9 @@ export function orderConfirmationTemplate(data: OrderEmailData): string {
   <!-- Track CTA -->
   <tr>
     <td style="padding:28px 40px 32px;text-align:center;">
-      <p style="margin:0 0 16px;font-size:10px;color:#9B9B9B;letter-spacing:0.08em;">You can track your order anytime at</p>
-      <a href="https://freert.in/track-order" style="display:inline-block;background:#1A1A1A;color:#FDFAF6;text-decoration:none;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;padding:14px 32px;">Track My Order</a>
+      <p style="margin:0 0 16px;font-size:10px;color:#9B9B9B;letter-spacing:0.08em;">You can track your order or download your invoice anytime at</p>
+      <a href="https://freert.in/track-order" style="display:inline-block;background:#1A1A1A;color:#FDFAF6;text-decoration:none;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;padding:14px 28px;margin:5px;">Track My Order</a>
+      <a href="https://freert.in/order/${data.orderId}/invoice" style="display:inline-block;background:transparent;color:#1A1A1A;border:1px solid #1A1A1A;text-decoration:none;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;padding:13px 28px;margin:5px;">Invoice PDF</a>
     </td>
   </tr>
   `;
