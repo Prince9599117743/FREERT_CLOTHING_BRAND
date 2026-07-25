@@ -8,7 +8,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/CartDrawer';
-import { createOrder, getSiteSettings, validateCoupon } from '@/services/database';
+import { createOrder, getSiteSettings, validateCoupon, getAddresses, saveAddress } from '@/services/database';
 import { ArrowRight, CreditCard, Shield, Truck, AlertTriangle, Check, MapPin, ClipboardCheck, Trash2 } from 'lucide-react';
 
 export default function CheckoutPage() {
@@ -27,6 +27,17 @@ export default function CheckoutPage() {
   const [postalCode, setPostalCode] = useState('');
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('cod');
+  
+  // Saved profiles & Card input states
+  const [saveAddressToProfile, setSaveAddressToProfile] = useState(true);
+  const [savePaymentToProfile, setSavePaymentToProfile] = useState(true);
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [savedCards, setSavedCards] = useState<any[]>([]);
+  
+  const [checkoutCardNumber, setCheckoutCardNumber] = useState('');
+  const [checkoutCardHolder, setCheckoutCardHolder] = useState('');
+  const [checkoutCardExpiry, setCheckoutCardExpiry] = useState('');
+  const [checkoutCardCvv, setCheckoutCardCvv] = useState('');
   
   const [isRazorpayAvailable, setIsRazorpayAvailable] = useState(false);
   const [isExpressEnabled, setIsExpressEnabled] = useState(true);
@@ -56,6 +67,16 @@ export default function CheckoutPage() {
       setEmail(user.email);
       setFullName(user.fullName || '');
       setPhone(user.phone || '');
+      
+      const fetchAddresses = async () => {
+        try {
+          const res = await getAddresses(user.id);
+          setSavedAddresses(res || []);
+        } catch (e) {
+          console.error("Failed to fetch saved addresses:", e);
+        }
+      };
+      fetchAddresses();
     }
 
     const loadSettings = async () => {
@@ -248,6 +269,45 @@ export default function CheckoutPage() {
       const existing = localStorage.getItem('freert_orders_log');
       const orderHistory = existing ? JSON.parse(existing) : [];
       localStorage.setItem('freert_orders_log', JSON.stringify([placedOrder, ...orderHistory]));
+
+      // Save address to profile if checked
+      if (user && saveAddressToProfile) {
+        try {
+          await saveAddress({
+            userId: user.id,
+            addressType: 'shipping',
+            street,
+            city,
+            state: stateName,
+            country: 'India',
+            postalCode,
+            isDefault: true
+          });
+        } catch (e) {
+          console.warn('[Checkout] Failed to save address to profile:', e);
+        }
+      }
+
+      // Save card to profile if online payment checked
+      if (paymentMethod === 'razorpay' && savePaymentToProfile && checkoutCardNumber.length >= 12) {
+        try {
+          const currentCardsStr = localStorage.getItem('freert_saved_cards');
+          const currentCards = currentCardsStr ? JSON.parse(currentCardsStr) : [];
+          const cardBrand = checkoutCardNumber.startsWith('4') ? 'Visa' : checkoutCardNumber.startsWith('5') ? 'Mastercard' : 'ExpressCard';
+          const last4 = checkoutCardNumber.substring(checkoutCardNumber.length - 4);
+          const newCard = {
+            id: Math.random().toString(),
+            number: `•••• •••• •••• ${last4}`,
+            brand: cardBrand,
+            holder: checkoutCardHolder.toUpperCase() || 'VALUED CUSTOMER',
+            expiry: checkoutCardExpiry || '12/30'
+          };
+          const updated = [newCard, ...currentCards];
+          localStorage.setItem('freert_saved_cards', JSON.stringify(updated));
+        } catch (e) {
+          console.warn('[Checkout] Failed to save card to profile:', e);
+        }
+      }
 
       clearCart();
       sessionStorage.removeItem('freert_discount_active');
@@ -487,6 +547,35 @@ export default function CheckoutPage() {
               {currentStep === 1 && (
                 /* Step 1: Address Details Form */
                 <form onSubmit={handleNextStep} className="text-left flex flex-col gap-8">
+                  {savedAddresses.length > 0 && (
+                    <div className="bg-neutral-soft/5 p-5 border border-neutral-soft/30 rounded-[12px] flex flex-col gap-3">
+                      <span className="text-[9px] uppercase tracking-[0.2em] font-bold text-accent-gold block">
+                        Saved Coordinates on File
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {savedAddresses.map((addr) => (
+                          <div 
+                            key={addr.id}
+                            onClick={() => {
+                              setStreet(addr.street);
+                              setCity(addr.city);
+                              setStateName(addr.state);
+                              setPostalCode(addr.postalCode || addr.postal_code || '');
+                              showToast('Address fields populated.', 'info');
+                            }}
+                            className="border border-neutral-soft/60 hover:border-fg-luxury hover:bg-fg-luxury/5 p-3.5 cursor-pointer transition-colors text-[10px] leading-relaxed relative flex flex-col gap-0.5 rounded-[8px]"
+                          >
+                            <span className="font-semibold text-fg-luxury uppercase tracking-wider block mb-1">
+                              {addr.street}
+                            </span>
+                            <p className="text-text-muted">{addr.city}, {addr.state} - {addr.postalCode || addr.postal_code}</p>
+                            <span className="text-[8px] uppercase tracking-widest text-accent-gold mt-1.5 font-semibold">Select Address</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <h3 className="text-xs uppercase tracking-[0.2em] font-semibold text-fg-luxury border-b border-neutral-soft/40 pb-2 mb-6">
                       01. Contact Coordinates
@@ -579,6 +668,18 @@ export default function CheckoutPage() {
                           />
                         </div>
                       </div>
+                      
+                      {user && (
+                        <label className="flex items-center gap-2 text-[9.5px] uppercase tracking-wider text-neutral-600 cursor-pointer mt-3 font-semibold select-none">
+                          <input 
+                            type="checkbox"
+                            checked={saveAddressToProfile}
+                            onChange={(e) => setSaveAddressToProfile(e.target.checked)}
+                            className="accent-fg-luxury"
+                          />
+                          Save this address to my profile
+                        </label>
+                      )}
                     </div>
                   </div>
 
@@ -601,7 +702,7 @@ export default function CheckoutPage() {
                       04. Payment Modes
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {isOnlinePaymentEnabled && (
+                      {true && (
                         <label className={`border p-5 flex items-center justify-between cursor-pointer transition-colors ${paymentMethod === 'razorpay' ? 'border-fg-luxury bg-fg-luxury/5' : 'border-neutral-soft/80'}`}>
                           <div className="flex items-center gap-3">
                             <input 
@@ -611,7 +712,7 @@ export default function CheckoutPage() {
                               onChange={() => setPaymentMethod('razorpay')}
                               className="accent-fg-luxury"
                             />
-                            <span className="text-xs uppercase tracking-wider font-medium text-fg-luxury">Online Payment (Coming Soon)</span>
+                            <span className="text-xs uppercase tracking-wider font-medium text-fg-luxury">Credit / Debit Card</span>
                           </div>
                           <CreditCard size={16} className="text-text-muted" />
                         </label>
@@ -630,6 +731,103 @@ export default function CheckoutPage() {
                         <Truck size={16} className="text-text-muted" />
                       </label>
                     </div>
+
+                    {paymentMethod === 'razorpay' && (
+                      <div className="mt-6 border border-neutral-soft/40 p-5 rounded-[12px] bg-[#FFFCF8] flex flex-col gap-4 animate-[slideDownFade_0.2s_ease-out]">
+                        <h4 className="text-[10px] uppercase tracking-widest text-neutral-800 font-semibold border-b border-neutral-200/50 pb-2">
+                          Enter Card Specifications
+                        </h4>
+
+                        {savedCards.length > 0 && (
+                          <div className="flex flex-col gap-2 mb-2 text-[10px] text-neutral-800">
+                            <span className="font-semibold uppercase tracking-wider text-[8px] text-accent-gold">Use a saved card:</span>
+                            <div className="flex flex-wrap gap-2">
+                              {savedCards.map(card => (
+                                <button
+                                  key={card.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setCheckoutCardNumber('4242424242424242'); // Simulated card number fill
+                                    setCheckoutCardHolder(card.holder);
+                                    setCheckoutCardExpiry(card.expiry);
+                                    showToast('Saved card selected.', 'info');
+                                  }}
+                                  className="border border-neutral-soft/60 hover:border-fg-luxury p-2 px-3 flex items-center gap-2 bg-[#FFFCF8] rounded-[8px] cursor-pointer text-left transition-colors font-medium text-[9px]"
+                                >
+                                  <CreditCard size={11} className="text-text-muted" />
+                                  <span>{card.brand} ending in {card.number.substring(card.number.length - 4)}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[8.5px] uppercase tracking-widest text-text-muted font-semibold">Card Number</label>
+                            <input 
+                              type="text"
+                              required
+                              value={checkoutCardNumber}
+                              onChange={(e) => setCheckoutCardNumber(e.target.value.replace(/[^0-9]/g, '').substring(0, 16))}
+                              className="input-editorial text-xs focus:ring-1 focus:ring-fg-luxury"
+                              placeholder="16-digit card number"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[8.5px] uppercase tracking-widest text-text-muted font-semibold">Cardholder Name</label>
+                            <input 
+                              type="text"
+                              required
+                              value={checkoutCardHolder}
+                              onChange={(e) => setCheckoutCardHolder(e.target.value)}
+                              className="input-editorial text-xs focus:ring-1 focus:ring-fg-luxury"
+                              placeholder="e.g. HARSH SHARMA"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[8.5px] uppercase tracking-widest text-text-muted font-semibold">Expiration Date</label>
+                            <input 
+                              type="text"
+                              required
+                              value={checkoutCardExpiry}
+                              placeholder="MM/YY"
+                              onChange={(e) => {
+                                let val = e.target.value.replace(/[^0-9/]/g, '');
+                                if (val.length === 2 && !val.includes('/')) {
+                                  val = val + '/';
+                                }
+                                setCheckoutCardExpiry(val.substring(0, 5));
+                              }}
+                              className="input-editorial text-xs focus:ring-1 focus:ring-fg-luxury"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[8.5px] uppercase tracking-widest text-text-muted font-semibold">CVV Code</label>
+                            <input 
+                              type="password"
+                              required
+                              value={checkoutCardCvv}
+                              onChange={(e) => setCheckoutCardCvv(e.target.value.replace(/[^0-9]/g, '').substring(0, 3))}
+                              className="input-editorial text-xs focus:ring-1 focus:ring-fg-luxury"
+                              placeholder="3 digits"
+                            />
+                          </div>
+                        </div>
+                        
+                        {user && (
+                          <label className="flex items-center gap-2 text-[9px] uppercase tracking-wider text-neutral-600 cursor-pointer mt-1 font-semibold select-none">
+                            <input 
+                              type="checkbox"
+                              checked={savePaymentToProfile}
+                              onChange={(e) => setSavePaymentToProfile(e.target.checked)}
+                              className="accent-fg-luxury"
+                            />
+                            Save payment method to my profile
+                          </label>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-4">

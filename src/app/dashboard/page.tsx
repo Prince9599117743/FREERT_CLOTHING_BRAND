@@ -9,7 +9,7 @@ import { CartDrawer } from '@/components/CartDrawer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { 
-  getOrders, getAddresses, saveAddress, deleteAddress, updateOrderDetails, getCleanOrderNumber
+  getOrders, getAddresses, saveAddress, deleteAddress, updateOrderDetails, getCleanOrderNumber, getCoupons
 } from '@/services/database';
 import type { Order, Address } from '@/types';
 import { 
@@ -80,6 +80,7 @@ function DashboardContent() {
 
   // Coupon copying state
   const [copiedCoupon, setCopiedCoupon] = useState<string | null>(null);
+  const [activeCoupons, setActiveCoupons] = useState<any[]>([]);
 
   // Saved payments states
   const [savedCards, setSavedCards] = useState<any[]>([]);
@@ -104,6 +105,17 @@ function DashboardContent() {
       setSavedCards(defaults);
       localStorage.setItem('freert_saved_cards', JSON.stringify(defaults));
     }
+
+    const loadCoupons = async () => {
+      try {
+        const couponsList = await getCoupons();
+        const activeOnly = couponsList.filter(c => c.isActive);
+        setActiveCoupons(activeOnly);
+      } catch (err) {
+        console.error('Failed to load active coupons:', err);
+      }
+    };
+    loadCoupons();
   }, []);
 
   const handleAddCard = (e: React.FormEvent) => {
@@ -885,47 +897,63 @@ function DashboardContent() {
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                {[
-                  { code: 'FREERT10', discount: '10% OFF', desc: 'Flat 10% off on all linen and outerwear apparel.', minOrder: 'No minimum order amount' },
-                  { code: 'WELCOME20', discount: '20% OFF', desc: 'Special welcome discount for your first order.', minOrder: 'Applicable on first order only' },
-                  { code: 'FESTIVE15', discount: '15% OFF', desc: 'Festive season promo. Applicable on items in cart.', minOrder: 'Min order value ₹4,999' }
-                ].map((coupon) => (
-                  <div key={coupon.code} className="border border-neutral-soft/40 p-5 rounded-[12px] bg-[#FFFCF8] flex flex-col justify-between shadow-sm relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#FFF9F2] rounded-full -mr-8 -mt-8 -z-10 group-hover:scale-110 transition-transform duration-500" />
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] uppercase tracking-widest text-accent-gold font-semibold bg-[#FFF9F2] px-2 py-0.5 border border-accent-gold/20 rounded-full">
-                          {coupon.discount}
-                        </span>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(coupon.code);
-                            setCopiedCoupon(coupon.code);
-                            showToast(`Coupon ${coupon.code} copied!`, 'success');
-                            setTimeout(() => setCopiedCoupon(null), 2000);
-                          }}
-                          className="text-[9px] uppercase tracking-wider text-text-muted hover:text-fg-luxury flex items-center gap-1.5 transition-colors cursor-pointer border border-neutral-soft/30 py-1 px-2.5 rounded-full hover:bg-neutral-50"
-                        >
-                          {copiedCoupon === coupon.code ? (
-                            <>
-                              <Check size={10} className="text-green-600" /> COPIED
-                            </>
-                          ) : (
-                            <>
-                              <Copy size={10} /> COPY CODE
-                            </>
-                          )}
-                        </button>
-                      </div>
-                      <h4 className="font-mono text-sm font-semibold tracking-widest text-neutral-900 mt-3">{coupon.code}</h4>
-                      <p className="text-[10px] text-neutral-600 font-light mt-1.5 leading-relaxed">{coupon.desc}</p>
-                    </div>
-                    <div className="border-t border-neutral-200/50 mt-4 pt-3 flex items-center gap-1.5 text-[8.5px] uppercase tracking-wider text-neutral-400">
-                      <Gift size={10} className="text-neutral-400" />
-                      <span>{coupon.minOrder}</span>
-                    </div>
+                {activeCoupons.length === 0 ? (
+                  <div className="border border-dashed border-neutral-soft/50 py-12 px-6 text-center rounded-[12px] flex flex-col items-center justify-center gap-3 col-span-1 md:col-span-2 w-full">
+                    <Tag size={24} className="text-neutral-300" strokeWidth={1.2} />
+                    <p className="text-[10px] text-text-muted uppercase tracking-widest leading-relaxed max-w-sm">
+                      No active discount coupons available currently.
+                    </p>
                   </div>
-                ))}
+                ) : (
+                  activeCoupons.map((coupon) => {
+                    const discountText = coupon.discountType === 'flat' 
+                      ? `₹${coupon.discountValue} OFF` 
+                      : `${coupon.discountValue}% OFF`;
+                    const minOrderText = coupon.minOrderAmount > 0 
+                      ? `Min order value ₹${coupon.minOrderAmount.toLocaleString('en-IN')}` 
+                      : 'No minimum order required';
+
+                    return (
+                      <div key={coupon.id || coupon.code} className="border border-neutral-soft/40 p-5 rounded-[12px] bg-[#FFFCF8] flex flex-col justify-between shadow-sm relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-[#FFF9F2] rounded-full -mr-8 -mt-8 -z-10 group-hover:scale-110 transition-transform duration-500" />
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] uppercase tracking-widest text-accent-gold font-semibold bg-[#FFF9F2] px-2 py-0.5 border border-accent-gold/20 rounded-full">
+                              {discountText}
+                            </span>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(coupon.code);
+                                setCopiedCoupon(coupon.code);
+                                showToast(`Coupon ${coupon.code} copied!`, 'success');
+                                setTimeout(() => setCopiedCoupon(null), 2000);
+                              }}
+                              className="text-[9px] uppercase tracking-wider text-text-muted hover:text-fg-luxury flex items-center gap-1.5 transition-colors cursor-pointer border border-neutral-soft/30 py-1 px-2.5 rounded-full hover:bg-neutral-50"
+                            >
+                              {copiedCoupon === coupon.code ? (
+                                <>
+                                  <Check size={10} className="text-green-600" /> COPIED
+                                </>
+                              ) : (
+                                <>
+                                  <Copy size={10} /> COPY CODE
+                                </>
+                              )}
+                            </button>
+                          </div>
+                          <h4 className="font-mono text-sm font-semibold tracking-widest text-neutral-900 mt-3">{coupon.code}</h4>
+                          <p className="text-[10px] text-neutral-600 font-light mt-1.5 leading-relaxed">
+                            Use code {coupon.code} at checkout to receive discount benefits. Valid for active items.
+                          </p>
+                        </div>
+                        <div className="border-t border-neutral-200/50 mt-4 pt-3 flex items-center gap-1.5 text-[8.5px] uppercase tracking-wider text-neutral-400">
+                          <Gift size={10} className="text-neutral-400" />
+                          <span>{minOrderText}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           )}
