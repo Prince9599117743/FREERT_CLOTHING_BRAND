@@ -66,45 +66,45 @@ export function CookieConsent() {
   if (consentState !== 'pending') return null;
 
   return (
-    <div className="fixed bottom-6 left-6 right-6 md:left-auto md:right-8 md:max-w-md bg-[#FFFCF8] border border-neutral-soft/60 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.08)] z-[999] rounded-[20px] animate-[slideInUp_0.5s_cubic-bezier(0.16,1,0.3,1)] select-none text-left">
+    <div className="fixed bottom-6 left-6 right-6 md:left-auto md:right-8 md:max-w-md bg-white/95 backdrop-blur-md border border-neutral-200/80 p-6 shadow-[0_30px_60px_rgba(0,0,0,0.08)] z-[999] rounded-none animate-[slideInUp_0.5s_cubic-bezier(0.16,1,0.3,1)] select-none text-left">
       <div className="flex flex-col gap-4">
         {/* Header Title */}
-        <div className="flex items-center justify-between border-b border-neutral-soft/20 pb-2.5">
+        <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
           <div className="flex items-center gap-2">
-            <ShieldCheck size={16} className="text-accent-gold" />
-            <span className="text-[10px] font-editorial uppercase tracking-[0.2em] font-semibold text-fg-luxury">
+            <div className="w-1.5 h-1.5 bg-neutral-900 rounded-full animate-pulse" />
+            <span className="text-[9px] font-sans uppercase tracking-[0.25em] font-semibold text-neutral-800">
               Cookie Preferences
             </span>
           </div>
           <button 
             onClick={handleReject}
-            className="text-stone-400 hover:text-fg-luxury cursor-pointer transition-colors p-1"
-            title="Reject all tracking"
+            className="text-neutral-400 hover:text-neutral-900 cursor-pointer transition-colors p-1"
+            title="Decline all tracking"
           >
-            <X size={14} />
+            <X size={12} />
           </button>
         </div>
 
         {/* Content Statement */}
-        <p className="text-[10px] text-text-muted leading-relaxed font-light uppercase tracking-wider">
-          We curate customizable styling coordinates. Enabling standard analytics tags assists our design house in optimizing catalog presentation. Review cookie choices to personalize your wardrobe workspace.
+        <p className="text-[10px] text-neutral-500 leading-relaxed font-light tracking-wide">
+          WE CURATE INDIVIDUALIZED EXPERIENCES. ENABLING DATA PREFERENCES ALLOWS OUR CONCIERGE TO MEASURE CATALOG PERFORMANCE AND SECURE WORKSPACE ENGAGEMENT. SELECT PREFERENCES TO PERSONALIZE YOUR WORKSPACE.
         </p>
 
         {/* Dynamic Buttons Panel */}
-        <div className="flex items-center gap-3 mt-1.5 text-[8.5px] uppercase font-semibold tracking-[0.15em]">
+        <div className="flex items-center gap-3 mt-1.5 text-[8.5px] uppercase font-semibold tracking-[0.2em]">
           <button
             type="button"
             onClick={handleReject}
-            className="flex-1 bg-transparent hover:bg-neutral-soft/20 text-fg-luxury border border-neutral-soft/60 py-2.5 cursor-pointer transition-colors rounded-[8px]"
+            className="flex-1 bg-transparent hover:bg-neutral-50 text-neutral-800 border border-neutral-200 py-3 cursor-pointer transition-all duration-300 rounded-none hover:border-neutral-800"
           >
             Decline
           </button>
           <button
             type="button"
             onClick={handleAccept}
-            className="flex-1 bg-fg-luxury text-bg-luxury hover:bg-neutral-800 py-2.5 cursor-pointer transition-colors rounded-[8px]"
+            className="flex-1 bg-neutral-900 text-white hover:bg-neutral-800 py-3 cursor-pointer transition-all duration-300 rounded-none border border-neutral-900"
           >
-            Accept All
+            Accept Cookies
           </button>
         </div>
       </div>
