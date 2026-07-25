@@ -137,6 +137,58 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [cart, user]);
 
+  // Real-time Live Visitors & Cart Sync heartbeat telemetry
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let sessionId = localStorage.getItem('freert_session_id');
+    if (!sessionId) {
+      sessionId = 'sess_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('freert_session_id', sessionId);
+    }
+
+    const sendHeartbeat = async () => {
+      try {
+        const cartPreview = cart.map(item => ({
+          name: item.variant?.product?.name || 'Garment',
+          slug: item.variant?.product?.slug || '',
+          size: item.variant?.size || 'One Size',
+          color: item.variant?.color || 'Default',
+          qty: item.qty,
+          price: item.priceOverride || item.variant?.product?.basePrice || 0,
+          thumbnail: item.variant?.product?.images?.[0] || null
+        }));
+
+        const payload = {
+          sessionId,
+          currentPage: window.location.pathname,
+          cart: cartPreview,
+          lastActive: new Date().toISOString(),
+          customerName: user?.fullName || 'Guest Shopper',
+          customerEmail: user?.email || 'Guest',
+          customerPhone: user?.phone || 'Guest'
+        };
+
+        // Write to support_tickets table as status='live_session'
+        await supabase.from('support_tickets').insert({
+          user_id: user?.id || null,
+          name: payload.customerName,
+          email: payload.customerEmail,
+          subject: `LIVE_SESSION_HEARTBEAT:${sessionId}`,
+          message: JSON.stringify(payload),
+          status: 'live_session'
+        });
+      } catch (err) {
+        // Silent recovery
+      }
+    };
+
+    // Trigger heartbeat immediately and refresh every 30 seconds
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 30000);
+    return () => clearInterval(interval);
+  }, [cart, user]);
+
   const addToCart = async (variant: ProductVariant & { product?: Product }, qty = 1, priceOverride?: number) => {
     const existingIndex = cart.findIndex(item => item.variantId === variant.id);
 

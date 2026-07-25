@@ -295,7 +295,7 @@ function AdminCoreWorkspace() {
   const [orders, setOrders] = useState<OrderAdmin[]>([]);
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [abandonedCarts, setAbandonedCarts] = useState<any[]>([]);
-  const [activeUsersCount, setActiveUsersCount] = useState<number>(6); // Default mock live visitors
+  const [liveShoppers, setLiveShoppers] = useState<any[]>([]);
   const [selectedAdminOrder, setSelectedAdminOrder] = useState<any>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -339,35 +339,70 @@ function AdminCoreWorkspace() {
 
   const fetchAbandonedCarts = async () => {
     try {
+      // 1. Clean up old heartbeats older than 1 hour to keep storage pristine
+      try {
+        await supabase
+          .from('support_tickets')
+          .delete()
+          .eq('status', 'live_session')
+          .lt('created_at', new Date(Date.now() - 3600000).toISOString());
+      } catch (cleanErr) {
+        console.warn('Prune logs error:', cleanErr);
+      }
+
+      // 2. Fetch all live_session heartbeats
       const { data, error } = await supabase
-        .from('cart')
-        .select(`
-          id,
-          qty,
-          created_at,
-          user:users(id, email, full_name, phone),
-          variant:product_variants(
-            id,
-            size,
-            color,
-            product:products(id, name, slug, images)
-          )
-        `)
+        .from('support_tickets')
+        .select('*')
+        .eq('status', 'live_session')
         .order('created_at', { ascending: false });
         
       if (!error && data) {
-        setAbandonedCarts(data);
+        // Group by subject (LIVE_SESSION_HEARTBEAT:[session_id])
+        const sessionMap: Record<string, any> = {};
+        
+        for (const item of data) {
+          const key = item.subject;
+          if (!sessionMap[key]) {
+            try {
+              const payload = JSON.parse(item.message);
+              sessionMap[key] = {
+                ...payload,
+                dbCreatedAt: item.created_at
+              };
+            } catch (e) {
+              // Ignore corrupt JSON
+            }
+          }
+        }
+        
+        const sessions = Object.values(sessionMap);
+        const now = Date.now();
+        
+        // Active live users: last active within 60 seconds
+        const active = sessions.filter((s: any) => {
+          const activeTime = new Date(s.lastActive || s.dbCreatedAt).getTime();
+          return now - activeTime <= 60000;
+        });
+        
+        // Abandoned Carts: last active older than 60 seconds AND has items in cart!
+        const abandoned = sessions.filter((s: any) => {
+          const activeTime = new Date(s.lastActive || s.dbCreatedAt).getTime();
+          const hasCartItems = Array.isArray(s.cart) && s.cart.length > 0;
+          return now - activeTime > 60000 && hasCartItems;
+        });
+        
+        setLiveShoppers(active);
+        setAbandonedCarts(abandoned);
       }
     } catch (err) {
-      console.error('Failed to load abandoned carts:', err);
+      console.error('Failed to parse telemetry sessions:', err);
     }
   };
 
-  // Fluctuate active users count dynamically between 4 and 11 to simulate live telemetry
+  // Poll for live heartbeats and abandoned carts every 15 seconds dynamically
   useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveUsersCount(Math.floor(Math.random() * (11 - 4 + 1)) + 4);
-    }, 8000);
+    const interval = setInterval(fetchAbandonedCarts, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -843,26 +878,76 @@ function AdminCoreWorkspace() {
       {/* Real-time Telemetry Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Live Traffic */}
-        <div className="bg-bg-luxury border border-neutral-soft/80 p-6 flex items-center justify-between hover:border-neutral-400 transition-all">
+        <div className="bg-bg-luxury border border-neutral-soft/80 p-6 flex flex-col justify-between hover:border-neutral-400 transition-all min-h-[110px]">
           <div className="flex flex-col">
             <span className="text-[9px] uppercase tracking-widest text-text-muted font-semibold flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
               Live Visitors
             </span>
-            <span className="text-xl font-light tracking-wide text-fg-luxury mt-2">{activeUsersCount} Active Shoppers</span>
-            <span className="text-[8px] uppercase tracking-widest text-text-muted mt-1">Real-time session telemetry</span>
+            <span className="text-xl font-light tracking-wide text-fg-luxury mt-2">{liveShoppers.length} Active Shoppers</span>
           </div>
+          <span className="text-[8px] uppercase tracking-widest text-text-muted mt-2">Real-time session telemetry</span>
         </div>
 
         {/* Abandoned Cart Opportunity */}
-        <div className="bg-bg-luxury border border-neutral-soft/80 p-6 flex items-center justify-between hover:border-neutral-400 transition-all">
+        <div className="bg-bg-luxury border border-neutral-soft/80 p-6 flex flex-col justify-between hover:border-neutral-400 transition-all min-h-[110px]">
           <div className="flex flex-col">
             <span className="text-[9px] uppercase tracking-widest text-text-muted font-semibold">Abandoned Carts</span>
             <span className="text-xl font-light tracking-wide text-fg-luxury mt-2">{abandonedCarts.length} Carts Left</span>
-            <span className="text-[8px] uppercase tracking-widest text-amber-800 font-semibold mt-1">Potential Recoverable Revenue</span>
           </div>
+          <span className="text-[8px] uppercase tracking-widest text-amber-800 font-semibold mt-2">Potential Recoverable Revenue</span>
         </div>
       </div>
+
+      {/* Live Visitors Details Panel */}
+      {liveShoppers.length > 0 && (
+        <div className="bg-bg-luxury border border-neutral-soft/80 p-6 flex flex-col gap-4">
+          <div className="border-b border-neutral-soft/30 pb-2 flex justify-between items-baseline">
+            <span className="text-[10px] uppercase tracking-widest text-fg-luxury font-semibold flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping" />
+              Live Telemetry Stream
+            </span>
+            <span className="text-[8.5px] uppercase tracking-widest text-text-muted font-light">Updates every 15s</span>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-72 overflow-y-auto pr-1">
+            {liveShoppers.map((shopper, idx) => {
+              const name = shopper.customerName || 'Guest Shopper';
+              const email = shopper.customerEmail || 'Guest';
+              const page = shopper.currentPage || '/';
+              const cartItems = shopper.cart || [];
+              
+              return (
+                <div key={idx} className="border border-neutral-soft/30 p-4 bg-bg-luxury flex flex-col gap-2 rounded-sm text-[10px]">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-semibold text-fg-luxury uppercase tracking-wider text-[10px]">{name}</p>
+                      <p className="text-[8.5px] text-text-muted mt-0.5">{email}</p>
+                    </div>
+                    <span className="text-[7.5px] uppercase tracking-wider bg-green-50 text-green-800 border border-green-200 px-2 py-0.5 font-bold">
+                      Viewing: {page}
+                    </span>
+                  </div>
+
+                  {cartItems.length > 0 && (
+                    <div className="border-t border-neutral-soft/10 pt-2 mt-1">
+                      <p className="text-[8px] uppercase tracking-widest text-fg-luxury font-bold mb-1">Shopping Cart Preview ({cartItems.length})</p>
+                      <div className="flex flex-col gap-1">
+                        {cartItems.map((c: any, cidx: number) => (
+                          <div key={cidx} className="flex justify-between items-center text-[9px] text-text-muted leading-relaxed">
+                            <span>{c.name} ({c.size}/{c.color}) x{c.qty}</span>
+                            <span className="font-medium text-fg-luxury">₹{(c.price * c.qty).toLocaleString('en-IN')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-bg-luxury border border-neutral-soft/80 p-6">
@@ -4023,6 +4108,9 @@ function AdminCoreWorkspace() {
                     await updateOrderStatus(o.id, nextStatus);
                     setOrders(prev => prev.map(item => item.id === o.id ? { ...item, status: nextStatus as any } : item));
                     showToast(`Order status updated to ${nextStatus}.`, 'success');
+                    // Refresh dashboard stats dynamically
+                    const freshStats = await getDashboardStats();
+                    setDashboardStats(freshStats);
                   } catch {
                     showToast('Update failed.', 'error');
                   }
@@ -4207,9 +4295,9 @@ function AdminCoreWorkspace() {
   const renderAbandonedCarts = () => (
     <div className="flex flex-col gap-6 text-left text-xs text-text-muted animate-[fadeIn_0.3s_ease-out]">
       <div className="border-b border-neutral-soft pb-3 flex justify-between items-center">
-        <h2 className="text-sm uppercase tracking-widest font-semibold text-fg-luxury">Abandoned Shopping Carts</h2>
+        <h2 className="text-sm uppercase tracking-widest font-semibold text-fg-luxury">Abandoned Shopping Sessions</h2>
         <span className="text-[9px] uppercase tracking-widest bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1 font-semibold">
-          Active Opportunities: {abandonedCarts.length}
+          Active Recoverable Opportunities: {abandonedCarts.length}
         </span>
       </div>
 
@@ -4217,63 +4305,69 @@ function AdminCoreWorkspace() {
         <div className="border border-dashed border-neutral-soft py-16 text-center rounded-[8px] flex flex-col items-center justify-center gap-3 bg-bg-luxury/40">
           <ShoppingCart size={24} className="text-neutral-300" strokeWidth={1.2} />
           <p className="text-[10px] text-text-muted uppercase tracking-widest leading-relaxed max-w-sm">
-            No active abandoned carts detected. All logged-in clients have successfully completed their checkout sessions.
+            No active abandoned carts detected. All active shopping cycles are currently live or completed.
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {abandonedCarts.map((item) => {
-            const prod = item.variant?.product;
-            const name = prod?.name || 'Bespoke Garment';
-            const slug = prod?.slug || '';
-            const thumb = prod?.images?.[0] || '/assets/trench_coat.jpg';
-            const size = item.variant?.size || 'One Size';
-            const color = item.variant?.color || 'Default';
-            const customer = item.user?.full_name || 'Registered Client';
-            const email = item.user?.email || '—';
-            const phone = item.user?.phone || '—';
+          {abandonedCarts.map((session, idx) => {
+            const customer = session.customerName || 'Guest Shopper';
+            const email = session.customerEmail || 'Guest';
+            const phone = session.customerPhone || '—';
+            const cartItems = session.cart || [];
             
             return (
-              <div key={item.id} className="border border-neutral-soft p-5 bg-bg-luxury flex gap-4 rounded-sm hover:shadow-md transition-shadow relative group">
-                {/* Product Thumbnail */}
-                <div className="w-16 h-20 bg-neutral-soft/20 border border-neutral-soft/30 flex-shrink-0 relative overflow-hidden">
-                  <img
-                    src={thumb}
-                    alt={name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-
-                <div className="flex-1 flex flex-col justify-between">
-                  <div className="flex flex-col gap-0.5">
-                    {/* Clickable redirect to store product */}
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-fg-luxury text-[10px] uppercase tracking-wider">{name}</span>
-                      {slug && (
-                        <a
-                          href={`/product/${slug}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-accent-gold hover:text-fg-luxury transition-colors"
-                          title="View product storefront"
-                        >
-                          <ExternalLink size={10} />
-                        </a>
-                      )}
+              <div key={idx} className="border border-neutral-soft p-5 bg-bg-luxury flex flex-col justify-between rounded-sm hover:shadow-md transition-shadow relative">
+                <div>
+                  <div className="flex justify-between items-start border-b border-neutral-soft/20 pb-2 mb-3">
+                    <div>
+                      <p className="font-semibold text-fg-luxury uppercase tracking-wider text-[10px]">{customer}</p>
+                      <p className="text-[8.5px] text-text-muted mt-0.5">{email} &middot; Tel: {phone}</p>
                     </div>
-                    <span className="text-[8px] uppercase text-text-muted tracking-widest font-light">
-                      Size: {size} &middot; Color: {color} &middot; Qty: {item.qty}
+                    <span className="text-[7.5px] text-neutral-400 font-mono">
+                      Last Active: {new Date(session.lastActive || session.dbCreatedAt).toLocaleDateString('en-IN')} {new Date(session.lastActive || session.dbCreatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
 
-                  <div className="border-t border-neutral-soft/20 pt-2.5 mt-2 text-[9px] text-text-muted font-light flex flex-col gap-0.5">
-                    <p className="font-semibold text-fg-luxury uppercase tracking-wider text-[7.5px] mb-0.5">Shopper Details</p>
-                    <p>Client: <span className="font-medium text-neutral-800">{customer}</span></p>
-                    <p>Email: <span className="font-medium text-neutral-800">{email}</span></p>
-                    <p>Phone: <span className="font-medium text-neutral-800">{phone}</span></p>
-                    <p className="text-[7.5px] text-neutral-400 mt-1">
-                      Added on: {new Date(item.created_at).toLocaleString('en-IN')}
-                    </p>
+                  <div className="flex flex-col gap-3">
+                    {cartItems.map((c: any, cidx: number) => (
+                      <div key={cidx} className="flex gap-3 border-b border-neutral-soft/10 pb-2.5 last:border-0 last:pb-0">
+                        {c.thumbnail ? (
+                          <img
+                            src={c.thumbnail}
+                            alt={c.name}
+                            className="w-10 h-14 object-cover border border-neutral-soft/30 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-14 bg-neutral-soft/20 border border-neutral-soft/30 flex-shrink-0 flex items-center justify-center text-[6px] text-text-muted uppercase tracking-wider font-semibold">
+                            No Img
+                          </div>
+                        )}
+                        <div className="flex-1 flex flex-col justify-between text-[10px]">
+                          <div>
+                            <div className="flex items-center gap-1">
+                              <span className="font-semibold text-fg-luxury text-[9.5px] uppercase tracking-wide">{c.name}</span>
+                              {c.slug && (
+                                <a
+                                  href={`/product/${c.slug}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-accent-gold hover:text-fg-luxury transition-colors"
+                                  title="View product storefront"
+                                >
+                                  <ExternalLink size={9} />
+                                </a>
+                              )}
+                            </div>
+                            <p className="text-[8px] uppercase tracking-wider text-text-muted mt-0.5">Size: {c.size} &middot; Color: {c.color}</p>
+                          </div>
+                          <div className="flex justify-between items-baseline mt-1">
+                            <span className="text-[8px] text-text-muted">Qty: {c.qty}</span>
+                            <span className="font-semibold text-fg-luxury">₹{(c.price * c.qty).toLocaleString('en-IN')}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
