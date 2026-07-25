@@ -385,11 +385,9 @@ function AdminCoreWorkspace() {
           return now - activeTime <= 60000;
         });
         
-        // Abandoned Carts: last active older than 60 seconds AND has items in cart!
+        // Abandoned Carts: any session that has items in cart!
         const abandoned = sessions.filter((s: any) => {
-          const activeTime = new Date(s.lastActive || s.dbCreatedAt).getTime();
-          const hasCartItems = Array.isArray(s.cart) && s.cart.length > 0;
-          return now - activeTime > 60000 && hasCartItems;
+          return Array.isArray(s.cart) && s.cart.length > 0;
         });
         
         setLiveShoppers(active);
@@ -4319,12 +4317,27 @@ function AdminCoreWorkspace() {
             return (
               <div key={idx} className="border border-neutral-soft p-5 bg-bg-luxury flex flex-col justify-between rounded-sm hover:shadow-md transition-shadow relative">
                 <div>
-                  <div className="flex justify-between items-start border-b border-neutral-soft/20 pb-2 mb-3">
+                  <div className="flex justify-between items-start border-b border-neutral-soft/20 pb-2 mb-3 flex-wrap gap-2">
                     <div>
-                      <p className="font-semibold text-fg-luxury uppercase tracking-wider text-[10px]">{customer}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-fg-luxury uppercase tracking-wider text-[10px]">{customer}</p>
+                        {(() => {
+                          const activeTime = new Date(session.lastActive || session.dbCreatedAt).getTime();
+                          const isLive = Date.now() - activeTime <= 60000;
+                          return (
+                            <span className={`text-[7px] uppercase tracking-wider font-bold py-0.5 px-1.5 border rounded-none ${
+                              isLive 
+                                ? 'bg-green-50 text-green-800 border-green-200 animate-pulse' 
+                                : 'bg-stone-50 text-stone-600 border-stone-200'
+                            }`}>
+                              {isLive ? 'Active Live' : 'Idle / Left'}
+                            </span>
+                          );
+                        })()}
+                      </div>
                       <p className="text-[8.5px] text-text-muted mt-0.5">{email} &middot; Tel: {phone}</p>
                     </div>
-                    <span className="text-[7.5px] text-neutral-400 font-mono">
+                    <span className="text-[7.5px] text-neutral-400 font-mono self-start">
                       Last Active: {new Date(session.lastActive || session.dbCreatedAt).toLocaleDateString('en-IN')} {new Date(session.lastActive || session.dbCreatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
