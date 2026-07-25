@@ -405,36 +405,17 @@ export const updateOrderDetails = async (orderId: string, updates: any): Promise
 };
 
 export const getOrderById = async (orderId: string): Promise<any> => {
-  verifyConnection();
-  const { data, error } = await supabase
-    .from('orders')
-    .select(`
-      *,
-      user:users(id, email, full_name, phone),
-      items:order_items(*, product:products(*), variant:product_variants(*, product:products(*))),
-      payment:payments(*),
-      address:shipping_address_id(*)
-    `)
-    .eq('id', orderId)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) {
-    if (/^\d+$/.test(orderId)) {
-      const { data: allData, error: err } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          user:users(id, email, full_name, phone),
-          items:order_items(*, product:products(*), variant:product_variants(*, product:products(*))),
-          payment:payments(*),
-          address:shipping_address_id(*)
-        `);
-      if (err) throw err;
-      const found = allData?.find(o => getCleanOrderNumber(o.id).replace('#', '') === orderId);
-      return found || null;
+  try {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000');
+    const res = await fetch(`${baseUrl}/api/order/${orderId}`);
+    if (res.ok) {
+      return await res.json();
     }
+    return null;
+  } catch (e) {
+    console.error('[getOrderById] API fetch failed:', e);
+    return null;
   }
-  return data;
 };
 
 export const createOrder = async (
