@@ -75,16 +75,26 @@ export default function InfoPage() {
       }
     }
 
+    let activePage: InfoPageContent | null = null;
     if (pages[pageKey]) {
-      setPage(pages[pageKey]);
+      activePage = pages[pageKey];
     } else if (pageKey === 'contact') {
-      setPage({ title: 'Contact Us', content: 'Get in touch with our concierge team.' });
+      activePage = { title: 'Contact Us', content: 'Get in touch with our concierge team at freertofficial@gmail.com.' };
     } else if (pageKey === 'faq') {
-      setPage({ title: 'Frequently Asked Questions', content: 'Common inquiries regarding collections, shipping, and customization.' });
+      activePage = { title: 'Frequently Asked Questions', content: 'Common inquiries regarding collections, shipping, and customization.' };
     } else if (pageKey === 'size-guide') {
-      setPage({ title: 'Size Guide', content: 'Sizing matrix for our structured, relaxed silhouetted garments.' });
+      activePage = { title: 'Size Guide', content: 'Sizing matrix for our structured, relaxed silhouetted garments.' };
     } else {
-      setPage({ title: 'Page Not Found', content: 'The requested policy node could not be loaded.' });
+      activePage = { title: 'Page Not Found', content: 'The requested policy node could not be loaded.' };
+    }
+
+    if (activePage) {
+      setPage(activePage);
+      document.title = `${activePage.title} | FREERT`;
+      const meta = document.querySelector('meta[name="description"]');
+      if (meta) {
+        meta.setAttribute('content', activePage.content.substring(0, 160) + '...');
+      }
     }
   }, [pageKey]);
 

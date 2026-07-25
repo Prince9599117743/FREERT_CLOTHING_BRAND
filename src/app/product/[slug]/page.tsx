@@ -207,6 +207,11 @@ export default function ProductDetailPage() {
         const item = await getProductBySlug(slug as string);
         setProduct(item);
         if (item) {
+          document.title = `${item.name} | FREERT`;
+          const meta = document.querySelector('meta[name="description"]');
+          if (meta) {
+            meta.setAttribute('content', `${item.name} at FREERT. ${item.description || 'Premium minimalist luxury apparel.'}`);
+          }
           const itemColorsConfig = item.colors && item.colors.length > 0 ? item.colors.filter((c: any) => c.is_active) : [];
           const itemColors = itemColorsConfig.length > 0 
             ? itemColorsConfig.map((c: any) => c.color_name) 
