@@ -8,7 +8,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/CartDrawer';
-import { createOrder, getSiteSettings, validateCoupon, getAddresses, saveAddress } from '@/services/database';
+import { createOrder, getSiteSettings, validateCoupon, getAddresses, saveAddress, getCleanOrderNumber } from '@/services/database';
 import { ArrowRight, CreditCard, Shield, Truck, AlertTriangle, Check, MapPin, ClipboardCheck, Trash2 } from 'lucide-react';
 
 export default function CheckoutPage() {
@@ -86,13 +86,13 @@ export default function CheckoutPage() {
         setIsExpressEnabled(expressEnabled);
         const onlineEnabled = settings['online_payment_enabled'] === 'true';
         setIsOnlinePaymentEnabled(onlineEnabled);
-        setPaymentMethod(onlineEnabled ? 'razorpay' : 'cod');
+        setPaymentMethod('cod');
       } catch (err) {
         const expressSaved = localStorage.getItem('freert_express_delivery_enabled') !== 'false';
         setIsExpressEnabled(expressSaved);
         const onlineSaved = localStorage.getItem('freert_online_payment_enabled') === 'true';
         setIsOnlinePaymentEnabled(onlineSaved);
-        setPaymentMethod(onlineSaved ? 'razorpay' : 'cod');
+        setPaymentMethod('cod');
       }
     };
     loadSettings();
@@ -244,9 +244,9 @@ export default function CheckoutPage() {
       }, cart);
 
       const placedOrder = {
-        id: dbOrder.orderNumber ? String(dbOrder.orderNumber) : dbOrder.id,
+        id: getCleanOrderNumber(dbOrder.id),
         rawId: dbOrder.id,
-        order_number: dbOrder.orderNumber,
+        order_number: getCleanOrderNumber(dbOrder.id),
         date: new Date().toISOString().split('T')[0],
         totalAmount: total,
         discountAmount: discountAmount,
@@ -448,7 +448,7 @@ export default function CheckoutPage() {
                 Order Placed Successfully
               </span>
               <h2 className="text-2xl uppercase tracking-widest font-semibold text-fg-luxury mt-2">
-                Order ID: #{placedOrderDetails?.order_number || placedOrderDetails?.id}
+                Order ID: {placedOrderDetails?.id && placedOrderDetails.id.startsWith('#') ? placedOrderDetails.id : `#${placedOrderDetails?.id}`}
               </h2>
               <p className="text-[11px] text-text-muted max-w-sm leading-relaxed mt-1">
                 Thank you for choosing FREERT. Your bespoke order has been registered and is being prepared by our master craftsmen.
@@ -701,29 +701,14 @@ export default function CheckoutPage() {
                     <h3 className="text-xs uppercase tracking-[0.2em] font-semibold text-fg-luxury border-b border-neutral-soft/40 pb-2 mb-6">
                       04. Payment Modes
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {true && (
-                        <label className={`border p-5 flex items-center justify-between cursor-pointer transition-colors ${paymentMethod === 'razorpay' ? 'border-fg-luxury bg-fg-luxury/5' : 'border-neutral-soft/80'}`}>
-                          <div className="flex items-center gap-3">
-                            <input 
-                              type="radio" 
-                              name="payment" 
-                              checked={paymentMethod === 'razorpay'}
-                              onChange={() => setPaymentMethod('razorpay')}
-                              className="accent-fg-luxury"
-                            />
-                            <span className="text-xs uppercase tracking-wider font-medium text-fg-luxury">Credit / Debit Card</span>
-                          </div>
-                          <CreditCard size={16} className="text-text-muted" />
-                        </label>
-                      )}
-                      <label className={`border p-5 flex items-center justify-between cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'border-fg-luxury bg-fg-luxury/5' : 'border-neutral-soft/80'}`}>
+                    <div className="grid grid-cols-1 gap-4">
+                      <label className="border p-5 flex items-center justify-between cursor-default border-fg-luxury bg-fg-luxury/5">
                         <div className="flex items-center gap-3">
                           <input 
                             type="radio" 
                             name="payment" 
-                            checked={paymentMethod === 'cod'}
-                            onChange={() => setPaymentMethod('cod')}
+                            checked={true}
+                            readOnly
                             className="accent-fg-luxury"
                           />
                           <span className="text-xs uppercase tracking-wider font-medium text-fg-luxury">Cash On Delivery</span>
@@ -731,103 +716,6 @@ export default function CheckoutPage() {
                         <Truck size={16} className="text-text-muted" />
                       </label>
                     </div>
-
-                    {paymentMethod === 'razorpay' && (
-                      <div className="mt-6 border border-neutral-soft/40 p-5 rounded-[12px] bg-[#FFFCF8] flex flex-col gap-4 animate-[slideDownFade_0.2s_ease-out]">
-                        <h4 className="text-[10px] uppercase tracking-widest text-neutral-800 font-semibold border-b border-neutral-200/50 pb-2">
-                          Enter Card Specifications
-                        </h4>
-
-                        {savedCards.length > 0 && (
-                          <div className="flex flex-col gap-2 mb-2 text-[10px] text-neutral-800">
-                            <span className="font-semibold uppercase tracking-wider text-[8px] text-accent-gold">Use a saved card:</span>
-                            <div className="flex flex-wrap gap-2">
-                              {savedCards.map(card => (
-                                <button
-                                  key={card.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setCheckoutCardNumber('4242424242424242'); // Simulated card number fill
-                                    setCheckoutCardHolder(card.holder);
-                                    setCheckoutCardExpiry(card.expiry);
-                                    showToast('Saved card selected.', 'info');
-                                  }}
-                                  className="border border-neutral-soft/60 hover:border-fg-luxury p-2 px-3 flex items-center gap-2 bg-[#FFFCF8] rounded-[8px] cursor-pointer text-left transition-colors font-medium text-[9px]"
-                                >
-                                  <CreditCard size={11} className="text-text-muted" />
-                                  <span>{card.brand} ending in {card.number.substring(card.number.length - 4)}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-[8.5px] uppercase tracking-widest text-text-muted font-semibold">Card Number</label>
-                            <input 
-                              type="text"
-                              required
-                              value={checkoutCardNumber}
-                              onChange={(e) => setCheckoutCardNumber(e.target.value.replace(/[^0-9]/g, '').substring(0, 16))}
-                              className="input-editorial text-xs focus:ring-1 focus:ring-fg-luxury"
-                              placeholder="16-digit card number"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-[8.5px] uppercase tracking-widest text-text-muted font-semibold">Cardholder Name</label>
-                            <input 
-                              type="text"
-                              required
-                              value={checkoutCardHolder}
-                              onChange={(e) => setCheckoutCardHolder(e.target.value)}
-                              className="input-editorial text-xs focus:ring-1 focus:ring-fg-luxury"
-                              placeholder="e.g. HARSH SHARMA"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-[8.5px] uppercase tracking-widest text-text-muted font-semibold">Expiration Date</label>
-                            <input 
-                              type="text"
-                              required
-                              value={checkoutCardExpiry}
-                              placeholder="MM/YY"
-                              onChange={(e) => {
-                                let val = e.target.value.replace(/[^0-9/]/g, '');
-                                if (val.length === 2 && !val.includes('/')) {
-                                  val = val + '/';
-                                }
-                                setCheckoutCardExpiry(val.substring(0, 5));
-                              }}
-                              className="input-editorial text-xs focus:ring-1 focus:ring-fg-luxury"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-[8.5px] uppercase tracking-widest text-text-muted font-semibold">CVV Code</label>
-                            <input 
-                              type="password"
-                              required
-                              value={checkoutCardCvv}
-                              onChange={(e) => setCheckoutCardCvv(e.target.value.replace(/[^0-9]/g, '').substring(0, 3))}
-                              className="input-editorial text-xs focus:ring-1 focus:ring-fg-luxury"
-                              placeholder="3 digits"
-                            />
-                          </div>
-                        </div>
-                        
-                        {user && (
-                          <label className="flex items-center gap-2 text-[9px] uppercase tracking-wider text-neutral-600 cursor-pointer mt-1 font-semibold select-none">
-                            <input 
-                              type="checkbox"
-                              checked={savePaymentToProfile}
-                              onChange={(e) => setSavePaymentToProfile(e.target.checked)}
-                              className="accent-fg-luxury"
-                            />
-                            Save payment method to my profile
-                          </label>
-                        )}
-                      </div>
-                    )}
                   </div>
 
                   <div className="flex gap-4">

@@ -1828,21 +1828,7 @@ export default function ProductDetailPage() {
         )}
       </main>
 
-      {/* Mobile Sticky CTA footer overlay */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-45 bg-[#ffffff]/90 backdrop-blur-md p-3.5 border-t border-[#E5E5E0] flex gap-3 shadow-lg">
-        <button
-          onClick={handleAddToBag}
-          className="btn-luxury flex-1 text-[10px] py-3.5 rounded"
-        >
-          {added ? 'Added' : 'Add to Bag'}
-        </button>
-        <button
-          onClick={handleWishlistToggle}
-          className="border border-[#E5E5E0] bg-white p-3.5 text-stone-900 flex items-center justify-center rounded"
-        >
-          <Heart size={14} fill={favorited ? '#dc2626' : 'none'} className={favorited ? 'text-red-600' : ''} />
-        </button>
-      </div>
+      {/* Mobile Sticky CTA footer overlay removed to prevent duplicate buttons */}
 
       <CartDrawer />
       <Footer />

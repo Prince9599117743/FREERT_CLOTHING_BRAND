@@ -141,29 +141,55 @@ export default function InvoicePage() {
 
       {/* Invoice Sheet Area */}
       <div className="w-full max-w-4xl border border-neutral-300 p-8 md:p-12 bg-white flex flex-col gap-10 shadow-sm text-left relative">
-        {/* Top Header Section */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 border-b border-neutral-300 pb-8">
-          <div className="flex items-center gap-3">
-            <img src="/freert-logo.svg" alt="FREERT" className="w-9 h-9 object-contain" />
-            <div className="flex flex-col gap-0.5 text-left">
-              <h1 className="text-xl font-semibold tracking-[0.2em] uppercase text-neutral-900 leading-none">
-                {brandName}
-              </h1>
-              <span className="text-[7.5px] uppercase tracking-[0.25em] text-neutral-500 font-medium mt-1">Concierge Division &bull; {storeAddress}</span>
+        
+        {/* Top Header / Letterhead Section */}
+        <div className="border-b-2 border-neutral-950 pb-8 flex flex-col gap-6">
+          <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+            <div className="flex flex-col gap-2 text-left">
+              {/* Logo / Brand Name */}
+              <div className="flex items-center gap-2">
+                <span className="font-serif text-3xl font-extralight tracking-[0.25em] text-neutral-900 uppercase">
+                  FREERT
+                </span>
+              </div>
+              <p className="text-[9px] uppercase tracking-[0.25em] text-neutral-500 font-medium">
+                Luxury Apparel &amp; Bespoke Tailoring Concierge
+              </p>
+              {/* Store Details and GSTIN */}
+              <div className="text-[9px] text-neutral-500 leading-relaxed font-light mt-1 uppercase tracking-wider">
+                <p>{storeAddress}</p>
+                <p>Tel: +91 95991 17743 &bull; Email: concierge@freert.in</p>
+                <p className="font-semibold text-neutral-800 mt-1 font-mono tracking-widest text-[9.5px]">
+                  GSTIN: 09AAGCF1797C1ZJ
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="text-right sm:text-right flex flex-col gap-0.5 text-xs">
-            <span className="text-[11px] uppercase tracking-widest text-neutral-400">Tax Invoice Receipt</span>
-            <span className="font-semibold text-neutral-950 text-sm">Invoice ID: {displayId}</span>
-            <span className="text-[9.5px] font-light text-neutral-500">Date: {creationDate}</span>
+            
+            {/* Invoice Info */}
+            <div className="text-left md:text-right flex flex-col gap-1.5">
+              <span className="bg-neutral-950 text-white text-[8px] uppercase tracking-[0.3em] font-medium py-1 px-3 w-fit md:ml-auto rounded-none">
+                Tax Invoice Receipt
+              </span>
+              <div className="mt-2 text-xs flex flex-col gap-1">
+                <p className="font-semibold text-neutral-950 text-[12px] uppercase tracking-widest">
+                  Invoice No: {displayId}
+                </p>
+                <p className="text-neutral-500 text-[10px] font-light">
+                  Order Date: <span className="font-medium text-neutral-800">{creationDate}</span>
+                </p>
+                <p className="text-neutral-500 text-[10px] font-light">
+                  Payment Mode: <span className="font-medium uppercase tracking-wider text-neutral-800">{order.payment_provider || order.payment?.provider || 'Cash on Delivery (COD)'}</span>
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Recipient Details & Addresses Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-[11px] font-light text-neutral-600">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-[11px] font-light text-neutral-600 border-b border-neutral-100 pb-8">
           {/* Customer coordinates */}
           <div className="flex flex-col gap-3">
-            <span className="text-[9px] uppercase tracking-wider font-bold text-neutral-800 border-b border-neutral-200 pb-1.5">Recipient Particulars</span>
+            <span className="text-[9px] uppercase tracking-wider font-bold text-neutral-800 border-b border-neutral-200 pb-1.5">Billed &amp; Shipped To:</span>
             <div className="flex flex-col gap-1.5">
               <p className="font-semibold text-neutral-950 uppercase tracking-wide text-xs">{address.name}</p>
               <p className="flex items-center gap-1.5"><Mail size={11} /> {address.email}</p>
@@ -173,7 +199,7 @@ export default function InvoicePage() {
 
           {/* Delivery destination addresses */}
           <div className="flex flex-col gap-3">
-            <span className="text-[9px] uppercase tracking-wider font-bold text-neutral-800 border-b border-neutral-200 pb-1.5">Shipping Destination</span>
+            <span className="text-[9px] uppercase tracking-wider font-bold text-neutral-800 border-b border-neutral-200 pb-1.5">Logistics Address:</span>
             <div className="flex flex-col gap-1.5">
               <p className="font-semibold text-neutral-950 flex items-center gap-1.5"><MapPin size={11} /> {address.street}</p>
               <p>{address.city}, {address.state}</p>

@@ -14,7 +14,7 @@ import {
 import type { Order, Address } from '@/types';
 import { 
   Package, User, Star, Copy, Check, Edit2, Trash2, Plus, MapPin, 
-  CreditCard, Calendar, Truck, Clipboard, ShieldAlert, LogOut, ArrowRight, ChevronRight, Tag, Gift
+  CreditCard, Calendar, Truck, Clipboard, ShieldAlert, LogOut, ArrowRight, ChevronRight, Tag, Gift, Printer
 } from 'lucide-react';
 
 interface OrderItemLog {
@@ -430,7 +430,6 @@ function DashboardContent() {
           { key: 'orders', label: `My Orders (${orders.length})`, icon: <Package size={12} strokeWidth={1.5} /> },
           { key: 'addresses', label: `Saved Addresses (${addresses.length})`, icon: <MapPin size={12} strokeWidth={1.5} /> },
           { key: 'coupons', label: 'My Coupons', icon: <Tag size={12} strokeWidth={1.5} /> },
-          { key: 'payments', label: 'Saved Payments', icon: <CreditCard size={12} strokeWidth={1.5} /> },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -560,6 +559,13 @@ function DashboardContent() {
                             {order.cancelRequested && order.cancelRequestStatus === 'pending' ? 'Cancellation Pending' : order.status}
                           </span>
                           
+                          <button 
+                             onClick={() => window.open(`/order/${order.rawId || order.id}/invoice`, '_blank')}
+                             className="text-[8.5px] text-fg-luxury hover:text-accent-gold uppercase font-semibold border border-neutral-soft px-2.5 py-1 cursor-pointer transition-colors flex items-center gap-1"
+                           >
+                             <Printer size={10} /> Invoice
+                           </button>
+
                           {/* Cancel Request Trigger button */}
                           {!order.cancelRequested && order.status !== 'cancelled' && order.status !== 'delivered' && order.status !== 'shipped' && (
                             <button
@@ -925,131 +931,7 @@ function DashboardContent() {
             </div>
           )}
 
-          {activeTab === 'payments' && (
-            <div className="border border-neutral-soft/50 p-6 md:p-8 bg-bg-luxury flex flex-col gap-6 animate-[fadeIn_0.3s_ease-out]">
-              <div className="flex justify-between items-center border-b border-neutral-soft/20 pb-3">
-                <h2 className="text-xs uppercase tracking-[0.25em] font-semibold text-fg-luxury">Saved Payment Methods</h2>
-                <button
-                  onClick={() => setIsAddingCard(!isAddingCard)}
-                  className="btn-editorial text-[9px] font-semibold tracking-widest uppercase py-2 px-4 flex items-center gap-1.5 cursor-pointer hover:bg-neutral-50 transition-colors"
-                >
-                  <Plus size={11} /> {isAddingCard ? 'Cancel' : 'Add New Card'}
-                </button>
-              </div>
-
-              {isAddingCard && (
-                <form onSubmit={handleAddCard} className="border border-neutral-soft/40 p-5 rounded-[12px] bg-[#FFFCF8] flex flex-col gap-4 animate-[slideDownFade_0.2s_ease-out]">
-                  <h3 className="text-[10px] uppercase tracking-widest text-neutral-800 font-semibold border-b border-neutral-200/50 pb-2">
-                    Add Debit/Credit Card
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[8.5px] uppercase tracking-widest text-text-muted font-semibold">Card Number</label>
-                      <input 
-                        type="text"
-                        required
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value.replace(/[^0-9]/g, '').substring(0, 16))}
-                        className="input-editorial text-xs focus:ring-1 focus:ring-fg-luxury"
-                        placeholder="16-digit card number"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[8.5px] uppercase tracking-widest text-text-muted font-semibold">Cardholder Name</label>
-                      <input 
-                        type="text"
-                        required
-                        value={cardHolder}
-                        onChange={(e) => setCardHolder(e.target.value)}
-                        className="input-editorial text-xs focus:ring-1 focus:ring-fg-luxury"
-                        placeholder="e.g. HARSH SHARMA"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[8.5px] uppercase tracking-widest text-text-muted font-semibold">Expiration Date</label>
-                      <input 
-                        type="text"
-                        required
-                        value={cardExpiry}
-                        onChange={(e) => {
-                          let val = e.target.value.replace(/[^0-9/]/g, '');
-                          if (val.length === 2 && !val.includes('/')) {
-                            val = val + '/';
-                          }
-                          setCardExpiry(val.substring(0, 5));
-                        }}
-                        className="input-editorial text-xs focus:ring-1 focus:ring-fg-luxury"
-                        placeholder="MM/YY"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[8.5px] uppercase tracking-widest text-text-muted font-semibold">CVV Code</label>
-                      <input 
-                        type="password"
-                        required
-                        value={cardCvv}
-                        onChange={(e) => setCardCvv(e.target.value.replace(/[^0-9]/g, '').substring(0, 3))}
-                        className="input-editorial text-xs focus:ring-1 focus:ring-fg-luxury"
-                        placeholder="3 digits"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isSavingCard}
-                    className="btn-editorial-solid text-[9px] py-3.5 tracking-widest uppercase font-semibold mt-2 cursor-pointer self-start px-8"
-                  >
-                    {isSavingCard ? 'Saving Card...' : 'Save Card Details'}
-                  </button>
-                </form>
-              )}
-
-              {savedCards.length === 0 ? (
-                <div className="border border-dashed border-neutral-soft/50 py-12 px-6 text-center rounded-[12px] flex flex-col items-center justify-center gap-3">
-                  <CreditCard size={24} className="text-neutral-300" strokeWidth={1.2} />
-                  <p className="text-[10px] text-text-muted uppercase tracking-widest leading-relaxed max-w-sm">
-                    No credit or debit cards saved. Save your card details during checkout for a faster payment experience next time.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {savedCards.map((card) => (
-                    <div key={card.id} className="border border-neutral-soft/30 p-5 rounded-[12px] bg-gradient-to-br from-[#1a1a1a] to-[#262626] text-[#FFFCF8] flex flex-col justify-between h-[160px] shadow-md relative overflow-hidden group">
-                      <div className="absolute right-4 top-4 font-serif text-[11px] tracking-[0.2em] text-[#FFFCF8]/40 font-light italic">
-                        {card.brand}
-                      </div>
-                      
-                      <div className="flex flex-col gap-1 mt-2">
-                        <span className="text-[8px] tracking-[0.25em] text-[#FFFCF8]/50 uppercase font-light">Card Number</span>
-                        <p className="font-mono text-sm tracking-[0.18em] text-[#FFFCF8] font-medium">{card.number}</p>
-                      </div>
-
-                      <div className="flex items-end justify-between mt-auto">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-[7.5px] tracking-[0.25em] text-[#FFFCF8]/40 uppercase font-light">Card Holder</span>
-                          <p className="text-[10px] tracking-wider uppercase font-light text-[#FFFCF8]/90 truncate max-w-[130px]">{card.holder}</p>
-                        </div>
-                        <div className="flex flex-col gap-0.5 text-right">
-                          <span className="text-[7.5px] tracking-[0.25em] text-[#FFFCF8]/40 uppercase font-light">Expires</span>
-                          <p className="text-[10px] tracking-widest font-mono text-[#FFFCF8]/90">{card.expiry}</p>
-                        </div>
-                      </div>
-
-                      <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <button
-                          onClick={() => handleDeleteCard(card.id)}
-                          className="bg-red-950/90 text-red-200 border border-red-800/30 hover:bg-red-900 transition-colors text-[8px] uppercase tracking-widest font-semibold py-1 px-2.5 rounded-full cursor-pointer"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+      {/* Payments tab removed */}
 
         </div>
 

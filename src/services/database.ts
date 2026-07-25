@@ -408,7 +408,7 @@ export const getOrderById = async (orderId: string): Promise<any> => {
   if (error) throw error;
   if (!data) {
     if (/^\d+$/.test(orderId)) {
-      const { data: numData, error: numErr } = await supabase
+      const { data: allData, error: err } = await supabase
         .from('orders')
         .select(`
           *,
@@ -416,13 +416,12 @@ export const getOrderById = async (orderId: string): Promise<any> => {
           items:order_items(*, product:products(*), variant:product_variants(*, product:products(*))),
           payment:payments(*),
           address:shipping_address_id(*)
-        `)
-        .eq('order_number', parseInt(orderId, 10))
-        .maybeSingle();
-      if (numErr) throw numErr;
-      return numData;
-      }
+        `);
+      if (err) throw err;
+      const found = allData?.find(o => getCleanOrderNumber(o.id).replace('#', '') === orderId);
+      return found || null;
     }
+  }
   return data;
 };
 
@@ -1326,23 +1325,29 @@ export const deleteComboOffer = async (id: string): Promise<void> => {
 
 export const getOrderForTracking = async (query: string): Promise<any> => {
   verifyConnection();
-  let dbQuery = supabase
-    .from('orders')
-    .select(`*, items:order_items(*, product:products(*), variant:product_variants(*, product:products(*))), payment:payments(*)`);
-    
+  const cleanNum = query.replace('#', '').trim();
+  
   if (query.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/)) {
-    dbQuery = dbQuery.eq('id', query);
-  } else {
-    const cleanNum = query.replace('#', '').trim();
-    const orderNum = parseInt(cleanNum, 10);
-    if (!isNaN(orderNum)) {
-      dbQuery = dbQuery.eq('order_number', orderNum);
-    } else {
-      dbQuery = dbQuery.eq('tracking_number', query);
-    }
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`*, items:order_items(*, product:products(*), variant:product_variants(*, product:products(*))), payment:payments(*)`)
+      .eq('id', query)
+      .maybeSingle();
+    if (!error && data) return data;
   }
   
-  const { data, error } = await dbQuery.maybeSingle();
+  const { data: allOrders, error } = await supabase
+    .from('orders')
+    .select(`*, items:order_items(*, product:products(*), variant:product_variants(*, product:products(*))), payment:payments(*)`)
+    .order('created_at', { ascending: false });
+    
   if (error) throw error;
-  return data;
+  if (!allOrders) return null;
+  
+  const found = allOrders.find(o => {
+    const cleanNo = getCleanOrderNumber(o.id).replace('#', '');
+    return cleanNo === cleanNum || o.tracking_number === query;
+  });
+  
+  return found || null;
 };

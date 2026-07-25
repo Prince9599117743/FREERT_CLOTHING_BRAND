@@ -215,18 +215,32 @@ export default function TrackOrderPage() {
               <h3 className="text-[10px] uppercase tracking-[0.25em] font-semibold text-fg-luxury pb-2 border-b border-neutral-soft/20"> CONSIGNMENT ARTICLES </h3>
               <div className="flex flex-col gap-4">
                 {order.items?.map((item: any) => {
-                  const prod = item.variant?.product;
+                  const prod = item.product || item.variant?.product;
+                  const name = prod?.name || 'Garment Detail';
+                  const slug = prod?.slug || '';
                   const thumb = prod?.images?.[0] || '/assets/trench_coat.jpg';
+                  const size = item.size || item.variant?.size || 'One Size';
+                  const color = item.color || item.variant?.color || 'Default';
                   return (
                     <div key={item.id} className="flex justify-between items-center gap-6 pb-4 border-b border-neutral-soft/20 last:border-0 last:pb-0">
                       <div className="flex items-center gap-4">
-                        <img src={thumb} className="w-10 h-14 object-cover border border-neutral-soft/40" alt="" />
-                        <div className="flex flex-col gap-0.5">
-                          <Link href={`/product/${prod?.slug || ''}`} className="text-[11px] uppercase tracking-wider font-semibold text-fg-luxury hover:text-accent-gold transition-colors">
-                            {prod?.name || 'Garment Article'}
+                        {slug ? (
+                          <Link href={`/product/${slug}`}>
+                            <img src={thumb} className="w-10 h-14 object-cover border border-neutral-soft/40 cursor-pointer hover:opacity-90 transition-opacity" alt={name} />
                           </Link>
+                        ) : (
+                          <img src={thumb} className="w-10 h-14 object-cover border border-neutral-soft/40" alt={name} />
+                        )}
+                        <div className="flex flex-col gap-0.5">
+                          {slug ? (
+                            <Link href={`/product/${slug}`} className="text-[11px] uppercase tracking-wider font-semibold text-fg-luxury hover:text-accent-gold transition-colors">
+                              {name}
+                            </Link>
+                          ) : (
+                            <span className="text-[11px] uppercase tracking-wider font-semibold text-fg-luxury">{name}</span>
+                          )}
                           <span className="text-[8px] uppercase text-text-muted tracking-widest font-light">
-                            Size: {item.variant?.size || 'One Size'} · Color: {item.variant?.color || 'Default'}
+                            Size: {size} · Color: {color}
                           </span>
                         </div>
                       </div>

@@ -265,8 +265,7 @@ export const Navbar: React.FC = () => {
                           { name: 'Wishlist', href: '/wishlist', icon: <Heart size={12} strokeWidth={1.5} /> },
                           { name: 'Saved Addresses', href: '/dashboard?tab=addresses', icon: <MapPin size={12} strokeWidth={1.5} /> },
                           { name: 'Coupons', href: '/dashboard?tab=coupons', icon: <Tag size={12} strokeWidth={1.5} /> },
-                          { name: 'Account Settings', href: '/dashboard?tab=profile', icon: <Settings size={12} strokeWidth={1.5} /> },
-                          { name: 'Saved Payments', href: '/dashboard?tab=payments', icon: <CreditCard size={12} strokeWidth={1.5} /> }
+                          { name: 'Account Settings', href: '/dashboard?tab=profile', icon: <Settings size={12} strokeWidth={1.5} /> }
                         ].map((item, index) => {
                           const isActive = pathname === item.href;
                           return (
