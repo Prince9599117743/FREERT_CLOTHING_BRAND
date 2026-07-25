@@ -16,6 +16,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'sessionId is required' }, { status: 400 });
     }
 
+    // Prune old telemetry sessions older than 2 minutes to keep database storage footprint minimal
+    try {
+      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+      await supabaseAdmin
+        .from('support_tickets')
+        .delete()
+        .eq('status', 'live_session')
+        .lt('created_at', twoMinutesAgo);
+    } catch (pruneErr: any) {
+      console.warn('[Telemetry] Pruning error:', pruneErr.message);
+    }
+
     const { data, error } = await supabaseAdmin.from('support_tickets').insert({
       name: customerName || 'Guest Shopper',
       email: customerEmail || 'Guest',
