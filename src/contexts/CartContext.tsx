@@ -169,14 +169,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           customerPhone: user?.phone || 'Guest'
         };
 
-        // Write to support_tickets table as status='live_session'
-        await supabase.from('support_tickets').insert({
-          user_id: user?.id || null,
-          name: payload.customerName,
-          email: payload.customerEmail,
-          subject: `LIVE_SESSION_HEARTBEAT:${sessionId}`,
-          message: JSON.stringify(payload),
-          status: 'live_session'
+        // Send heartbeat via secure server API to bypass client RLS constraints
+        await fetch('/api/telemetry/heartbeat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
         });
       } catch (err) {
         // Silent recovery
