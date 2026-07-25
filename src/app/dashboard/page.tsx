@@ -14,7 +14,7 @@ import {
 import type { Order, Address } from '@/types';
 import { 
   Package, User, Star, Copy, Check, Edit2, Trash2, Plus, MapPin, 
-  CreditCard, Calendar, Truck, Clipboard, ShieldAlert, LogOut, ArrowRight, ChevronRight
+  CreditCard, Calendar, Truck, Clipboard, ShieldAlert, LogOut, ArrowRight, ChevronRight, Tag, Gift
 } from 'lucide-react';
 
 interface OrderItemLog {
@@ -50,7 +50,7 @@ function DashboardContent() {
   const { user, updateProfile, logout } = useAuth();
   const { showToast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'addresses'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'addresses' | 'coupons' | 'payments'>('profile');
   const [orders, setOrders] = useState<OrderLog[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [dbError, setDbError] = useState(false);
@@ -78,10 +78,82 @@ function DashboardContent() {
   const [customReason, setCustomReason] = useState('');
   const [isSubmittingCancellation, setIsSubmittingCancellation] = useState(false);
 
+  // Coupon copying state
+  const [copiedCoupon, setCopiedCoupon] = useState<string | null>(null);
+
+  // Saved payments states
+  const [savedCards, setSavedCards] = useState<any[]>([]);
+  const [isAddingCard, setIsAddingCard] = useState(false);
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardHolder, setCardHolder] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [isSavingCard, setIsSavingCard] = useState(false);
+
+  useEffect(() => {
+    const localCards = localStorage.getItem('freert_saved_cards');
+    if (localCards) {
+      try {
+        setSavedCards(JSON.parse(localCards));
+      } catch (e) {}
+    } else {
+      const defaults = [
+        { id: '1', number: '•••• •••• •••• 4242', brand: 'Visa', holder: 'HARSH SHARMA', expiry: '12/28' },
+        { id: '2', number: '•••• •••• •••• 9876', brand: 'Mastercard', holder: 'HARSH SHARMA', expiry: '08/29' }
+      ];
+      setSavedCards(defaults);
+      localStorage.setItem('freert_saved_cards', JSON.stringify(defaults));
+    }
+  }, []);
+
+  const handleAddCard = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cardNumber || !cardHolder || !cardExpiry || !cardCvv) {
+      showToast('Please fill all card details.', 'error');
+      return;
+    }
+    const cleanedNumber = cardNumber.replace(/\s+/g, '');
+    if (cleanedNumber.length < 12) {
+      showToast('Invalid card number.', 'error');
+      return;
+    }
+
+    setIsSavingCard(true);
+    setTimeout(() => {
+      const newCard = {
+        id: String(Date.now()),
+        number: `•••• •••• •••• ${cleanedNumber.substring(cleanedNumber.length - 4)}`,
+        brand: cleanedNumber.startsWith('4') ? 'Visa' : 'Mastercard',
+        holder: cardHolder.toUpperCase(),
+        expiry: cardExpiry
+      };
+
+      const updated = [...savedCards, newCard];
+      setSavedCards(updated);
+      localStorage.setItem('freert_saved_cards', JSON.stringify(updated));
+      setIsAddingCard(false);
+      
+      setCardNumber('');
+      setCardHolder('');
+      setCardExpiry('');
+      setCardCvv('');
+      
+      setIsSavingCard(false);
+      showToast('Card saved successfully.', 'success');
+    }, 800);
+  };
+
+  const handleDeleteCard = (cardId: string) => {
+    const updated = savedCards.filter(c => c.id !== cardId);
+    setSavedCards(updated);
+    localStorage.setItem('freert_saved_cards', JSON.stringify(updated));
+    showToast('Card removed successfully.', 'info');
+  };
+
   // Fetch active tab from URL query params
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'orders' || tab === 'addresses' || tab === 'profile') {
+    if (tab === 'orders' || tab === 'addresses' || tab === 'profile' || tab === 'coupons' || tab === 'payments') {
       setActiveTab(tab as any);
     }
   }, [searchParams]);
@@ -375,6 +447,18 @@ function DashboardContent() {
               className={`flex items-center gap-2.5 transition-colors cursor-pointer text-left ${activeTab === 'addresses' ? 'text-accent-gold font-semibold' : 'hover:text-fg-luxury'}`}
             >
               <MapPin size={12} strokeWidth={1.5} /> Saved Addresses ({addresses.length})
+            </button>
+            <button 
+              onClick={() => { setActiveTab('coupons'); router.push('/dashboard?tab=coupons'); }}
+              className={`flex items-center gap-2.5 transition-colors cursor-pointer text-left ${activeTab === 'coupons' ? 'text-accent-gold font-semibold' : 'hover:text-fg-luxury'}`}
+            >
+              <Tag size={12} strokeWidth={1.5} /> My Coupons
+            </button>
+            <button 
+              onClick={() => { setActiveTab('payments'); router.push('/dashboard?tab=payments'); }}
+              className={`flex items-center gap-2.5 transition-colors cursor-pointer text-left ${activeTab === 'payments' ? 'text-accent-gold font-semibold' : 'hover:text-fg-luxury'}`}
+            >
+              <CreditCard size={12} strokeWidth={1.5} /> Saved Payments
             </button>
             <button 
               onClick={handleSignOutClick}
@@ -784,6 +868,187 @@ function DashboardContent() {
                       >
                         <Trash2 size={11} /> Remove
                       </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'coupons' && (
+            <div className="border border-neutral-soft/50 p-6 md:p-8 bg-bg-luxury flex flex-col gap-6 animate-[fadeIn_0.3s_ease-out]">
+              <div className="flex justify-between items-center border-b border-neutral-soft/20 pb-3">
+                <h2 className="text-xs uppercase tracking-[0.25em] font-semibold text-fg-luxury">Active Coupon Codes</h2>
+              </div>
+              <p className="text-[10px] text-text-muted uppercase tracking-widest leading-relaxed">
+                Apply these codes during checkout to avail exclusive brand discounts and promotions.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                {[
+                  { code: 'FREERT10', discount: '10% OFF', desc: 'Flat 10% off on all linen and outerwear apparel.', minOrder: 'No minimum order amount' },
+                  { code: 'WELCOME20', discount: '20% OFF', desc: 'Special welcome discount for your first order.', minOrder: 'Applicable on first order only' },
+                  { code: 'FESTIVE15', discount: '15% OFF', desc: 'Festive season promo. Applicable on items in cart.', minOrder: 'Min order value ₹4,999' }
+                ].map((coupon) => (
+                  <div key={coupon.code} className="border border-neutral-soft/40 p-5 rounded-[12px] bg-[#FFFCF8] flex flex-col justify-between shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#FFF9F2] rounded-full -mr-8 -mt-8 -z-10 group-hover:scale-110 transition-transform duration-500" />
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase tracking-widest text-accent-gold font-semibold bg-[#FFF9F2] px-2 py-0.5 border border-accent-gold/20 rounded-full">
+                          {coupon.discount}
+                        </span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(coupon.code);
+                            setCopiedCoupon(coupon.code);
+                            showToast(`Coupon ${coupon.code} copied!`, 'success');
+                            setTimeout(() => setCopiedCoupon(null), 2000);
+                          }}
+                          className="text-[9px] uppercase tracking-wider text-text-muted hover:text-fg-luxury flex items-center gap-1.5 transition-colors cursor-pointer border border-neutral-soft/30 py-1 px-2.5 rounded-full hover:bg-neutral-50"
+                        >
+                          {copiedCoupon === coupon.code ? (
+                            <>
+                              <Check size={10} className="text-green-600" /> COPIED
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={10} /> COPY CODE
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <h4 className="font-mono text-sm font-semibold tracking-widest text-neutral-900 mt-3">{coupon.code}</h4>
+                      <p className="text-[10px] text-neutral-600 font-light mt-1.5 leading-relaxed">{coupon.desc}</p>
+                    </div>
+                    <div className="border-t border-neutral-200/50 mt-4 pt-3 flex items-center gap-1.5 text-[8.5px] uppercase tracking-wider text-neutral-400">
+                      <Gift size={10} className="text-neutral-400" />
+                      <span>{coupon.minOrder}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'payments' && (
+            <div className="border border-neutral-soft/50 p-6 md:p-8 bg-bg-luxury flex flex-col gap-6 animate-[fadeIn_0.3s_ease-out]">
+              <div className="flex justify-between items-center border-b border-neutral-soft/20 pb-3">
+                <h2 className="text-xs uppercase tracking-[0.25em] font-semibold text-fg-luxury">Saved Payment Methods</h2>
+                <button
+                  onClick={() => setIsAddingCard(!isAddingCard)}
+                  className="btn-editorial text-[9px] font-semibold tracking-widest uppercase py-2 px-4 flex items-center gap-1.5 cursor-pointer hover:bg-neutral-50 transition-colors"
+                >
+                  <Plus size={11} /> {isAddingCard ? 'Cancel' : 'Add New Card'}
+                </button>
+              </div>
+
+              {isAddingCard && (
+                <form onSubmit={handleAddCard} className="border border-neutral-soft/40 p-5 rounded-[12px] bg-[#FFFCF8] flex flex-col gap-4 animate-[slideDownFade_0.2s_ease-out]">
+                  <h3 className="text-[10px] uppercase tracking-widest text-neutral-800 font-semibold border-b border-neutral-200/50 pb-2">
+                    Add Debit/Credit Card
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[8.5px] uppercase tracking-widest text-text-muted font-semibold">Card Number</label>
+                      <input 
+                        type="text"
+                        required
+                        value={cardNumber}
+                        onChange={(e) => setCardNumber(e.target.value.replace(/[^0-9]/g, '').substring(0, 16))}
+                        className="input-editorial text-xs focus:ring-1 focus:ring-fg-luxury"
+                        placeholder="16-digit card number"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[8.5px] uppercase tracking-widest text-text-muted font-semibold">Cardholder Name</label>
+                      <input 
+                        type="text"
+                        required
+                        value={cardHolder}
+                        onChange={(e) => setCardHolder(e.target.value)}
+                        className="input-editorial text-xs focus:ring-1 focus:ring-fg-luxury"
+                        placeholder="e.g. HARSH SHARMA"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[8.5px] uppercase tracking-widest text-text-muted font-semibold">Expiration Date</label>
+                      <input 
+                        type="text"
+                        required
+                        value={cardExpiry}
+                        onChange={(e) => {
+                          let val = e.target.value.replace(/[^0-9/]/g, '');
+                          if (val.length === 2 && !val.includes('/')) {
+                            val = val + '/';
+                          }
+                          setCardExpiry(val.substring(0, 5));
+                        }}
+                        className="input-editorial text-xs focus:ring-1 focus:ring-fg-luxury"
+                        placeholder="MM/YY"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[8.5px] uppercase tracking-widest text-text-muted font-semibold">CVV Code</label>
+                      <input 
+                        type="password"
+                        required
+                        value={cardCvv}
+                        onChange={(e) => setCardCvv(e.target.value.replace(/[^0-9]/g, '').substring(0, 3))}
+                        className="input-editorial text-xs focus:ring-1 focus:ring-fg-luxury"
+                        placeholder="3 digits"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSavingCard}
+                    className="btn-editorial-solid text-[9px] py-3.5 tracking-widest uppercase font-semibold mt-2 cursor-pointer self-start px-8"
+                  >
+                    {isSavingCard ? 'Saving Card...' : 'Save Card Details'}
+                  </button>
+                </form>
+              )}
+
+              {savedCards.length === 0 ? (
+                <div className="border border-dashed border-neutral-soft/50 py-12 px-6 text-center rounded-[12px] flex flex-col items-center justify-center gap-3">
+                  <CreditCard size={24} className="text-neutral-300" strokeWidth={1.2} />
+                  <p className="text-[10px] text-text-muted uppercase tracking-widest leading-relaxed max-w-sm">
+                    No credit or debit cards saved. Save your card details during checkout for a faster payment experience next time.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {savedCards.map((card) => (
+                    <div key={card.id} className="border border-neutral-soft/30 p-5 rounded-[12px] bg-gradient-to-br from-[#1a1a1a] to-[#262626] text-[#FFFCF8] flex flex-col justify-between h-[160px] shadow-md relative overflow-hidden group">
+                      <div className="absolute right-4 top-4 font-serif text-[11px] tracking-[0.2em] text-[#FFFCF8]/40 font-light italic">
+                        {card.brand}
+                      </div>
+                      
+                      <div className="flex flex-col gap-1 mt-2">
+                        <span className="text-[8px] tracking-[0.25em] text-[#FFFCF8]/50 uppercase font-light">Card Number</span>
+                        <p className="font-mono text-sm tracking-[0.18em] text-[#FFFCF8] font-medium">{card.number}</p>
+                      </div>
+
+                      <div className="flex items-end justify-between mt-auto">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[7.5px] tracking-[0.25em] text-[#FFFCF8]/40 uppercase font-light">Card Holder</span>
+                          <p className="text-[10px] tracking-wider uppercase font-light text-[#FFFCF8]/90 truncate max-w-[130px]">{card.holder}</p>
+                        </div>
+                        <div className="flex flex-col gap-0.5 text-right">
+                          <span className="text-[7.5px] tracking-[0.25em] text-[#FFFCF8]/40 uppercase font-light">Expires</span>
+                          <p className="text-[10px] tracking-widest font-mono text-[#FFFCF8]/90">{card.expiry}</p>
+                        </div>
+                      </div>
+
+                      <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <button
+                          onClick={() => handleDeleteCard(card.id)}
+                          className="bg-red-950/90 text-red-200 border border-red-800/30 hover:bg-red-900 transition-colors text-[8px] uppercase tracking-widest font-semibold py-1 px-2.5 rounded-full cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
