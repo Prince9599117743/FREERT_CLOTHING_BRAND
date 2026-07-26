@@ -9,12 +9,12 @@ import { CartDrawer } from '@/components/CartDrawer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { 
-  getOrders, getAddresses, saveAddress, deleteAddress, updateOrderDetails, getCleanOrderNumber, getCoupons
+  getOrders, getAddresses, saveAddress, deleteAddress, updateOrderDetails, getCleanOrderNumber, getCoupons, getUserSupportTickets
 } from '@/services/database';
 import type { Order, Address } from '@/types';
 import { 
   Package, User, Star, Copy, Check, Edit2, Trash2, Plus, MapPin, 
-  CreditCard, Calendar, Truck, Clipboard, ShieldAlert, LogOut, ArrowRight, ChevronRight, Tag, Gift, Printer
+  CreditCard, Calendar, Truck, Clipboard, ShieldAlert, LogOut, ArrowRight, ChevronRight, Tag, Gift, Printer, HelpCircle, MessageSquare
 } from 'lucide-react';
 
 interface OrderItemLog {
@@ -50,9 +50,10 @@ function DashboardContent() {
   const { user, updateProfile, logout } = useAuth();
   const { showToast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'addresses' | 'coupons' | 'payments'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'addresses' | 'coupons' | 'payments' | 'support'>('profile');
   const [orders, setOrders] = useState<OrderLog[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
+  const [supportTickets, setSupportTickets] = useState<any[]>([]);
   const [dbError, setDbError] = useState(false);
 
   // Profile Edit fields
@@ -165,7 +166,7 @@ function DashboardContent() {
   // Fetch active tab from URL query params
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'orders' || tab === 'addresses' || tab === 'profile' || tab === 'coupons' || tab === 'payments') {
+    if (tab === 'orders' || tab === 'addresses' || tab === 'profile' || tab === 'coupons' || tab === 'payments' || tab === 'support') {
       setActiveTab(tab as any);
     }
   }, [searchParams]);
@@ -176,9 +177,20 @@ function DashboardContent() {
       setEditName(user.fullName || '');
       setEditPhone(user.phone || '');
       fetchAddresses();
+      fetchUserSupportTickets();
     }
     fetchUserOrders();
   }, [user]);
+
+  const fetchUserSupportTickets = async () => {
+    if (!user || !user.email) return;
+    try {
+      const ticketsList = await getUserSupportTickets(user.email);
+      setSupportTickets(ticketsList);
+    } catch (e) {
+      console.error('Failed to load user support tickets:', e);
+    }
+  };
 
   const fetchAddresses = async () => {
     if (!user) return;
@@ -430,6 +442,7 @@ function DashboardContent() {
           { key: 'orders', label: `My Orders (${orders.length})`, icon: <Package size={12} strokeWidth={1.5} /> },
           { key: 'addresses', label: `Saved Addresses (${addresses.length})`, icon: <MapPin size={12} strokeWidth={1.5} /> },
           { key: 'coupons', label: 'My Coupons', icon: <Tag size={12} strokeWidth={1.5} /> },
+          { key: 'support', label: `My Enquiries (${supportTickets.length})`, icon: <MessageSquare size={12} strokeWidth={1.5} /> },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -926,6 +939,72 @@ function DashboardContent() {
                       </div>
                     );
                   })
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: SUPPORT TICKETS STATUS TAB */}
+          {activeTab === 'support' && (
+            <div className="border border-neutral-soft/50 p-6 md:p-8 bg-bg-luxury flex flex-col gap-6 animate-[fadeIn_0.3s_ease-out]">
+              <div className="border-b border-neutral-soft/20 pb-3 flex justify-between items-center">
+                <div>
+                  <h2 className="text-xs uppercase tracking-[0.25em] font-semibold text-fg-luxury">My Enquiries & Requests</h2>
+                  <p className="text-[8.5px] uppercase tracking-widest text-text-muted mt-1">Track status of returns, shipping queries, and complaints</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                {supportTickets.length === 0 ? (
+                  <div className="py-12 border border-dashed border-neutral-soft/40 rounded flex flex-col items-center justify-center text-center p-6 bg-neutral-soft/5">
+                    <MessageSquare size={24} className="text-neutral-400 mb-2.5 stroke-1" />
+                    <p className="text-[10px] uppercase tracking-widest text-text-muted font-medium">No enquiries registered yet</p>
+                    <p className="text-[9.5px] text-neutral-500 font-light mt-1 max-w-xs leading-normal">
+                      Submit support coordinates or return requests via the Contact Support link in footer.
+                    </p>
+                    <Link href="/support" className="btn-editorial-solid text-[9.5px] py-2 px-6 tracking-widest uppercase mt-4">
+                      Submit Enquiry
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {supportTickets.map((ticket) => {
+                      const statusColor = 
+                        ticket.status?.toLowerCase() === 'resolved' || ticket.status?.toLowerCase() === 'closed'
+                          ? 'text-green-700 bg-green-50 border-green-200' 
+                          : ticket.status?.toLowerCase() === 'in progress' || ticket.status?.toLowerCase() === 'read'
+                          ? 'text-blue-700 bg-blue-50 border-blue-200'
+                          : 'text-amber-700 bg-amber-50 border-amber-200 animate-pulse';
+
+                      return (
+                        <div key={ticket.id} className="border border-neutral-soft/50 p-5 rounded-[4px] bg-bg-luxury/50 flex flex-col gap-3.5 hover:border-neutral-soft transition-all duration-300">
+                          <div className="flex flex-wrap justify-between items-start gap-2 border-b border-neutral-soft/10 pb-2.5">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-[8px] text-text-muted uppercase tracking-widest font-mono">
+                                Ticket ID: #{ticket.id.slice(0, 8).toUpperCase()}
+                              </span>
+                              <h4 className="text-[11px] uppercase tracking-wider font-semibold text-fg-luxury mt-0.5">
+                                {ticket.subject || 'General Enquiry'}
+                              </h4>
+                            </div>
+                            <span className={`text-[8px] uppercase tracking-widest font-bold border px-2 py-0.5 rounded-sm ${statusColor}`}>
+                              Status: {ticket.status || 'New'}
+                            </span>
+                          </div>
+
+                          <div className="text-[10.5px] font-light text-neutral-600 leading-relaxed text-left">
+                            <span className="text-[8.5px] uppercase tracking-wider text-text-muted font-semibold block mb-0.5">Your Message:</span>
+                            "{ticket.message}"
+                          </div>
+
+                          <div className="flex flex-wrap justify-between items-center text-[8.5px] uppercase tracking-widest text-text-muted font-light pt-2.5 border-t border-neutral-soft/10 mt-1">
+                            <span>Submitted: {new Date(ticket.created_at || ticket.createdAt).toLocaleString('en-IN')}</span>
+                            <span>Updated: {new Date(ticket.updated_at || ticket.updatedAt).toLocaleString('en-IN')}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             </div>

@@ -752,6 +752,19 @@ export const createSupportTicket = async (ticket: { name: string; email: string;
   if (error) throw error;
 };
 
+export const getUserSupportTickets = async (email: string): Promise<any[]> => {
+  verifyConnection();
+  const { data, error } = await supabase
+    .from('support_tickets')
+    .select('*')
+    .eq('email', email)
+    .not('status', 'eq', 'live_session')
+    .not('subject', 'ilike', 'OTP_VERIFICATION:%')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+};
+
 export const getAdminSupportTickets = async (): Promise<any[]> => {
   verifyConnection();
   const { data, error } = await supabase

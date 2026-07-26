@@ -242,27 +242,31 @@ export default function ProductDetailPage() {
              setSelectedSize(hasSizesEnabled ? 'S' : 'One Size');
            }
 
-          const list = await getProducts();
-          const itemTags = item.tags || [];
-          const scored = list
-            .filter(p => p.id !== item.id)
-            .map(p => {
-              let score = 0;
-              if (p.categoryId && p.categoryId === item.categoryId) score += 10;
-              if (p.subCategory && p.subCategory === item.subCategory) score += 5;
-              if (p.parentCategory && p.parentCategory === item.parentCategory) score += 4;
-              if (p.collectionId && p.collectionId === item.collectionId) score += 3;
-              if (p.tags && itemTags.length > 0) {
-                const commonTags = p.tags.filter(t => itemTags.includes(t));
-                score += commonTags.length * 2;
-              }
-              return { product: p, score };
-            })
-            .sort((a, b) => b.score - a.score)
-            .map(x => x.product)
-            .slice(0, 4);
+          // Instantly stop loading indicator since main product details are set
+          setLoadingProduct(false);
 
-          setRelatedProducts(scored);
+          // Fetch related products and secondary modules asynchronously to prevent rendering lag
+          getProducts().then((list) => {
+            const itemTags = item.tags || [];
+            const scored = list
+              .filter(p => p.id !== item.id)
+              .map(p => {
+                let score = 0;
+                if (p.categoryId && p.categoryId === item.categoryId) score += 10;
+                if (p.subCategory && p.subCategory === item.subCategory) score += 5;
+                if (p.parentCategory && p.parentCategory === item.parentCategory) score += 4;
+                if (p.collectionId && p.collectionId === item.collectionId) score += 3;
+                if (p.tags && itemTags.length > 0) {
+                  const commonTags = p.tags.filter(t => itemTags.includes(t));
+                  score += commonTags.length * 2;
+                }
+                return { product: p, score };
+              })
+              .sort((a, b) => b.score - a.score)
+              .map(x => x.product)
+              .slice(0, 4);
+            setRelatedProducts(scored);
+          }).catch(() => {});
           
           // Fetch secondary dynamic modules parallelly to speed up loading
           try {
@@ -662,7 +666,17 @@ export default function ProductDetailPage() {
     const selectedVariant = product.variants?.find(v => v.color === selectedColor && v.size === selectedSize);
     const selectedVariantId = selectedVariant?.id || null;
     try {
-      await createRestockAlert(product.id, selectedVariantId, user?.id || null, restockEmail);
+      const response = await fetch('/api/restock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product.id,
+          variantId: selectedVariantId,
+          userId: user?.id || null,
+          email: restockEmail
+        })
+      });
+      if (!response.ok) throw new Error('API_ERROR');
       showToast(`Restock alert set. We will notify you immediately when available.`, 'success');
       setRestockEmail('');
       setSizeWarning(null);
