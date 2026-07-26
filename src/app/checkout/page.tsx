@@ -29,8 +29,8 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('cod');
   
   // Saved profiles & Card input states
-  const [saveAddressToProfile, setSaveAddressToProfile] = useState(true);
-  const [savePaymentToProfile, setSavePaymentToProfile] = useState(true);
+  const [saveAddressToProfile, setSaveAddressToProfile] = useState(false);
+  const [savePaymentToProfile, setSavePaymentToProfile] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [savedCards, setSavedCards] = useState<any[]>([]);
   
@@ -293,19 +293,28 @@ export default function CheckoutPage() {
       const orderHistory = existing ? JSON.parse(existing) : [];
       localStorage.setItem('freert_orders_log', JSON.stringify([placedOrder, ...orderHistory]));
 
-      // Save address to profile if checked
+      // Save address to profile if checked and is unique
       if (user && saveAddressToProfile) {
         try {
-          await saveAddress({
-            userId: user.id,
-            addressType: 'shipping',
-            street,
-            city,
-            state: stateName,
-            country: 'India',
-            postalCode,
-            isDefault: true
-          });
+          const isDuplicate = savedAddresses.some(
+            (addr) =>
+              addr.street?.trim().toLowerCase() === street.trim().toLowerCase() &&
+              addr.city?.trim().toLowerCase() === city.trim().toLowerCase() &&
+              addr.state?.trim().toLowerCase() === stateName.trim().toLowerCase() &&
+              (addr.postalCode || addr.postal_code)?.trim() === postalCode.trim()
+          );
+          if (!isDuplicate) {
+            await saveAddress({
+              userId: user.id,
+              addressType: 'shipping',
+              street,
+              city,
+              state: stateName,
+              country: 'India',
+              postalCode,
+              isDefault: true
+            });
+          }
         } catch (e) {
           console.warn('[Checkout] Failed to save address to profile:', e);
         }
@@ -669,6 +678,7 @@ export default function CheckoutPage() {
                           onChange={(e) => setStreet(e.target.value)}
                           className="input-editorial text-xs"
                           placeholder="Apt, Suite, Street address details"
+                          autoComplete="new-password"
                         />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -695,12 +705,32 @@ export default function CheckoutPage() {
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Postal Code</label>
+                          <label className="text-[10px] uppercase tracking-wider text-text-muted mb-2 block font-medium">Postal Code (PIN)</label>
                           <input 
                             type="text" 
                             required 
+                            maxLength={6}
                             value={postalCode}
-                            onChange={(e) => setPostalCode(e.target.value)}
+                            onChange={async (e) => {
+                              const val = e.target.value.replace(/\D/g, '');
+                              setPostalCode(val);
+                              if (val.length === 6) {
+                                try {
+                                  const res = await fetch(`https://api.postalpincode.in/pincode/${val}`);
+                                  if (res.ok) {
+                                    const json = await res.json();
+                                    if (json && json[0]?.Status === 'Success' && json[0].PostOffice?.[0]) {
+                                      const po = json[0].PostOffice[0];
+                                      setCity(po.District || po.Division || po.Block || po.Name || '');
+                                      setStateName(po.State || '');
+                                      showToast(`Pre-filled City and State for PIN Code ${val}.`, 'success');
+                                    }
+                                  }
+                                } catch (err) {
+                                  console.warn('Failed to fetch postal code details:', err);
+                                }
+                              }
+                            }}
                             className="input-editorial text-xs"
                             placeholder="110001"
                           />
