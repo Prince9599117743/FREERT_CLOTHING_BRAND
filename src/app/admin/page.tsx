@@ -1135,7 +1135,9 @@ function AdminCoreWorkspace() {
       setIsSaving(true);
       try {
         const totalStock = editingProduct.stockQty ?? 10;
-        const finalStatus = (totalStock === 0 ? 'out-of-stock' : 'published') as any;
+        // Respect admin-manually-set status. Only auto-compute if stock hits zero.
+        const adminSetStatus = (editingProduct as any).status;
+        const finalStatus: any = adminSetStatus || (totalStock === 0 ? 'out-of-stock' : 'published');
         // Strip nested join objects so Supabase doesn't complain about unknown fields
         const { category, collection, variants, ...cleanProduct } = editingProduct as any;
         await updateProduct(editingProduct.id, { ...cleanProduct, status: finalStatus });
