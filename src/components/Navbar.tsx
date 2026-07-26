@@ -53,9 +53,11 @@ export const Navbar: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Show modal if user is logged in but profile fullName is empty
-    if (user && !user.fullName) {
-      setModalName('');
+    // Show modal if user is logged in but ANY of: fullName, phone, or email are missing
+    // Unless they have explicitly dismissed/skipped it in the current session
+    const isDismissed = sessionStorage.getItem('freert_profile_prompt_dismissed') === 'true';
+    if (user && (!user.fullName || !user.phone || !user.email) && !isDismissed) {
+      setModalName(user.fullName || '');
       setModalPhone(user.phone || '');
       setShowProfileModal(true);
     } else {
@@ -392,10 +394,24 @@ export const Navbar: React.FC = () => {
       {/* Mobile Sliding Navigation Drawer */}
       <MobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
-      {/* Profile Completion Modal (Bypasses standard close options, forces completion) */}
+      {/* Profile Completion Modal (Bypasses standard close options, forces completion unless skipped) */}
       {showProfileModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[9999] flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out]">
-          <div className="w-full max-w-sm bg-bg-luxury border border-neutral-soft/90 p-8 shadow-2xl flex flex-col gap-6 text-left animate-[slideDownFade_0.3s_ease-out]">
+          <div className="w-full max-w-sm bg-bg-luxury border border-neutral-soft/90 p-8 shadow-2xl flex flex-col gap-6 text-left animate-[slideDownFade_0.3s_ease-out] relative">
+            
+            {/* Skip / Close Option Cross Button */}
+            <button
+              onClick={() => {
+                sessionStorage.setItem('freert_profile_prompt_dismissed', 'true');
+                setShowProfileModal(false);
+                showToast('Profile prompt skipped for this session.', 'info');
+              }}
+              className="absolute top-4 right-4 text-text-muted hover:text-fg-luxury cursor-pointer transition-colors p-1"
+              aria-label="Skip profile completion"
+            >
+              <X size={14} />
+            </button>
+
             <div className="text-center pb-4 border-b border-neutral-soft/30">
               <h3 className="text-xs uppercase tracking-[0.25em] font-semibold text-fg-luxury">Complete Account</h3>
               <p className="text-[9px] text-text-muted font-light uppercase tracking-widest leading-relaxed mt-1.5">
@@ -417,9 +433,10 @@ export const Navbar: React.FC = () => {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted font-semibold">Phone Number (Optional)</label>
+                <label className="text-[9px] uppercase tracking-[0.2em] text-text-muted font-semibold">Phone Number</label>
                 <input 
                   type="tel"
+                  required
                   value={modalPhone}
                   onChange={(e) => setModalPhone(e.target.value)}
                   className="input-editorial text-xs transition-all focus:border-fg-luxury focus:ring-1 focus:ring-fg-luxury"
@@ -427,13 +444,26 @@ export const Navbar: React.FC = () => {
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={modalSubmitting}
-                className="btn-editorial-solid w-full text-xs tracking-[0.2em] font-medium py-3.5 mt-2 cursor-pointer transition-all hover:tracking-[0.25em]"
-              >
-                {modalSubmitting ? 'Saving Profile...' : 'Complete Profile'}
-              </button>
+              <div className="flex justify-between items-center gap-4 mt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    sessionStorage.setItem('freert_profile_prompt_dismissed', 'true');
+                    setShowProfileModal(false);
+                    showToast('Profile prompt skipped for this session.', 'info');
+                  }}
+                  className="btn-editorial flex-1 text-center text-[10px] tracking-wider uppercase py-3 cursor-pointer"
+                >
+                  Skip
+                </button>
+                <button
+                  type="submit"
+                  disabled={modalSubmitting}
+                  className="btn-editorial-solid flex-1 text-center text-[10px] tracking-wider font-semibold uppercase py-3 cursor-pointer"
+                >
+                  {modalSubmitting ? 'Saving...' : 'Save Profile'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
