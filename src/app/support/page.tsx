@@ -51,7 +51,7 @@ export default function SupportPage() {
       <Navbar />
 
       <main className="flex-1 container-editorial py-12 md:py-20">
-        <h1 className="text-3xl font-light uppercase tracking-widest text-left mb-12 text-fg-luxury">Contact Us</h1>
+        <h1 className="text-2xl md:text-3xl font-light uppercase tracking-widest text-left mb-12 text-fg-luxury">Customer Support & Assistance</h1>
 
         {databaseOffline && (
           <div className="mb-10 p-6 border border-amber-700 bg-amber-50/20 text-left flex items-start gap-4 max-w-2xl">
