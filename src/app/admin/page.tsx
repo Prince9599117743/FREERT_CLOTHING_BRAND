@@ -337,6 +337,7 @@ function AdminCoreWorkspace() {
   const [subscribers, setSubscribers] = useState<any[]>([]);
   const [subscriberSearch, setSubscriberSearch] = useState('');
   const [restockAlerts, setRestockAlerts] = useState<any[]>([]);
+  const [supportTicketSearch, setSupportTicketSearch] = useState('');
 
   const fetchAbandonedCarts = async () => {
     try {
@@ -5249,7 +5250,12 @@ function AdminCoreWorkspace() {
   const renderEnquiries = () => {
     const handleUpdateStatus = async (id: string, newStatus: string) => {
       try {
-        await updateTicketStatus(id, newStatus);
+        const response = await fetch('/api/support/user-tickets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ticketId: id, status: newStatus })
+        });
+        if (!response.ok) throw new Error('API_ERROR');
         setSupportTickets(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
         showToast(`Ticket status updated to ${newStatus}.`, 'success');
       } catch {
@@ -5269,23 +5275,58 @@ function AdminCoreWorkspace() {
       }
     };
 
+    const filteredTickets = supportTickets.filter(t => {
+      const q = supportTicketSearch.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        t.id?.toLowerCase().includes(q) ||
+        t.name?.toLowerCase().includes(q) ||
+        t.email?.toLowerCase().includes(q) ||
+        t.subject?.toLowerCase().includes(q) ||
+        t.message?.toLowerCase().includes(q)
+      );
+    });
+
     return (
       <div className="flex flex-col gap-6 text-left text-xs text-text-muted animate-[fadeIn_0.3s_ease-out]">
         <div className="flex justify-between items-center border-b border-neutral-soft pb-2">
-          <h2 className="text-sm uppercase tracking-widest font-semibold text-fg-luxury">Customer Enquiries</h2>
+          <div>
+            <h2 className="text-sm uppercase tracking-widest font-semibold text-fg-luxury">Customer Enquiries</h2>
+            <p className="text-[9px] text-text-muted uppercase mt-0.5">Moderate returns, replies, and support chat transcripts</p>
+          </div>
           <span className="text-[9px] uppercase tracking-widest bg-neutral-soft/30 px-3 py-1 text-fg-luxury font-medium">
-            Total: {supportTickets.length}
+            Total: {filteredTickets.length}
           </span>
         </div>
 
-        {supportTickets.length === 0 ? (
-          <p className="text-text-muted text-[10px] uppercase tracking-widest text-center py-12">No enquiries found</p>
+        {/* Ticket ID & Query Search Bar */}
+        <div className="flex gap-2 w-full max-w-md">
+          <input 
+            type="text"
+            value={supportTicketSearch}
+            onChange={(e) => setSupportTicketSearch(e.target.value)}
+            placeholder="Search by Ticket ID, Email, Name or Subject..."
+            className="input-editorial text-xs py-2 px-3 w-full"
+          />
+          {supportTicketSearch && (
+            <button 
+              onClick={() => setSupportTicketSearch('')}
+              className="text-[9px] uppercase tracking-widest border border-neutral-soft px-3 hover:bg-neutral-soft/10 text-fg-luxury cursor-pointer"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        {filteredTickets.length === 0 ? (
+          <p className="text-text-muted text-[10px] uppercase tracking-widest text-center py-12">No matching enquiries found</p>
         ) : (
           <div className="flex flex-col gap-4">
-            {supportTickets.map((t: any) => (
+            {filteredTickets.map((t: any) => (
               <div key={t.id} className="border border-neutral-soft p-5 bg-bg-luxury flex flex-col gap-3">
                 <div className="flex justify-between items-start flex-wrap gap-2">
                   <div>
+                    <span className="text-[8px] font-mono text-text-muted uppercase tracking-widest block mb-0.5">TICKET ID: #{t.id}</span>
                     <h3 className="font-semibold text-fg-luxury text-[11px] uppercase tracking-wider mb-1">
                       {t.subject || 'Enquiry'}
                     </h3>
@@ -5335,7 +5376,12 @@ function AdminCoreWorkspace() {
                           return;
                         }
                         try {
-                          await updateTicketStatus(t.id, 'Replied', val);
+                          const res = await fetch('/api/support/user-tickets', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ticketId: t.id, adminReply: val, status: 'Replied' })
+                          });
+                          if (!res.ok) throw new Error('API_ERROR');
                           setSupportTickets(prev => prev.map(tick => tick.id === t.id ? { ...tick, status: 'Replied', admin_reply: val } : tick));
                           showToast('Reply submitted successfully.', 'success');
                           if (input) input.value = '';

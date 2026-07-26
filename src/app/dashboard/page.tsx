@@ -1006,6 +1006,51 @@ function DashboardContent() {
                             </div>
                           )}
 
+                          {/* Customer Reply back block when ticket is open */}
+                          {ticket.status !== 'Closed' ? (
+                            <div className="mt-2 pt-2 border-t border-neutral-soft/10 flex gap-2">
+                              <input 
+                                type="text"
+                                id={`customer-reply-${ticket.id}`}
+                                placeholder="Reply to this enquiry..."
+                                className="flex-1 bg-neutral-soft/5 border border-neutral-soft/60 py-1.5 px-3 text-[10px] focus:outline-none text-fg-luxury"
+                              />
+                              <button
+                                onClick={async () => {
+                                  const input = document.getElementById(`customer-reply-${ticket.id}`) as HTMLInputElement;
+                                  const text = input?.value?.trim();
+                                  if (!text) {
+                                    showToast('Please enter message text.', 'error');
+                                    return;
+                                  }
+                                  try {
+                                    // Append customer message to thread
+                                    const dateStr = new Date().toLocaleString('en-IN');
+                                    const updatedMessage = `${ticket.message}\n\n[Customer reply (${dateStr})]:\n${text}`;
+                                    
+                                    const res = await fetch('/api/support/user-tickets', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ ticketId: ticket.id, message: updatedMessage, status: 'New' })
+                                    });
+                                    if (!res.ok) throw new Error('API_ERROR');
+                                    
+                                    setSupportTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, message: updatedMessage, status: 'New' } : t));
+                                    showToast('Reply added to ticket thread.', 'success');
+                                    if (input) input.value = '';
+                                  } catch (err) {
+                                    showToast('Failed to submit reply.', 'error');
+                                  }
+                                }}
+                                className="btn-editorial-solid text-[9px] px-4 py-1.5 uppercase font-medium cursor-pointer"
+                              >
+                                Reply
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-[8.5px] text-neutral-400 uppercase tracking-widest text-left italic mt-1 bg-neutral-100 p-2">This enquiry is closed. Please submit a new ticket for further queries.</p>
+                          )}
+
                           <div className="flex flex-wrap justify-between items-center text-[8.5px] uppercase tracking-widest text-text-muted font-light pt-2.5 border-t border-neutral-soft/10 mt-1">
                             <span>Submitted: {new Date(ticket.created_at || ticket.createdAt).toLocaleString('en-IN')}</span>
                             <span>Updated: {new Date(ticket.updated_at || ticket.updatedAt).toLocaleString('en-IN')}</span>
