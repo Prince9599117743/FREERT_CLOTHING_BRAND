@@ -747,6 +747,37 @@ export default function ProductDetailPage() {
     } : {})
   };
 
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    'itemListElement': [
+      {
+        '@type': 'ListItem',
+        'position': 1,
+        'name': 'Home',
+        'item': 'https://freert.in'
+      },
+      {
+        '@type': 'ListItem',
+        'position': 2,
+        'name': product.parentCategory || 'Men',
+        'item': `https://freert.in/shop/${product.parentCategory || 'men'}`
+      },
+      ...(product.category?.name ? [{
+        '@type': 'ListItem',
+        'position': 3,
+        'name': product.category.name,
+        'item': `https://freert.in/shop/${product.parentCategory || 'men'}/${product.category.slug}`
+      }] : []),
+      {
+        '@type': 'ListItem',
+        'position': product.category?.name ? 4 : 3,
+        'name': product.name,
+        'item': `https://freert.in/product/${product.slug}`
+      }
+    ]
+  };
+
   /* Premium details sections helper styles */
   const styles = `
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300;400;500;600;700&display=swap');
@@ -911,6 +942,10 @@ export default function ProductDetailPage() {
       <style dangerouslySetInnerHTML={{ __html: styles }} />
       <Navbar />
       <StructuredData type="Product" data={schemaProduct} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
 
       {/* Social Proof */}
       <SocialProofPopup productName={product.name} productImage={product.images?.[0] || null} />
@@ -1001,9 +1036,19 @@ export default function ProductDetailPage() {
             
             {/* Breadcrumb / Title */}
             <div className="flex flex-col gap-1">
-              <span className="text-[9px] uppercase tracking-[0.3em] text-[#888888] font-semibold">
-                {product.category?.name} &middot; {product.collection?.name || 'Exclusive Capsule'}
-              </span>
+              <nav className="text-[9px] uppercase tracking-[0.2em] text-[#888888] font-semibold mb-1 flex items-center gap-1.5" aria-label="Breadcrumb">
+                <Link href="/" className="hover:text-[#1a1a1a] transition-colors">Home</Link>
+                <span>&middot;</span>
+                <Link href={`/shop/${product.parentCategory || 'men'}`} className="hover:text-[#1a1a1a] transition-colors">{product.parentCategory || 'Men'}</Link>
+                {product.category?.name && (
+                  <>
+                    <span>&middot;</span>
+                    <Link href={`/shop/${product.parentCategory || 'men'}/${product.category.slug}`} className="hover:text-[#1a1a1a] transition-colors">{product.category.name}</Link>
+                  </>
+                )}
+                <span>&middot;</span>
+                <span className="text-[#1a1a1a] font-bold">{product.name}</span>
+              </nav>
               <h1 className="text-2xl md:text-3xl font-serif font-light tracking-wide text-[#1a1a1a] mt-2">
                 {product.name}
               </h1>

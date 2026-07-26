@@ -234,6 +234,8 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-bg-luxury font-sans selection:bg-accent-gold selection:text-bg-luxury text-fg-luxury">
       <Navbar />
 
+      <h1 className="sr-only">FREERT | Premium Minimalist Fashion & Clothing Brand</h1>
+
       <HeroSlideshow />
 
       {/* Dynamic Loops CMS Banners and Grids */}
@@ -247,9 +249,9 @@ export default function Home() {
                 <p className="text-[9px] uppercase tracking-[0.3em] text-text-muted mb-6">{sec.subtitle}</p>
               )}
               {sec.showTitle && sec.title && (
-                <h3 className="font-editorial text-3xl md:text-4xl text-fg-luxury leading-relaxed font-light italic max-w-3xl mb-8">
+                <p className="font-editorial text-3xl md:text-4xl text-fg-luxury leading-relaxed font-light italic max-w-3xl mb-8">
                   &ldquo;{sec.title}&rdquo;
-                </h3>
+                </p>
               )}
               {sec.showButton && sec.ctaText && (
                 <button 
@@ -279,7 +281,7 @@ export default function Home() {
               )}
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {editorialJournal.map((item) => {
+                {editorialJournal.map((item, idx) => {
                   const isVid = item.imageUrl.toLowerCase().endsWith('.mp4') || 
                                 item.imageUrl.toLowerCase().endsWith('.webm') || 
                                 item.imageUrl.toLowerCase().endsWith('.mov') ||
@@ -300,7 +302,7 @@ export default function Home() {
                           className="w-full h-full object-cover" 
                         />
                       ) : (
-                        <img src={item.imageUrl} alt="Editorial look" className="w-full h-full object-cover" />
+                        <img src={item.imageUrl} alt={`FREERT Lookbook Editorial Look ${idx + 1}`} className="w-full h-full object-cover" />
                       )}
                     </div>
                   );

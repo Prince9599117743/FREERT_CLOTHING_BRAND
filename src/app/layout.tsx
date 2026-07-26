@@ -11,9 +11,12 @@ import { CookieConsent } from '@/components/CookieConsent';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://freert.in'),
-  title: 'FREERT | Luxury Minimalist Fashion eCommerce',
-  description: 'BE YOU. BE BOLD. BE FREERT. Explore premium minimalist linens, structured outerwear, and contemporary streetwear curated for editorial fashion standards.',
-  keywords: 'FREERT, luxury fashion, minimalist clothing, premium ecommerce, editorial design, contemporary streetwear, linen',
+  title: {
+    default: 'FREERT | Premium Minimalist Fashion & Clothing Brand',
+    template: '%s | FREERT'
+  },
+  description: 'Discover FREERT – premium minimalist fashion with timeless oversized t-shirts, shirts, trousers and luxury essentials crafted for modern living. Shop online across India.',
+  keywords: 'FREERT, premium minimalist fashion, clothing brand, linen shirts, oversized t-shirts, luxury streetwear, designer clothing India',
   robots: {
     index: true,
     follow: true,
@@ -25,9 +28,12 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+  alternates: {
+    canonical: './',
+  },
   openGraph: {
-    title: 'FREERT | Luxury Minimalist Fashion eCommerce',
-    description: 'BE YOU. BE BOLD. BE FREERT. Explore premium minimalist linens, structured outerwear, and contemporary streetwear curated for editorial fashion standards.',
+    title: 'FREERT | Premium Minimalist Fashion & Clothing Brand',
+    description: 'Discover FREERT – premium minimalist fashion with timeless oversized t-shirts, shirts, trousers and luxury essentials crafted for modern living. Shop online across India.',
     type: 'website',
     url: 'https://freert.in',
     siteName: 'FREERT',
@@ -43,8 +49,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'FREERT | Luxury Minimalist Fashion eCommerce',
-    description: 'BE YOU. BE BOLD. BE FREERT.',
+    title: 'FREERT | Premium Minimalist Fashion & Clothing Brand',
+    description: 'Discover FREERT – premium minimalist fashion with timeless oversized t-shirts, shirts, trousers and luxury essentials.',
     images: ['/assets/trench_coat.jpg'],
   },
   icons: {
@@ -66,7 +72,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const jsonLd = {
+  const websiteJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     'name': 'FREERT',
@@ -75,39 +81,44 @@ export default function RootLayout({
       '@type': 'SearchAction',
       'target': 'https://freert.in/shop?q={search_term_string}',
       'query-input': 'required name=search_term_string'
-    },
-    'hasPart': [
-      {
-        '@type': 'WebPage',
-        'name': 'Shop Men Clothes',
-        'url': 'https://freert.in/shop/men'
-      },
-      {
-        '@type': 'WebPage',
-        'name': 'Shop Women Clothes',
-        'url': 'https://freert.in/shop/women'
-      },
-      {
-        '@type': 'WebPage',
-        'name': 'New Arrivals',
-        'url': 'https://freert.in/shop/new-arrivals'
-      },
-      {
-        '@type': 'WebPage',
-        'name': 'Customer Sign In / Register',
-        'url': 'https://freert.in/login'
-      },
-      {
-        '@type': 'WebPage',
-        'name': 'Track Order Status',
-        'url': 'https://freert.in/track-order'
-      },
-      {
-        '@type': 'WebPage',
-        'name': 'Capsule Wardrobe Accessories',
-        'url': 'https://freert.in/shop/accessories'
-      }
-    ]
+    }
+  };
+
+  const organizationJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    'name': 'FREERT',
+    'url': 'https://freert.in',
+    'logo': 'https://freert.in/freert-logo.svg',
+    'sameAs': [
+      'https://www.instagram.com/freert.official',
+      'https://www.facebook.com/freert.official'
+    ],
+    'contactPoint': {
+      '@type': 'ContactPoint',
+      'telephone': '+91-84680-17123',
+      'contactType': 'customer service',
+      'areaServed': 'IN',
+      'availableLanguage': 'en'
+    }
+  };
+
+  const clothingStoreJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ClothingStore',
+    'name': 'FREERT',
+    'image': 'https://freert.in/assets/trench_coat.jpg',
+    '@id': 'https://freert.in/#clothingstore',
+    'url': 'https://freert.in',
+    'telephone': '+918468017123',
+    'priceRange': '₹₹₹',
+    'address': {
+      '@type': 'PostalAddress',
+      'streetAddress': 'New Delhi',
+      'addressLocality': 'Delhi',
+      'postalCode': '110001',
+      'addressCountry': 'IN'
+    }
   };
 
   return (
@@ -117,7 +128,15 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/freert-logo.svg" />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(clothingStoreJsonLd) }}
         />
       </head>
       <body className="min-h-full flex flex-col bg-bg-luxury text-fg-luxury font-sans-luxury">
