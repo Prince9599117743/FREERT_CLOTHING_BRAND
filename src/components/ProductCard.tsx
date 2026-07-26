@@ -34,9 +34,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                      !product.slug.includes('wallet') &&
                      !product.slug.includes('belt');
 
+  const sizesEnabled = product.hasSizes !== false && (product as any).has_sizes !== false;
   const sizes = product.variants && product.variants.length > 0 
     ? Array.from(new Set(product.variants.map(v => v.size))) 
-    : (isClothing ? ['S', 'M', 'L', 'XL'] : ['One Size']);
+    : (sizesEnabled ? ['S', 'M', 'L', 'XL'] : []);
 
   // Stock status logic
   const totalStock = product.variants && product.variants.length > 0 ? product.variants.reduce((sum, v) => sum + v.stockQty, 0) : (product.stockQty ?? 10);
