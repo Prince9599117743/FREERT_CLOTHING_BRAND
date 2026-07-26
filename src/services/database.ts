@@ -757,11 +757,12 @@ export const getAdminSupportTickets = async (): Promise<any[]> => {
   const { data, error } = await supabase
     .from('support_tickets')
     .select('*')
+    .not('status', 'eq', 'live_session')
+    .not('subject', 'ilike', 'OTP_VERIFICATION:%')
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data || [];
 };
-
 export const updateTicketStatus = async (id: string, status: string): Promise<void> => {
   verifyConnection();
   const { error } = await supabase
@@ -845,9 +846,6 @@ export const saveHeroBanner = async (banner: any): Promise<any> => {
     subtitle: banner.subtitle || '',
     cta_text: banner.ctaText || banner.cta_text || 'Shop Now',
     cta_link: banner.ctaLink || banner.cta_link || '/shop',
-    show_title: banner.showTitle ?? banner.show_title ?? true,
-    show_subtitle: banner.showSubtitle ?? banner.show_subtitle ?? true,
-    show_button: banner.showButton ?? banner.show_button ?? true,
     media_type: banner.mediaType || banner.media_type || 'image',
     video_url: banner.videoUrl || banner.video_url || '',
     poster_url: banner.posterUrl || banner.poster_url || '',
@@ -891,9 +889,6 @@ export const updateHeroBanner = async (id: string, updates: any): Promise<any> =
   if (updates.subtitle !== undefined) payload.subtitle = updates.subtitle;
   if (updates.ctaText !== undefined) payload.cta_text = updates.ctaText;
   if (updates.ctaLink !== undefined) payload.cta_link = updates.ctaLink;
-  if (updates.showTitle !== undefined) payload.show_title = updates.showTitle;
-  if (updates.showSubtitle !== undefined) payload.show_subtitle = updates.showSubtitle;
-  if (updates.showButton !== undefined) payload.show_button = updates.showButton;
   if (updates.mediaType !== undefined) payload.media_type = updates.mediaType;
   if (updates.videoUrl !== undefined) payload.video_url = updates.videoUrl;
   if (updates.posterUrl !== undefined) payload.poster_url = updates.posterUrl;
@@ -912,9 +907,6 @@ export const updateHeroBanner = async (id: string, updates: any): Promise<any> =
   if (updates.image_url !== undefined) payload.image_url = updates.image_url;
   if (updates.cta_text !== undefined) payload.cta_text = updates.cta_text;
   if (updates.cta_link !== undefined) payload.cta_link = updates.cta_link;
-  if (updates.show_title !== undefined) payload.show_title = updates.show_title;
-  if (updates.show_subtitle !== undefined) payload.show_subtitle = updates.show_subtitle;
-  if (updates.show_button !== undefined) payload.show_button = updates.show_button;
   if (updates.media_type !== undefined) payload.media_type = updates.media_type;
   if (updates.video_url !== undefined) payload.video_url = updates.video_url;
   if (updates.poster_url !== undefined) payload.poster_url = updates.poster_url;

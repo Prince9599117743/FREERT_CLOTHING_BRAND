@@ -262,7 +262,7 @@ function AdminCoreWorkspace() {
     basePrice: 0,
     mrp: 0,
     stockQty: 10,
-    images: ['/assets/trench_coat.jpg'],
+    images: [],
     parentCategory: 'men',
     subCategory: 'hoodies',
     brand: 'Made in India',
@@ -273,7 +273,7 @@ function AdminCoreWorkspace() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryParent, setNewCategoryParent] = useState('');
-  const [newCategoryBanner, setNewCategoryBanner] = useState('/assets/trench_coat.jpg');
+  const [newCategoryBanner, setNewCategoryBanner] = useState('');
   const [isProcessingCategory, setIsProcessingCategory] = useState(false);
 
   // Collections state
@@ -667,9 +667,11 @@ function AdminCoreWorkspace() {
 
     if (uploadedUrls.length > 0) {
       if (target === 'edit' && editingProduct) {
-        setEditingProduct({ ...editingProduct, images: [...editingProduct.images, ...uploadedUrls] });
+        const existingImages = editingProduct.images.filter(img => img !== '/assets/trench_coat.jpg');
+        setEditingProduct({ ...editingProduct, images: [...existingImages, ...uploadedUrls] });
       } else if (target === 'add') {
-        setNewProductForm({ ...newProductForm, images: [...(newProductForm.images || []), ...uploadedUrls] });
+        const existingImages = (newProductForm.images || []).filter(img => img !== '/assets/trench_coat.jpg');
+        setNewProductForm({ ...newProductForm, images: [...existingImages, ...uploadedUrls] });
       }
       showToast(`${uploadedUrls.length} photo(s) uploaded successfully.`, 'success');
     }
@@ -717,10 +719,10 @@ function AdminCoreWorkspace() {
   const deleteImage = (idx: number, target: 'edit' | 'add') => {
     if (target === 'edit' && editingProduct) {
       const images = editingProduct.images.filter((_, i) => i !== idx);
-      setEditingProduct({ ...editingProduct, images: images.length > 0 ? images : ['/assets/trench_coat.jpg'] });
+      setEditingProduct({ ...editingProduct, images });
     } else if (target === 'add') {
       const images = (newProductForm.images || []).filter((_, i) => i !== idx);
-      setNewProductForm({ ...newProductForm, images: images.length > 0 ? images : ['/assets/trench_coat.jpg'] });
+      setNewProductForm({ ...newProductForm, images });
     }
   };
 
@@ -1163,7 +1165,7 @@ function AdminCoreWorkspace() {
           mrp: Number(newProductForm.mrp || newProductForm.basePrice),
           stockQty,
           status: newProductForm.status || (stockQty === 0 ? 'out-of-stock' : 'published'),
-          images: newProductForm.images || ['/assets/trench_coat.jpg'],
+          images: newProductForm.images && newProductForm.images.length > 0 ? newProductForm.images : ['/assets/trench_coat.jpg'],
           parentCategory: newProductForm.parentCategory || 'men',
           subCategory: newProductForm.subCategory || 'hoodies',
           brand: newProductForm.brand || 'Made in India',
@@ -1176,7 +1178,7 @@ function AdminCoreWorkspace() {
         await logActivity('product_create', `Added product: ${created.name}`);
         await refreshProducts();
         setIsAddingProduct(false);
-        setNewProductForm({ name: '', description: '', basePrice: 0, mrp: 0, stockQty: 10, images: ['/assets/trench_coat.jpg'], parentCategory: 'men', subCategory: 'hoodies', brand: 'Made in India', status: 'published', trackQuantity: true, hasSizes: true });
+        setNewProductForm({ name: '', description: '', basePrice: 0, mrp: 0, stockQty: 10, images: [], parentCategory: 'men', subCategory: 'hoodies', brand: 'Made in India', status: 'published', trackQuantity: true, hasSizes: true });
         showToast('Product added successfully.', 'success');
       } catch (e) {
         showToast('Failed to add product.', 'error');
@@ -2658,7 +2660,7 @@ function AdminCoreWorkspace() {
         setCategories(prev => [...prev, created]);
         setNewCategoryName('');
         setNewCategoryParent('');
-        setNewCategoryBanner('/assets/trench_coat.jpg');
+        setNewCategoryBanner('');
         showToast('Category created successfully.', 'success');
       } catch (err) {
         showToast('Failed to create category.', 'error');
@@ -2670,12 +2672,18 @@ function AdminCoreWorkspace() {
     const handleDeleteCat = async (id: string) => {
       if (isProcessingCategory) return;
       if (!window.confirm('Are you sure you want to delete this category?')) return;
+      
+      const backupCategories = [...categories];
+      // Optimistic Update: instantly update list for instant feedback
+      setCategories(prev => prev.filter(c => c.id !== id));
+      showToast('Category removed.', 'info');
+      
       setIsProcessingCategory(true);
       try {
         await deleteCategory(id);
-        setCategories(prev => prev.filter(c => c.id !== id));
-        showToast('Category removed.', 'info');
       } catch (err) {
+        // Revert on database failure
+        setCategories(backupCategories);
         showToast('Failed to delete category.', 'error');
       } finally {
         setIsProcessingCategory(false);
@@ -2767,8 +2775,12 @@ function AdminCoreWorkspace() {
             <div>
               <label className="text-[9px] uppercase mb-1.5 block">Banner Visual</label>
               <div className="flex items-center gap-4">
-                <div className="w-12 h-16 bg-neutral-soft/20 border border-neutral-soft overflow-hidden">
-                  <img src={newCategoryBanner} className="w-full h-full object-cover" alt="" />
+                <div className="w-12 h-16 bg-neutral-soft/20 border border-neutral-soft overflow-hidden flex items-center justify-center">
+                  {newCategoryBanner ? (
+                    <img src={newCategoryBanner} className="w-full h-full object-cover" alt="" />
+                  ) : (
+                    <span className="text-[7px] uppercase text-neutral-400">No Image</span>
+                  )}
                 </div>
                 <label className={`btn-editorial py-2 px-4 text-[9px] uppercase font-semibold transition-opacity ${isProcessingCategory ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                   Change Photo
@@ -2931,7 +2943,7 @@ function AdminCoreWorkspace() {
     const handleCreateHeroSlide = async () => {
       try {
         const newBanner = await saveHeroBanner({
-          imageUrl: '/assets/trench_coat.jpg',
+          imageUrl: '',
           heading: 'NEW CAMPAIGN',
           subtitle: 'Limited Collection Drop',
           ctaText: 'Shop Collection',
@@ -2942,7 +2954,6 @@ function AdminCoreWorkspace() {
           videoClickRedirect: false,
           order: heroBanners.length,
           description: '',
-          showDescription: true,
           desktopFocalPoint: 'center',
           mobileFocalPoint: 'center',
         });

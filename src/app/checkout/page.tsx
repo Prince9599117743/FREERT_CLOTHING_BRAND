@@ -227,6 +227,26 @@ export default function CheckoutPage() {
     setProcessing(true);
     setDatabaseOfflineError(false);
 
+    // Out of Stock validation check before creating order
+    for (const item of cart) {
+      const p = (item.variant as any)?.product || (item as any).product;
+      const variantsList = p?.variants || [];
+      const isTracked = p?.trackQuantity !== false;
+      
+      const totalStock = variantsList.length > 0 ? variantsList.reduce((sum: number, v: any) => sum + v.stockQty, 0) : (p?.stockQty ?? 0);
+      const isProductOutOfStock = p?.status === 'out-of-stock' || (isTracked && totalStock === 0);
+      
+      const sizeVariant = variantsList.find((v: any) => v.size === (item.variant?.size || (item as any).size) && v.color === (item.variant?.color || (item as any).color));
+      const isVariantOutOfStock = isTracked && sizeVariant ? sizeVariant.stockQty === 0 : false;
+      
+      if (isProductOutOfStock || isVariantOutOfStock) {
+        showToast(`"${p?.name || 'Item'}" has gone out of stock. Please remove it from your bag to continue.`, 'error');
+        setProcessing(false);
+        isSubmittingRef.current = false;
+        return;
+      }
+    }
+
     try {
       const dbOrder = await createOrder({
         userId: user?.id || undefined,
