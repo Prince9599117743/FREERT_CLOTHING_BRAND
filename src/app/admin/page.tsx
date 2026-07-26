@@ -2718,7 +2718,7 @@ function AdminCoreWorkspace() {
               <div key={cat.id} className="border border-neutral-soft p-3 bg-neutral-soft/5 flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-10 bg-neutral-soft/20 overflow-hidden border border-neutral-soft">
-                    <img src={cat.imageUrl || '/assets/trench_coat.jpg'} className="w-full h-full object-cover" alt="" />
+                    <img src={cat.imageUrl} className="w-full h-full object-cover" alt="" />
                   </div>
                   <span className="uppercase font-medium text-fg-luxury flex items-center gap-2">
                     {cat.name}
@@ -2874,9 +2874,6 @@ function AdminCoreWorkspace() {
           imageUrl: draft.imageUrl !== undefined ? draft.imageUrl : slide.imageUrl,
           ctaText: draft.ctaText !== undefined ? draft.ctaText : slide.ctaText,
           ctaLink: draft.ctaLink !== undefined ? draft.ctaLink : slide.ctaLink,
-          showTitle: draft.showTitle !== undefined ? draft.showTitle : slide.showTitle,
-          showSubtitle: draft.showSubtitle !== undefined ? draft.showSubtitle : slide.showSubtitle,
-          showButton: draft.showButton !== undefined ? draft.showButton : slide.showButton,
           mediaType: draft.mediaType !== undefined ? draft.mediaType : slide.mediaType,
           videoUrl: draft.videoUrl !== undefined ? draft.videoUrl : slide.videoUrl,
           posterUrl: draft.posterUrl !== undefined ? draft.posterUrl : slide.posterUrl,
@@ -3358,7 +3355,11 @@ function AdminCoreWorkspace() {
                             <span className="text-[8px] uppercase tracking-widest text-neutral-400">No Video</span>
                           )
                         ) : (
-                          <img src={imageUrl || '/assets/trench_coat.jpg'} className="w-full h-full object-cover" alt="" />
+                          imageUrl ? (
+                            <img src={imageUrl} className="w-full h-full object-cover" alt="" />
+                          ) : (
+                            <span className="text-[8px] uppercase tracking-widest text-neutral-400">No Image</span>
+                          )
                         )}
                       </div>
 
