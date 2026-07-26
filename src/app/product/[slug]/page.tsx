@@ -264,25 +264,18 @@ export default function ProductDetailPage() {
 
           setRelatedProducts(scored);
           
+          // Fetch secondary dynamic modules parallelly to speed up loading
           try {
-            const sectionsData = await getProductDetailsSections(item.id);
+            const [sectionsData, lookData, comboData] = await Promise.all([
+              getProductDetailsSections(item.id).catch(() => []),
+              getProductLookProducts(item.id).catch(() => []),
+              getProductComboOffer(item.id).catch(() => null)
+            ]);
             setInfoSections(sectionsData);
-          } catch {
-            setInfoSections([]);
-          }
-
-          try {
-            const lookData = await getProductLookProducts(item.id);
             setLookProducts(lookData);
-          } catch {
-            setLookProducts([]);
-          }
-
-          try {
-            const comboData = await getProductComboOffer(item.id);
             setComboOffer(comboData);
-          } catch {
-            setComboOffer(null);
+          } catch (secondaryErr) {
+            console.error('Error fetching secondary product modules:', secondaryErr);
           }
         }
       } catch (e: any) {

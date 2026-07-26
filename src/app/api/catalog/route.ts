@@ -16,6 +16,7 @@ const mapProduct = (row: any) => ({
   colors: row.colors || [],
   status: row.status || ((row.stock_qty ?? row.stockQty ?? 0) === 0 ? 'out-of-stock' : 'published'),
   trackQuantity: row.track_quantity ?? row.trackQuantity ?? true,
+  hasSizes: row.has_sizes ?? row.hasSizes ?? true,
   createdAt: row.created_at ?? row.createdAt,
   updatedAt: row.updated_at ?? row.updatedAt,
 });
