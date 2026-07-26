@@ -5311,29 +5311,68 @@ function AdminCoreWorkspace() {
                   &ldquo;{t.message}&rdquo;
                 </p>
 
-                <div className="flex gap-2 pt-2 border-t border-neutral-soft/10">
-                  {t.status !== 'Replied' && t.status !== 'Closed' && (
+                {t.admin_reply && (
+                  <div className="bg-[#FFFDFB] border border-accent-gold/20 p-3 flex flex-col gap-1 rounded-sm mt-1">
+                    <span className="text-[8px] uppercase tracking-widest font-semibold text-accent-gold">Admin Response:</span>
+                    <p className="text-[10px] text-neutral-700 leading-normal">{t.admin_reply}</p>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-2 pt-2 border-t border-neutral-soft/10 mt-1">
+                  <div className="flex gap-2 w-full">
+                    <input 
+                      type="text"
+                      id={`reply-input-${t.id}`}
+                      placeholder={t.admin_reply ? "Update your reply..." : "Write a response to the customer..."}
+                      className="flex-1 bg-bg-luxury border border-neutral-soft/80 py-1.5 px-3 text-[10px] focus:outline-none text-fg-luxury"
+                    />
                     <button
-                      onClick={() => handleUpdateStatus(t.id, 'Replied')}
-                      className="text-[8.5px] uppercase tracking-widest px-3 py-1.5 border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 transition-all cursor-pointer font-semibold"
+                      onClick={async () => {
+                        const input = document.getElementById(`reply-input-${t.id}`) as HTMLInputElement;
+                        const val = input?.value?.trim();
+                        if (!val) {
+                          showToast('Please type a response.', 'error');
+                          return;
+                        }
+                        try {
+                          await updateTicketStatus(t.id, 'Replied', val);
+                          setSupportTickets(prev => prev.map(tick => tick.id === t.id ? { ...tick, status: 'Replied', admin_reply: val } : tick));
+                          showToast('Reply submitted successfully.', 'success');
+                          if (input) input.value = '';
+                        } catch {
+                          showToast('Failed to submit reply.', 'error');
+                        }
+                      }}
+                      className="btn-editorial-solid text-[9px] px-4 py-1.5 uppercase font-semibold cursor-pointer whitespace-nowrap"
                     >
-                      Mark as Replied
+                      Send Reply
                     </button>
-                  )}
-                  {t.status !== 'Closed' && (
+                  </div>
+
+                  <div className="flex gap-2 mt-1">
+                    {t.status !== 'Replied' && t.status !== 'Closed' && (
+                      <button
+                        onClick={() => handleUpdateStatus(t.id, 'Replied')}
+                        className="text-[8.5px] uppercase tracking-widest px-3 py-1.5 border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 transition-all cursor-pointer font-semibold"
+                      >
+                        Mark as Replied
+                      </button>
+                    )}
+                    {t.status !== 'Closed' && (
+                      <button
+                        onClick={() => handleUpdateStatus(t.id, 'Closed')}
+                        className="text-[8.5px] uppercase tracking-widest px-3 py-1.5 border border-neutral-soft hover:bg-neutral-soft/10 hover:text-fg-luxury transition-all cursor-pointer font-medium"
+                      >
+                        Close Enquiry
+                      </button>
+                    )}
                     <button
-                      onClick={() => handleUpdateStatus(t.id, 'Closed')}
-                      className="text-[8.5px] uppercase tracking-widest px-3 py-1.5 border border-neutral-soft hover:bg-neutral-soft/10 hover:text-fg-luxury transition-all cursor-pointer font-medium"
+                      onClick={() => handleDeleteTicket(t.id)}
+                      className="text-[8.5px] uppercase tracking-widest px-3 py-1.5 text-red-500 border border-red-500/10 hover:bg-red-500/10 transition-all cursor-pointer font-medium ml-auto"
                     >
-                      Close Enquiry
+                      Delete
                     </button>
-                  )}
-                  <button
-                    onClick={() => handleDeleteTicket(t.id)}
-                    className="text-[8.5px] uppercase tracking-widest px-3 py-1.5 text-red-500 border border-red-500/10 hover:bg-red-500/10 transition-all cursor-pointer font-medium ml-auto"
-                  >
-                    Delete
-                  </button>
+                  </div>
                 </div>
               </div>
             ))}

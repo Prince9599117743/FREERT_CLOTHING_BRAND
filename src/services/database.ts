@@ -776,11 +776,15 @@ export const getAdminSupportTickets = async (): Promise<any[]> => {
   if (error) throw error;
   return data || [];
 };
-export const updateTicketStatus = async (id: string, status: string): Promise<void> => {
+export const updateTicketStatus = async (id: string, status: string, reply?: string): Promise<void> => {
   verifyConnection();
+  const payload: any = { status, updated_at: new Date().toISOString() };
+  if (reply !== undefined) {
+    payload.admin_reply = reply;
+  }
   const { error } = await supabase
     .from('support_tickets')
-    .update({ status, updated_at: new Date().toISOString() })
+    .update(payload)
     .eq('id', id);
   if (error) throw error;
 };

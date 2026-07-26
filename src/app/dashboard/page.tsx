@@ -997,6 +997,13 @@ function DashboardContent() {
                             "{ticket.message}"
                           </div>
 
+                          {ticket.admin_reply && (
+                            <div className="bg-[#FFFDFB] border border-accent-gold/20 p-3.5 flex flex-col gap-1.5 rounded-sm text-left">
+                              <span className="text-[8.5px] uppercase tracking-widest font-bold text-accent-gold">Official Response:</span>
+                              <p className="text-[10.5px] text-neutral-800 leading-relaxed font-light">{ticket.admin_reply}</p>
+                            </div>
+                          )}
+
                           <div className="flex flex-wrap justify-between items-center text-[8.5px] uppercase tracking-widest text-text-muted font-light pt-2.5 border-t border-neutral-soft/10 mt-1">
                             <span>Submitted: {new Date(ticket.created_at || ticket.createdAt).toLocaleString('en-IN')}</span>
                             <span>Updated: {new Date(ticket.updated_at || ticket.updatedAt).toLocaleString('en-IN')}</span>
