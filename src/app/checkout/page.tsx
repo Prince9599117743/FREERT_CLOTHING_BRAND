@@ -637,6 +637,7 @@ export default function CheckoutPage() {
                           onChange={(e) => setEmail(e.target.value)}
                           className="input-editorial text-xs"
                           placeholder="operator@domain.com"
+                          autoComplete="email"
                         />
                       </div>
                       <div>
@@ -648,6 +649,7 @@ export default function CheckoutPage() {
                           onChange={(e) => setPhone(e.target.value)}
                           className="input-editorial text-xs"
                           placeholder="+91 98765 43210"
+                          autoComplete="tel"
                         />
                       </div>
                     </div>
@@ -667,6 +669,7 @@ export default function CheckoutPage() {
                           onChange={(e) => setFullName(e.target.value)}
                           className="input-editorial text-xs"
                           placeholder="Receiver Name"
+                          autoComplete="name"
                         />
                       </div>
                       <div>
@@ -678,7 +681,7 @@ export default function CheckoutPage() {
                           onChange={(e) => setStreet(e.target.value)}
                           className="input-editorial text-xs"
                           placeholder="Apt, Suite, Street address details"
-                          autoComplete="new-password"
+                          autoComplete="address-line1"
                         />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -691,6 +694,7 @@ export default function CheckoutPage() {
                             onChange={(e) => setCity(e.target.value)}
                             className="input-editorial text-xs"
                             placeholder="New Delhi"
+                            autoComplete="address-level2"
                           />
                         </div>
                         <div>
@@ -702,6 +706,7 @@ export default function CheckoutPage() {
                             onChange={(e) => setStateName(e.target.value)}
                             className="input-editorial text-xs"
                             placeholder="Delhi"
+                            autoComplete="address-level1"
                           />
                         </div>
                         <div>
@@ -733,6 +738,7 @@ export default function CheckoutPage() {
                             }}
                             className="input-editorial text-xs"
                             placeholder="110001"
+                            autoComplete="postal-code"
                           />
                         </div>
                       </div>
