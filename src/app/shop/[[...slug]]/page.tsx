@@ -38,7 +38,15 @@ export default function ShopPage() {
       setActiveParent(pathParent);
       setActiveSub(pathSub);
     }
-  }, [slug]);
+
+    // Set page dynamic titles and descriptions for search snippets
+    const titleVal = getPageTitle();
+    document.title = `${titleVal} | FREERT`;
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) {
+      meta.setAttribute('content', `Shop the latest ${titleVal} minimalist collection at FREERT. Premium oversized hoodies, linen shirts, trousers and luxury clothing Essentials.`);
+    }
+  }, [slug, activeParent, activeSub]);
 
   useEffect(() => {
     const handlePopState = () => {
