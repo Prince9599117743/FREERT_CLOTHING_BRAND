@@ -5348,23 +5348,72 @@ function AdminCoreWorkspace() {
                   </div>
                 </div>
 
-                <p className="font-light leading-relaxed border-l border-neutral-soft/50 pl-3 italic text-[10.5px] whitespace-pre-wrap">
-                  &ldquo;{t.message}&rdquo;
-                </p>
+                {/* WhatsApp Style Chat Thread Layout for Admin */}
+                <div className="flex flex-col gap-3 my-2 bg-neutral-100/40 p-4 border border-neutral-soft/30 rounded-sm">
+                  <span className="text-[8px] uppercase tracking-widest font-bold text-text-muted mb-1 block border-b border-neutral-200/50 pb-1">
+                    Conversation Transcript
+                  </span>
+                  
+                  {(() => {
+                    const parts = t.message.split(/\n\n(?=\[(?:Customer|Admin) reply)/g);
+                    return parts.map((part: string, idx: number) => {
+                      const isCustomerReply = part.startsWith('[Customer reply');
+                      const isAdminReply = part.startsWith('[Admin reply');
+                      
+                      let sender = 'Customer';
+                      let text = part;
+                      let timeStr = '';
+                      
+                      if (isCustomerReply) {
+                        sender = 'Customer';
+                        const match = part.match(/^\[Customer reply \(([^)]+)\)\]:\s*([\s\S]+)$/);
+                        if (match) {
+                          timeStr = match[1];
+                          text = match[2];
+                        }
+                      } else if (isAdminReply) {
+                        sender = 'You (Admin)';
+                        const match = part.match(/^\[Admin reply \(([^)]+)\)\]:\s*([\s\S]+)$/);
+                        if (match) {
+                          timeStr = match[1];
+                          text = match[2];
+                        }
+                      } else {
+                        sender = 'Customer';
+                        timeStr = new Date(t.created_at).toLocaleString('en-IN');
+                      }
 
-                {t.admin_reply && (
-                  <div className="bg-[#FFFDFB] border border-accent-gold/20 p-3 flex flex-col gap-1 rounded-sm mt-1 whitespace-pre-wrap">
-                    <span className="text-[8px] uppercase tracking-widest font-semibold text-accent-gold">Admin Response:</span>
-                    <p className="text-[10px] text-neutral-700 leading-normal">{t.admin_reply}</p>
-                  </div>
-                )}
+                      const isSelf = sender.startsWith('You');
+                      return (
+                        <div 
+                          key={idx} 
+                          className={`flex flex-col max-w-[85%] rounded-md px-3 py-2 text-[10.5px] font-light leading-relaxed ${
+                            isSelf 
+                              ? 'bg-[#FFFDFB] border border-accent-gold/20 text-neutral-800 align-self-end ml-auto text-right' 
+                              : 'bg-neutral-100 border border-neutral-200 text-neutral-800 mr-auto text-left'
+                          }`}
+                        >
+                          <div className="flex justify-between items-baseline gap-4 mb-0.5">
+                            <span className={`text-[8px] uppercase tracking-wider font-bold ${isSelf ? 'text-accent-gold' : 'text-neutral-500'}`}>
+                              {sender}
+                            </span>
+                            {timeStr && (
+                              <span className="text-[7.5px] text-neutral-400 font-mono">{timeStr}</span>
+                            )}
+                          </div>
+                          <p className="whitespace-pre-wrap">{text}</p>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
 
                 <div className="flex flex-col gap-2 pt-2 border-t border-neutral-soft/10 mt-1">
                   <div className="flex gap-2 w-full">
                     <input 
                       type="text"
                       id={`reply-input-${t.id}`}
-                      placeholder={t.admin_reply ? "Update your reply..." : "Write a response to the customer..."}
+                      placeholder="Type official reply response here..."
                       className="flex-1 bg-bg-luxury border border-neutral-soft/80 py-1.5 px-3 text-[10px] focus:outline-none text-fg-luxury"
                     />
                     <button
@@ -5376,13 +5425,16 @@ function AdminCoreWorkspace() {
                           return;
                         }
                         try {
+                          const dateStr = new Date().toLocaleString('en-IN');
+                          const updatedMessage = `${t.message}\n\n[Admin reply (${dateStr})]:\n${val}`;
+                          
                           const res = await fetch('/api/support/user-tickets', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ ticketId: t.id, adminReply: val, status: 'Replied' })
+                            body: JSON.stringify({ ticketId: t.id, message: updatedMessage, adminReply: val, status: 'Replied' })
                           });
                           if (!res.ok) throw new Error('API_ERROR');
-                          setSupportTickets(prev => prev.map(tick => tick.id === t.id ? { ...tick, status: 'Replied', admin_reply: val } : tick));
+                          setSupportTickets(prev => prev.map(tick => tick.id === t.id ? { ...tick, status: 'Replied', message: updatedMessage, admin_reply: val } : tick));
                           showToast('Reply submitted successfully.', 'success');
                           if (input) input.value = '';
                         } catch {

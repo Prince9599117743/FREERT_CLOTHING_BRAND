@@ -994,17 +994,67 @@ function DashboardContent() {
                             </span>
                           </div>
 
-                          <div className="text-[10.5px] font-light text-neutral-600 leading-relaxed text-left whitespace-pre-wrap">
-                            <span className="text-[8.5px] uppercase tracking-wider text-text-muted font-semibold block mb-0.5">Your Message Thread:</span>
-                            {ticket.message}
-                          </div>
+                          {/* WhatsApp Style Chat Thread Layout */}
+                          <div className="flex flex-col gap-3 my-2 bg-neutral-50/50 p-4 border border-neutral-soft/30 rounded-sm">
+                            <span className="text-[8.5px] uppercase tracking-widest font-bold text-text-muted mb-1 block border-b border-neutral-200/50 pb-1">
+                              Conversation Transcript
+                            </span>
+                            
+                            {(() => {
+                              // We parse the thread. To handle compatibility, if it is a single text, we treat it as the initial message.
+                              const parts = ticket.message.split(/\n\n(?=\[(?:Customer|Admin) reply)/g);
+                              return parts.map((part: string, idx: number) => {
+                                const isCustomerReply = part.startsWith('[Customer reply');
+                                const isAdminReply = part.startsWith('[Admin reply');
+                                
+                                let sender = 'You';
+                                let text = part;
+                                let timeStr = '';
+                                
+                                if (isCustomerReply) {
+                                  sender = 'You';
+                                  const match = part.match(/^\[Customer reply \(([^)]+)\)\]:\s*([\s\S]+)$/);
+                                  if (match) {
+                                    timeStr = match[1];
+                                    text = match[2];
+                                  }
+                                } else if (isAdminReply) {
+                                  sender = 'Official Support';
+                                  const match = part.match(/^\[Admin reply \(([^)]+)\)\]:\s*([\s\S]+)$/);
+                                  if (match) {
+                                    timeStr = match[1];
+                                    text = match[2];
+                                  }
+                                } else {
+                                  // Initial message submitted
+                                  sender = 'You';
+                                  timeStr = new Date(ticket.created_at || ticket.createdAt).toLocaleString('en-IN');
+                                }
 
-                          {ticket.admin_reply && (
-                            <div className="bg-[#FFFDFB] border border-accent-gold/20 p-3.5 flex flex-col gap-1.5 rounded-sm text-left whitespace-pre-wrap">
-                              <span className="text-[8.5px] uppercase tracking-widest font-bold text-accent-gold">Official Response:</span>
-                              <p className="text-[10.5px] text-neutral-800 leading-relaxed font-light">{ticket.admin_reply}</p>
-                            </div>
-                          )}
+                                const isSelf = sender === 'You';
+                                return (
+                                  <div 
+                                    key={idx} 
+                                    className={`flex flex-col max-w-[85%] rounded-md px-3 py-2 text-[10.5px] font-light leading-relaxed ${
+                                      isSelf 
+                                        ? 'bg-neutral-100 border border-neutral-200 text-neutral-800 align-self-end ml-auto text-right' 
+                                        : 'bg-[#FFFDFB] border border-accent-gold/20 text-neutral-800 mr-auto text-left'
+                                    }`}
+                                  >
+                                    <div className="flex justify-between items-baseline gap-4 mb-0.5">
+                                      <span className={`text-[8px] uppercase tracking-wider font-bold ${isSelf ? 'text-neutral-500' : 'text-accent-gold'}`}>
+                                        {sender}
+                                      </span>
+                                      {timeStr && (
+                                        <span className="text-[7.5px] text-neutral-400 font-mono">{timeStr}</span>
+                                      )}
+                                    </div>
+                                    <p className="whitespace-pre-wrap">{text}</p>
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
 
                           {/* Customer Reply back block when ticket is open */}
                           {ticket.status !== 'Closed' ? (
@@ -1012,7 +1062,7 @@ function DashboardContent() {
                               <input 
                                 type="text"
                                 id={`customer-reply-${ticket.id}`}
-                                placeholder="Reply to this enquiry..."
+                                placeholder="Type your reply here..."
                                 className="flex-1 bg-neutral-soft/5 border border-neutral-soft/60 py-1.5 px-3 text-[10px] focus:outline-none text-fg-luxury"
                               />
                               <button
