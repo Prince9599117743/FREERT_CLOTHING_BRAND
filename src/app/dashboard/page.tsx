@@ -994,13 +994,13 @@ function DashboardContent() {
                             </span>
                           </div>
 
-                          <div className="text-[10.5px] font-light text-neutral-600 leading-relaxed text-left">
-                            <span className="text-[8.5px] uppercase tracking-wider text-text-muted font-semibold block mb-0.5">Your Message:</span>
-                            "{ticket.message}"
+                          <div className="text-[10.5px] font-light text-neutral-600 leading-relaxed text-left whitespace-pre-wrap">
+                            <span className="text-[8.5px] uppercase tracking-wider text-text-muted font-semibold block mb-0.5">Your Message Thread:</span>
+                            {ticket.message}
                           </div>
 
                           {ticket.admin_reply && (
-                            <div className="bg-[#FFFDFB] border border-accent-gold/20 p-3.5 flex flex-col gap-1.5 rounded-sm text-left">
+                            <div className="bg-[#FFFDFB] border border-accent-gold/20 p-3.5 flex flex-col gap-1.5 rounded-sm text-left whitespace-pre-wrap">
                               <span className="text-[8.5px] uppercase tracking-widest font-bold text-accent-gold">Official Response:</span>
                               <p className="text-[10.5px] text-neutral-800 leading-relaxed font-light">{ticket.admin_reply}</p>
                             </div>

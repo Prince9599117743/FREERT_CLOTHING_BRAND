@@ -5348,12 +5348,12 @@ function AdminCoreWorkspace() {
                   </div>
                 </div>
 
-                <p className="font-light leading-relaxed border-l border-neutral-soft/50 pl-3 italic text-[10.5px]">
+                <p className="font-light leading-relaxed border-l border-neutral-soft/50 pl-3 italic text-[10.5px] whitespace-pre-wrap">
                   &ldquo;{t.message}&rdquo;
                 </p>
 
                 {t.admin_reply && (
-                  <div className="bg-[#FFFDFB] border border-accent-gold/20 p-3 flex flex-col gap-1 rounded-sm mt-1">
+                  <div className="bg-[#FFFDFB] border border-accent-gold/20 p-3 flex flex-col gap-1 rounded-sm mt-1 whitespace-pre-wrap">
                     <span className="text-[8px] uppercase tracking-widest font-semibold text-accent-gold">Admin Response:</span>
                     <p className="text-[10px] text-neutral-700 leading-normal">{t.admin_reply}</p>
                   </div>
