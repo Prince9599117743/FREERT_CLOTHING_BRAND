@@ -535,7 +535,7 @@ function AdminCoreWorkspace() {
             id: s.id,
             title: s.title,
             subtitle: s.subtitle || '',
-            bannerImage: s.banner_image || s.bannerImage || '/assets/trench_coat.jpg',
+            bannerImage: s.banner_image || s.bannerImage || '',
             ctaText: s.cta_text || s.ctaText || 'Shop Now',
             ctaLink: s.cta_link || s.ctaLink || '/shop',
             visible: s.visible ?? true,
