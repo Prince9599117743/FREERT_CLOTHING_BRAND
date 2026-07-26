@@ -37,14 +37,25 @@ export async function GET(request: Request) {
   }
 }
 
-// POST endpoint to update admin_reply or ticket message securely bypassing RLS
+// POST endpoint to update or DELETE ticket message securely bypassing RLS
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { ticketId, message, adminReply, status } = body;
+    const { ticketId, message, adminReply, status, action } = body;
 
     if (!ticketId) {
       return NextResponse.json({ error: 'Missing ticketId' }, { status: 400 });
+    }
+
+    // Handle Secure DELETE action bypassing RLS delete policy block
+    if (action === 'DELETE') {
+      const { error } = await supabaseAdmin
+        .from('support_tickets')
+        .delete()
+        .eq('id', ticketId);
+
+      if (error) throw error;
+      return NextResponse.json({ success: true, message: 'Ticket deleted successfully' }, { status: 200 });
     }
 
     const payload: any = { updated_at: new Date().toISOString() };

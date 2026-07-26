@@ -5266,8 +5266,12 @@ function AdminCoreWorkspace() {
     const handleDeleteTicket = async (id: string) => {
       if (!window.confirm('Are you sure you want to permanently delete this enquiry?')) return;
       try {
-        const { error } = await supabase.from('support_tickets').delete().eq('id', id);
-        if (error) throw error;
+        const response = await fetch('/api/support/user-tickets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ticketId: id, action: 'DELETE' })
+        });
+        if (!response.ok) throw new Error('API_ERROR');
         setSupportTickets(prev => prev.filter(t => t.id !== id));
         showToast('Enquiry deleted.', 'info');
       } catch {
