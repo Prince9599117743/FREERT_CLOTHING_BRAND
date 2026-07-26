@@ -757,7 +757,7 @@ export const getUserSupportTickets = async (email: string): Promise<any[]> => {
   const { data, error } = await supabase
     .from('support_tickets')
     .select('*')
-    .eq('email', email)
+    .ilike('email', email.trim())
     .not('status', 'eq', 'live_session')
     .not('subject', 'ilike', 'OTP_VERIFICATION:%')
     .order('created_at', { ascending: false });

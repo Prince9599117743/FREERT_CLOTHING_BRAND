@@ -6,15 +6,19 @@ import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/CartDrawer';
 import { useToast } from '@/contexts/ToastContext';
 import { useSettings } from '@/contexts/SettingsContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { createSupportTicket } from '@/services/database';
 import { Mail, Compass, HelpCircle, AlertTriangle } from 'lucide-react';
 
 export default function SupportPage() {
   const { showToast } = useToast();
   const { getSetting } = useSettings();
+  const { user } = useAuth();
+  
   const storeEmail = getSetting('store_email', 'freertofficial@gmail.com');
   const storePhone = getSetting('store_phone', '+91 84680 17123');
   const storeAddress = getSetting('store_address', 'FREERT Headquarters, New Delhi, India');
+  
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -22,6 +26,15 @@ export default function SupportPage() {
   const [message, setMessage] = useState('');
   
   const [databaseOffline, setDatabaseOffline] = useState(false);
+
+  // Auto-prefill coordinates when logged in user is loaded
+  React.useEffect(() => {
+    if (user) {
+      setName(user.fullName || '');
+      setEmail(user.email || '');
+      setPhone(user.phone || '');
+    }
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
