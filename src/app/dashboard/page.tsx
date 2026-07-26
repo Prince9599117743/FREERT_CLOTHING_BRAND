@@ -185,8 +185,10 @@ function DashboardContent() {
   const fetchUserSupportTickets = async () => {
     if (!user || !user.email) return;
     try {
-      const ticketsList = await getUserSupportTickets(user.email);
-      setSupportTickets(ticketsList);
+      const response = await fetch(`/api/support/user-tickets?email=${encodeURIComponent(user.email)}`);
+      if (!response.ok) throw new Error('API_ERROR');
+      const ticketsList = await response.json();
+      setSupportTickets(ticketsList || []);
     } catch (e) {
       console.error('Failed to load user support tickets:', e);
     }
