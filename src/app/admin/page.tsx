@@ -75,6 +75,7 @@ interface OrderAdmin {
   cancelReason?: string;
   cancelRequestStatus?: string;
   cancelAdminNotes?: string;
+  courierName?: string;
 }
 
 interface Customer {
@@ -465,6 +466,7 @@ function AdminCoreWorkspace() {
             cancelReason: o.cancel_reason,
             cancelRequestStatus: o.cancel_request_status,
             cancelAdminNotes: o.cancel_admin_notes,
+            courierName: o.courier_name,
           })));
         }
 
@@ -860,10 +862,10 @@ function AdminCoreWorkspace() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { title: 'Total Revenue', value: `₹${dashboardStats.totalRevenue.toLocaleString('en-IN')}`, note: 'All time revenue' },
-          { title: 'Total Orders', value: `${dashboardStats.totalOrders} Orders`, note: 'All orders placed' },
-          { title: 'Active Customers', value: `${dashboardStats.totalCustomers} Members`, note: 'Registered accounts' },
-          { title: 'Low Stock Alerts', value: `${dashboardStats.lowStockCount} Articles`, note: 'Under 5 units threshold' }
+          { title: 'Delivered Revenue', value: `₹${(dashboardStats.totalRevenue || 0).toLocaleString('en-IN')}`, note: 'Revenue from delivered orders only' },
+          { title: 'Total Orders', value: `${dashboardStats.totalOrders || 0} Orders`, note: 'All orders placed' },
+          { title: 'Active Customers', value: `${dashboardStats.totalCustomers || 0} Members`, note: 'Registered accounts' },
+          { title: 'Low Stock Alerts', value: `${dashboardStats.lowStockCount || 0} Articles`, note: 'Under 5 units threshold' }
         ].map((item, idx) => (
           <div key={idx} className="bg-bg-luxury border border-neutral-soft/80 p-6 flex flex-col justify-between min-h-[110px] hover:border-neutral-400 transition-all">
             <span className="text-[9px] uppercase tracking-widest text-text-muted font-semibold">{item.title}</span>
@@ -871,6 +873,20 @@ function AdminCoreWorkspace() {
             <span className="text-[8px] uppercase tracking-widest text-text-muted mt-1">{item.note}</span>
           </div>
         ))}
+      </div>
+
+      {/* Cancellation aggregates details row */}
+      <div className="grid grid-cols-2 gap-6 bg-red-950/[0.02] border border-red-900/10 p-6">
+        <div className="flex flex-col">
+          <span className="text-[9px] uppercase tracking-widest text-red-800 font-bold">Cancelled Orders</span>
+          <span className="text-xl font-light tracking-wide text-red-900 mt-2">{(dashboardStats as any).totalCancelledOrders || 0} Orders</span>
+          <span className="text-[8px] uppercase tracking-widest text-text-muted mt-1">Orders with cancelled status</span>
+        </div>
+        <div className="flex flex-col border-l border-red-900/10 pl-6">
+          <span className="text-[9px] uppercase tracking-widest text-red-800 font-bold">Cancelled Revenue Loss</span>
+          <span className="text-xl font-light tracking-wide text-red-900 mt-2">₹{((dashboardStats as any).totalCancelledRevenue || 0).toLocaleString('en-IN')}</span>
+          <span className="text-[8px] uppercase tracking-widest text-text-muted mt-1">Sum of cancelled transactions</span>
+        </div>
       </div>
 
       {/* Real-time Telemetry Stats Row */}
@@ -1154,12 +1170,13 @@ function AdminCoreWorkspace() {
           isPublished: true,
           rating: 0,
           reviewsCount: 0,
-          trackQuantity: newProductForm.trackQuantity !== false
+          trackQuantity: newProductForm.trackQuantity !== false,
+          hasSizes: newProductForm.hasSizes !== false
         } as any);
         await logActivity('product_create', `Added product: ${created.name}`);
         await refreshProducts();
         setIsAddingProduct(false);
-        setNewProductForm({ name: '', description: '', basePrice: 0, mrp: 0, stockQty: 10, images: ['/assets/trench_coat.jpg'], parentCategory: 'men', subCategory: 'hoodies', brand: 'Made in India', status: 'published', trackQuantity: true });
+        setNewProductForm({ name: '', description: '', basePrice: 0, mrp: 0, stockQty: 10, images: ['/assets/trench_coat.jpg'], parentCategory: 'men', subCategory: 'hoodies', brand: 'Made in India', status: 'published', trackQuantity: true, hasSizes: true });
         showToast('Product added successfully.', 'success');
       } catch (e) {
         showToast('Failed to add product.', 'error');
@@ -1298,7 +1315,7 @@ function AdminCoreWorkspace() {
                         <option value="Other">Other</option>
                       </select>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       <div>
                         <label className="text-[9px] uppercase tracking-wider text-text-muted mb-1 block">Stock Status Override</label>
                         <select 
@@ -1319,7 +1336,19 @@ function AdminCoreWorkspace() {
                           className="w-4 h-4 accent-fg-luxury cursor-pointer"
                         />
                         <label htmlFor="edit-track-quantity" className="text-[9px] uppercase tracking-wider text-text-muted cursor-pointer font-semibold">
-                          Track Inventory Quantities
+                          Track Stock
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2 mt-4 select-none">
+                        <input 
+                          type="checkbox"
+                          id="edit-has-sizes"
+                          checked={editingProduct.hasSizes !== false}
+                          onChange={(e) => setEditingProduct({ ...editingProduct, hasSizes: e.target.checked })}
+                          className="w-4 h-4 accent-fg-luxury cursor-pointer"
+                        />
+                        <label htmlFor="edit-has-sizes" className="text-[9px] uppercase tracking-wider text-text-muted cursor-pointer font-semibold">
+                          Enable Sizes
                         </label>
                       </div>
                     </div>
@@ -2346,7 +2375,7 @@ function AdminCoreWorkspace() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-[9px] uppercase tracking-wider text-text-muted mb-1 block">Stock Quantity</label>
                   <input 
@@ -2366,8 +2395,20 @@ function AdminCoreWorkspace() {
                     onChange={(e) => setNewProductForm({ ...newProductForm, trackQuantity: e.target.checked })}
                     className="w-4 h-4 accent-fg-luxury cursor-pointer"
                   />
-                  <label htmlFor="new-track-quantity" className="text-[9px] uppercase tracking-wider text-text-muted cursor-pointer font-semibold">
-                    Track Inventory Quantities
+                  <label htmlFor="new-track-quantity" className="text-[9px] uppercase tracking-wider text-text-muted cursor-pointer font-semibold text-[8px] whitespace-nowrap">
+                    Track Stock
+                  </label>
+                </div>
+                <div className="flex items-center gap-2 mt-4 select-none">
+                  <input 
+                    type="checkbox"
+                    id="new-has-sizes"
+                    checked={newProductForm.hasSizes !== false}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, hasSizes: e.target.checked })}
+                    className="w-4 h-4 accent-fg-luxury cursor-pointer"
+                  />
+                  <label htmlFor="new-has-sizes" className="text-[9px] uppercase tracking-wider text-text-muted cursor-pointer font-semibold text-[8px] whitespace-nowrap">
+                    Enable Sizes
                   </label>
                 </div>
               </div>
@@ -4112,6 +4153,14 @@ function AdminCoreWorkspace() {
                     await updateOrderStatus(o.id, nextStatus);
                     setOrders(prev => prev.map(item => item.id === o.id ? { ...item, status: nextStatus as any } : item));
                     showToast(`Order status updated to ${nextStatus}.`, 'success');
+                    // Send cancellation email if status set to cancelled or refunded
+                    if (nextStatus === 'cancelled' || nextStatus === 'refunded') {
+                      fetch('/api/email/order-cancellation', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orderId: o.id, reason: 'Status updated by store administrator' })
+                      }).catch((e) => console.error('Cancellation email trigger failed:', e));
+                    }
                     // Refresh dashboard stats dynamically
                     const freshStats = await getDashboardStats();
                     setDashboardStats(freshStats);
@@ -4130,6 +4179,24 @@ function AdminCoreWorkspace() {
                 <option value="delivered">Delivered</option>
                 <option value="cancelled">Cancelled</option>
                 <option value="refunded">Refunded</option>
+              </select>
+
+              <select
+                value={o.courierName || 'Blue Dart'}
+                onChange={async (e) => {
+                  const val = e.target.value;
+                  try {
+                    await updateOrderDetails(o.id, { courierName: val });
+                    setOrders(prev => prev.map(item => item.id === o.id ? { ...item, courierName: val } : item));
+                    showToast(`Courier updated to ${val}.`, 'success');
+                  } catch {
+                    showToast('Courier update failed.', 'error');
+                  }
+                }}
+                className="bg-bg-luxury border border-neutral-soft/80 text-fg-luxury py-1.5 px-3 text-[8.5px] uppercase tracking-widest font-semibold cursor-pointer focus:outline-none ml-2"
+              >
+                <option value="Blue Dart">Blue Dart</option>
+                <option value="DHL">DHL Express</option>
               </select>
               
               <button 

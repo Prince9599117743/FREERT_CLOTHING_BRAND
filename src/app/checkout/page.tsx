@@ -135,7 +135,9 @@ export default function CheckoutPage() {
     setRedirectCount(0);
   };
 
-  const total = Math.max(0, cartSubtotal - discountAmount + shippingCost);
+  // Online discount computation
+  const onlineDiscount = paymentMethod === 'razorpay' ? Math.round((cartSubtotal - discountAmount) * 0.10) : 0;
+  const total = Math.max(0, cartSubtotal - discountAmount - onlineDiscount + shippingCost);
 
   const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,7 +231,7 @@ export default function CheckoutPage() {
       const dbOrder = await createOrder({
         userId: user?.id || undefined,
         totalAmount: total,
-        discountAmount: discountAmount,
+        discountAmount: discountAmount + onlineDiscount,
         couponId: appliedCoupon?.id || undefined,
         status: 'pending',
         paymentMethod: paymentMethod, // 'cod' or 'razorpay'
@@ -718,18 +720,54 @@ export default function CheckoutPage() {
                       04. Payment Modes
                     </h3>
                     <div className="grid grid-cols-1 gap-4">
-                      <label className="border p-5 flex items-center justify-between cursor-default border-fg-luxury bg-fg-luxury/5">
+                      {/* Cash on Delivery option */}
+                      <label 
+                        onClick={() => setPaymentMethod('cod')}
+                        className={`border p-5 flex items-center justify-between cursor-pointer transition-all duration-200 ${
+                          paymentMethod === 'cod' 
+                            ? 'border-fg-luxury bg-fg-luxury/5' 
+                            : 'border-neutral-soft/50 bg-transparent hover:border-fg-luxury/60'
+                        }`}
+                      >
                         <div className="flex items-center gap-3">
                           <input 
                             type="radio" 
                             name="payment" 
-                            checked={true}
-                            readOnly
+                            checked={paymentMethod === 'cod'}
+                            onChange={() => setPaymentMethod('cod')}
                             className="accent-fg-luxury"
                           />
                           <span className="text-xs uppercase tracking-wider font-medium text-fg-luxury">Cash On Delivery</span>
                         </div>
                         <Truck size={16} className="text-text-muted" />
+                      </label>
+
+                      {/* Razorpay Online Option */}
+                      <label 
+                        onClick={() => {
+                          setPaymentMethod('razorpay');
+                          showToast('10% Online Payment discount applied!', 'success');
+                        }}
+                        className={`border p-5 flex items-center justify-between cursor-pointer transition-all duration-200 ${
+                          paymentMethod === 'razorpay' 
+                            ? 'border-fg-luxury bg-fg-luxury/5' 
+                            : 'border-neutral-soft/50 bg-transparent hover:border-fg-luxury/60'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input 
+                            type="radio" 
+                            name="payment" 
+                            checked={paymentMethod === 'razorpay'}
+                            onChange={() => setPaymentMethod('razorpay')}
+                            className="accent-fg-luxury"
+                          />
+                          <div className="flex flex-col gap-0.5 items-start">
+                            <span className="text-xs uppercase tracking-wider font-medium text-fg-luxury">Pay Online (UPI / Card)</span>
+                            <span className="text-[8px] uppercase tracking-widest text-emerald-800 font-bold bg-emerald-50 border border-emerald-200/50 px-1.5 py-0.5 rounded-sm">Save 10% Extra Discount</span>
+                          </div>
+                        </div>
+                        <CreditCard size={16} className="text-text-muted" />
                       </label>
                     </div>
                   </div>
@@ -798,6 +836,12 @@ export default function CheckoutPage() {
                       </button>
                     </span>
                     <span>-₹{discountAmount.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                {onlineDiscount > 0 && (
+                  <div className="flex justify-between text-emerald-800 uppercase tracking-wider text-[10px] items-center bg-emerald-50/50 p-1.5 border border-emerald-100 rounded-sm animate-[fadeIn_0.3s_ease-out]">
+                    <span className="font-semibold">Online Payment 10% Off</span>
+                    <span className="font-bold">-₹{onlineDiscount.toLocaleString('en-IN')}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-text-muted uppercase tracking-wider text-[10px]">

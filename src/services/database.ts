@@ -35,6 +35,7 @@ const mapProduct = (row: any): Product => ({
   colors: row.colors || [],
   status: row.status || ((row.stock_qty ?? row.stockQty ?? 0) === 0 ? 'out-of-stock' : 'published'),
   trackQuantity: row.track_quantity ?? row.trackQuantity ?? true,
+  hasSizes: row.has_sizes ?? row.hasSizes ?? true,
   createdAt: row.created_at ?? row.createdAt,
   updatedAt: row.updated_at ?? row.updatedAt,
 });
@@ -136,6 +137,7 @@ export const createProduct = async (product: Omit<Product, 'id' | 'createdAt' | 
     reviews_count: product.reviewsCount || 0,
     status: (product as any).status || ((product.stockQty ?? 10) === 0 ? 'out-of-stock' : 'published'),
     track_quantity: (product as any).trackQuantity ?? true,
+    has_sizes: (product as any).hasSizes ?? true,
   };
   const { data, error } = await supabase.from('products').insert(payload).select().single();
   if (error) throw error;
@@ -165,6 +167,7 @@ export const updateProduct = async (id: string, updates: Partial<Product>): Prom
   if ((updates as any).seoDescription !== undefined) payload.seo_description = (updates as any).seoDescription;
   if (updates.rating !== undefined) payload.rating = updates.rating;
   if ((updates as any).trackQuantity !== undefined) payload.track_quantity = (updates as any).trackQuantity;
+  if ((updates as any).hasSizes !== undefined) payload.has_sizes = (updates as any).hasSizes;
   payload.updated_at = new Date().toISOString();
 
   const { data, error } = await supabase.from('products').update(payload).eq('id', id).select().single();
@@ -1074,6 +1077,8 @@ export const getDashboardStats = async (): Promise<{
   totalProducts: number;
   lowStockCount: number;
   pendingOrders: number;
+  totalCancelledOrders: number;
+  totalCancelledRevenue: number;
 }> => {
   verifyConnection();
   const [ordersRes, customersRes, productsRes] = await Promise.all([
@@ -1086,7 +1091,12 @@ export const getDashboardStats = async (): Promise<{
   const totalRevenue = orders
     .filter((o: any) => o.status?.toLowerCase() === 'delivered')
     .reduce((sum: number, o: any) => sum + (Number(o.total_amount) || 0), 0);
+  
   const pendingOrders = orders.filter((o: any) => o.status?.toLowerCase() === 'pending' || o.status?.toLowerCase() === 'processing').length;
+  
+  const cancelledOrders = orders.filter((o: any) => o.status?.toLowerCase() === 'cancelled' || o.status?.toLowerCase() === 'refunded');
+  const totalCancelledOrders = cancelledOrders.length;
+  const totalCancelledRevenue = cancelledOrders.reduce((sum: number, o: any) => sum + (Number(o.total_amount) || 0), 0);
 
   const products = productsRes.data || [];
   const lowStockCount = products.filter((p: any) => (p.stock_qty || 0) > 0 && (p.stock_qty || 0) <= 5).length;
@@ -1098,6 +1108,8 @@ export const getDashboardStats = async (): Promise<{
     totalProducts: products.length,
     lowStockCount,
     pendingOrders,
+    totalCancelledOrders,
+    totalCancelledRevenue,
   };
 };
 

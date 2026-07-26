@@ -94,6 +94,7 @@ export interface Product {
   availableSizes?: string[];
   availableColors?: { name: string; hex: string }[];
   colors?: any[];
+  hasSizes?: boolean;
 }
 
 export interface ProductVariant {

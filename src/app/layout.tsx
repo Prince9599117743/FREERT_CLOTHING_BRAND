@@ -66,8 +66,60 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    'name': 'FREERT',
+    'url': 'https://freert.in',
+    'potentialAction': {
+      '@type': 'SearchAction',
+      'target': 'https://freert.in/shop?q={search_term_string}',
+      'query-input': 'required name=search_term_string'
+    },
+    'hasPart': [
+      {
+        '@type': 'WebPage',
+        'name': 'Shop Men Clothes',
+        'url': 'https://freert.in/shop/men'
+      },
+      {
+        '@type': 'WebPage',
+        'name': 'Shop Women Clothes',
+        'url': 'https://freert.in/shop/women'
+      },
+      {
+        '@type': 'WebPage',
+        'name': 'New Arrivals',
+        'url': 'https://freert.in/shop/new-arrivals'
+      },
+      {
+        '@type': 'WebPage',
+        'name': 'Customer Sign In / Register',
+        'url': 'https://freert.in/login'
+      },
+      {
+        '@type': 'WebPage',
+        'name': 'Track Order Status',
+        'url': 'https://freert.in/track-order'
+      },
+      {
+        '@type': 'WebPage',
+        'name': 'Capsule Wardrobe Accessories',
+        'url': 'https://freert.in/shop/accessories'
+      }
+    ]
+  };
+
   return (
     <html lang="en" className="h-full">
+      <head>
+        <link rel="icon" href="/freert-logo.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/freert-logo.svg" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-bg-luxury text-fg-luxury font-sans-luxury">
         <AuthProvider>
           <ToastProvider>

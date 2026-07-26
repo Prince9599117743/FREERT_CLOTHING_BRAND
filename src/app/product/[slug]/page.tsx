@@ -235,11 +235,12 @@ export default function ProductDetailPage() {
                              !item.slug.includes('wallet') &&
                              !item.slug.includes('belt');
 
-          if (itemSizes.length > 0) {
-            setSelectedSize(itemSizes[0]);
-          } else {
-            setSelectedSize(itemIsClothing ? 'S' : 'One Size');
-          }
+           const hasSizesEnabled = (item as any).has_sizes !== false && item.hasSizes !== false;
+           if (itemSizes.length > 0) {
+             setSelectedSize(itemSizes[0]);
+           } else {
+             setSelectedSize(hasSizesEnabled ? 'S' : 'One Size');
+           }
 
           const list = await getProducts();
           const itemTags = item.tags || [];
@@ -567,9 +568,10 @@ export default function ProductDetailPage() {
                      !product.slug.includes('wallet') &&
                      !product.slug.includes('belt');
 
+  const sizesEnabled = product.hasSizes !== false && (product as any).has_sizes !== false;
   const sizes = product.variants && product.variants.length > 0 
     ? Array.from(new Set(product.variants.map(v => v.size))) 
-    : (isClothing ? ['S', 'M', 'L', 'XL'] : ['One Size']);
+    : (sizesEnabled ? ['S', 'M', 'L', 'XL'] : []);
 
   const selectedColorway = colorsConfig.find((col: any) => col.color_name === selectedColor);
   const colorwayMedia = selectedColorway ? [...(selectedColorway.images || []), ...(selectedColorway.videos || [])] : [];
@@ -597,39 +599,58 @@ export default function ProductDetailPage() {
   const activeAccordionSections = infoSections.length > 0 ? infoSections : defaultAccordionSections;
 
   const handleAddToBag = async () => {
-    let variant = product.variants?.find(v => v.size === selectedSize && v.color === selectedColor);
+    if (sizesEnabled && !selectedSize) {
+      showToast('Please select a size before adding to bag.', 'error');
+      // Highlight/Scroll size selector
+      const el = document.querySelector('.size-btn');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    const finalSize = sizesEnabled ? selectedSize : 'One Size';
+
+    let variant = product.variants?.find(v => v.size === finalSize && v.color === selectedColor);
     if (!variant && (!product.variants || product.variants.length === 0)) {
       variant = {
-        id: `virtual-${product.id}-${selectedSize}`,
+        id: `virtual-${product.id}-${finalSize}`,
         productId: product.id,
-        size: selectedSize || 'One Size',
+        size: finalSize,
         color: selectedColor || 'Default',
         stockQty: product.stockQty || 10,
         additionalPrice: 0,
-        sku: `SKU-${product.slug}-${selectedSize}`
+        sku: `SKU-${product.slug}-${finalSize}`
       } as any;
     }
     
     if (variant) {
       await addToCart({ ...variant, product });
       setAdded(true);
-      showToast(`Equipped ${product.name} (${selectedSize}) to shopping bag.`, 'success');
+      showToast(`Equipped ${product.name} (${finalSize}) to shopping bag.`, 'success');
       setTimeout(() => setAdded(false), 2000);
       setIsCartOpen(true);
     }
   };
 
   const handleBuyNow = async () => {
-    let variant = product.variants?.find(v => v.size === selectedSize && v.color === selectedColor);
+    if (sizesEnabled && !selectedSize) {
+      showToast('Please select a size before checking out.', 'error');
+      const el = document.querySelector('.size-btn');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    const finalSize = sizesEnabled ? selectedSize : 'One Size';
+
+    let variant = product.variants?.find(v => v.size === finalSize && v.color === selectedColor);
     if (!variant && (!product.variants || product.variants.length === 0)) {
       variant = {
-        id: `virtual-${product.id}-${selectedSize}`,
+        id: `virtual-${product.id}-${finalSize}`,
         productId: product.id,
-        size: selectedSize || 'One Size',
+        size: finalSize,
         color: selectedColor || 'Default',
         stockQty: product.stockQty || 10,
         additionalPrice: 0,
-        sku: `SKU-${product.slug}-${selectedSize}`
+        sku: `SKU-${product.slug}-${finalSize}`
       } as any;
     }
     if (variant) {
